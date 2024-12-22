@@ -1,0 +1,89 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Scraper</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f3f4f6;
+        }
+        h1 {
+            color: #333;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 250px;
+        }
+        button {
+            padding: 10px 15px;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #weather-data {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 300px;
+        }
+        #weather-data p {
+            margin: 8px 0;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <h1>Weather Information</h1>
+    <form id="weather-form">
+        <input type="text" id="city" placeholder="Enter city name" required>
+        <button type="submit">Get Weather</button>
+    </form>
+    <div id="weather-data" style="display: none;">
+        <p><strong>Date:</strong> <span id="date"></span></p>
+        <p><strong>Temperature:</strong> <span id="temperature"></span></p>
+        <p><strong>Min Temperature:</strong> <span id="min-temp"></span></p>
+        <p><strong>Max Temperature:</strong> <span id="max-temp"></span></p>
+        <p><strong>Humidity:</strong> <span id="humidity"></span></p>
+        <p><strong>Pressure:</strong> <span id="pressure"></span></p>
+    </div>
+    <script>
+        document.getElementById('weather-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const city = document.getElementById('city').value;
+            try {
+                const response = await fetch(`http://localhost:3003/${city}`);
+                const data = await response.json();
+                document.getElementById('weather-data').style.display = 'block';
+                document.getElementById('date').textContent = data.date || 'N/A';
+                document.getElementById('temperature').textContent = data.temperature || 'N/A';
+                document.getElementById('min-temp').textContent = data.minTemperature || 'N/A';
+                document.getElementById('max-temp').textContent = data.maxTemperature || 'N/A';
+                document.getElementById('humidity').textContent = data.humidity || 'N/A';
+                document.getElementById('pressure').textContent = data.pressure || 'N/A';
+            } catch (error) {
+                alert('Error fetching weather data. Please check the city name or try again later.');
+                console.error(error);
+            }
+        });
+    </script>
+</body>
+</html>

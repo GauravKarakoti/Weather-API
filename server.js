@@ -1,8 +1,10 @@
 const express=require("express");
 const cheerio=require("cheerio");
 const axios=require("axios");
+const cors = require("cors");
 require("dotenv").config();
 const app=express();
+app.use(cors());
 app.get("/:city",async (req,res)=>{
     const page=await axios.get(process.env.SCRAPE_API_FIRST+req.params.city+process.env.SCRAPE_API_LAST);
     //console.log(page.data);
