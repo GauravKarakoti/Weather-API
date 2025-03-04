@@ -31,14 +31,8 @@ A simple weather scraper built with Node.js, Express, and Cheerio. This project 
    ```
 
 ## Usage
-1. **Start the server:**
-```bash
-node server.js
-```
-The server will start and listen on the port specified in your `.env` file (default is 3003).
-2. **Open the frontend:** Open the `index.html` file in your web browser. You can either:
-  - Open it directly from your file system.
-  - Serve it using a static server of your choice (e.g., [Live Server](https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer) in VS Code).
+
+1. **Open the frontend:** Visit [Live Demo](https://weather-available.netlify.app)
 3. **Fetch Weather Data:**
   - Enter a city name in the input field.
   - Click the **Get Weather** button.
@@ -69,3 +63,19 @@ The server will start and listen on the port specified in your `.env` file (defa
 
 ## Contributing
 Contributions are welcome! If you have suggestions, bug reports, or improvements, please open an issue or submit a pull request.
+
+- Make sure to switch the link in the response variable in the `index.html` file to `http://localhost:3003/${city}` for local testing and vice-versa while raising pull request.
+
+### For local users
+1. **Start the server:**
+```bash
+node server.js
+```
+The server will start and listen on the port specified in your `.env` file (default is 3003).
+2. **Open the frontend:** Open the `index.html` file in your web browser. You can either:
+  - Open it directly from your file system.
+  - Serve it using a static server of your choice (e.g., [Live Server](https://marketplace.visualstudio.com/items?itemName=ritwickdey.LiveServer) in VS Code).
+3. **Fetch Weather Data:**
+  - Enter a city name in the input field.
+  - Click the **Get Weather** button.
+  - The weather details will be fetched from the API and displayed on the page.
