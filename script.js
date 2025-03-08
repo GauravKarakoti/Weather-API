@@ -115,6 +115,8 @@ function displayRecentSearches(recent) {
     list.innerHTML = recent.map(city => `
         <button class="recent-item" data-city="${city}">${city}</button>
     `).join('');
+    list.style.display = 'flex';
+    list.style.flexWrap = 'wrap';
 }
 
 function loadRecentSearches() {

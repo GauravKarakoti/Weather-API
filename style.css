@@ -5,15 +5,23 @@
     --success-color: #2ecc71;
 }
 
+
+
+
 body {
-    font-family: 'Segoe UI', sans-serif;
-    line-height: 1.6;
-    padding: 20px;
-    max-width: 800px;
-    margin: 0 auto;
+    font-family: 'Orbitron', sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
     background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-    color: #fff;
+    overflow: hidden;
 }
+
+
 
 .container {
     background: rgba(0, 0, 0, 0.6);
@@ -55,24 +63,37 @@ input {
     box-shadow: 0 0 10px #0ff;
 }
 
+
+
 button {
-    background: var(--secondary-color);
-    color: white;
-    padding: 0.8rem 1.5rem;
+    padding: 10px 15px;
     border: none;
-    border-radius: 4px;
+    background: rgba(0, 255, 255, 0.8); /* Adjusted background color with opacity */
+    color: black;
+    font-size: 1em;
+    font-weight: bold;
+    border-radius: 8px;
     cursor: pointer;
-    transition: opacity 0.3s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    text-transform: uppercase;
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.8), 0 0 20px rgba(0, 255, 255, 0.8); /* Adjusted box-shadow color with opacity */
+    transition: 0.3s ease-in-out;
 }
+ 
 
 button:disabled {
     opacity: 0.7;
     cursor: not-allowed;
+} 
+.form-group{
+    color: #ddd;
 }
 
+
+button:hover {
+    background: #00f;
+    color: white;
+    box-shadow: 0 0 20px #00f, 0 0 40px #00f;
+}
 .spinner {
     display: inline-block;
     width: 1.5rem;
@@ -82,6 +103,11 @@ button:disabled {
     border-top-color: #fff;
     animation: spin 1s ease-in-out infinite;
     margin-left: 10px;
+}
+
+.temperature {
+    color: #0ff;
+
 }
 
 .hidden {
