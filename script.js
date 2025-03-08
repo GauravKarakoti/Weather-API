@@ -35,7 +35,7 @@ async function handleSubmit(e) {
 async function fetchWeatherData(city) {
 
     const URL ='https://weather-api-ex1z.onrender.com'
-    const response = await fetch(`${URL}/${city}`);
+    const response = await fetch(`${URL}/api/weather/${city}`);
     
  
 
