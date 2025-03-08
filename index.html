@@ -145,23 +145,41 @@
     </div>
     <script>
         document.getElementById('weather-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const city = document.getElementById('city').value;
-            try {
-                const response = await fetch(`https://weather-api-ex1z.onrender.com/${city}`);
-                const data = await response.json();
-                document.getElementById('weather-data').style.display = 'block';
-                document.getElementById('date').textContent = data.date || 'N/A';
-                document.getElementById('temperature').textContent = data.temperature || 'N/A';
-                document.getElementById('min-temp').textContent = data.minTemperature || 'N/A';
-                document.getElementById('max-temp').textContent = data.maxTemperature || 'N/A';
-                document.getElementById('humidity').textContent = data.humidity || 'N/A';
-                document.getElementById('pressure').textContent = data.pressure || 'N/A';
-            } catch (error) {
-                alert('Error fetching weather data. Please check the city name or try again later.');
-                console.error(error);
+        e.preventDefault();
+        const city = document.getElementById('city').value.trim();
+    
+        if (!city) {
+            alert("Please enter a city name.");
+            return;
+        }
+    
+        try {
+            const response = await fetch(`https://weather-api-ex1z.onrender.com/${city}`);
+            
+            if (response.status === 429) {  // Handle rate limit error
+                alert("Too many requests! Please try again later.");
+                return;
             }
-        });
+    
+            if (!response.ok) {
+                throw new Error("Failed to fetch weather data");
+            }
+    
+            const data = await response.json();
+            document.getElementById('weather-data').style.display = 'block';
+            document.getElementById('date').textContent = data.date || 'N/A';
+            document.getElementById('temperature').textContent = data.temperature || 'N/A';
+            document.getElementById('min-temp').textContent = data.minTemperature || 'N/A';
+            document.getElementById('max-temp').textContent = data.maxTemperature || 'N/A';
+            document.getElementById('humidity').textContent = data.humidity || 'N/A';
+            document.getElementById('pressure').textContent = data.pressure || 'N/A';
+        } catch (error) {
+            alert("Error fetching weather data. Please check the city name or try again later.");
+            console.error(error);
+        }
+    });
     </script>
+    
+    
 </body>
 </html>
