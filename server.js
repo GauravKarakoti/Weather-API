@@ -13,7 +13,6 @@ app.use(express.static("public")); // Serve frontend files
 app.use(express.json());
 
 // Rate limiting middleware (example)
-const rateLimit = require("express-rate-limit");
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
@@ -35,15 +34,29 @@ app.get("/api/weather/:city", async (req, res) => {
     
     // Improved error handling for element selection
     const getElementText = (selector) => $(selector).text()?.trim() || null;
+    const temperature = getElementText(process.env.TEMPERATURE_CLASS);
+    const minMaxTemperature = getElementText(process.env.MIN_MAX_TEMPERATURE_CLASS);
+    const humidityPressure = getElementText(process.env.HUMIDITY_PRESSURE_CLASS);
 
+    let minTemperature = "", maxTemperature = "", humidity = "", pressure = "";
+
+    for (let i = 0; i < 6; i++) {
+        if (i < 3) minTemperature += minMaxTemperature[i];
+        else maxTemperature += minMaxTemperature[i];
+    }
+
+    for (let i = 0; i < 6; i++) {
+        if (i < 2) humidity += humidityPressure[i];
+        else pressure += humidityPressure[i];
+    }
     const weatherData = {
       date: getElementText(process.env.DATE_CLASS),
-      temperature: getElementText(process.env.TEMPERATURE_CLASS),
+      temperature,
       condition: getElementText(process.env.CONDITION_CLASS), // New condition field
-      minTemperature: getElementText(process.env.MIN_TEMP_CLASS),
-      maxTemperature: getElementText(process.env.MAX_TEMP_CLASS),
-      humidity: getElementText(process.env.HUMIDITY_CLASS),
-      pressure: getElementText(process.env.PRESSURE_CLASS)
+      minTemperature,
+      maxTemperature,
+      humidity,
+      pressure
     };
 
     // Validate essential data

@@ -105,10 +105,10 @@ button:hover {
     margin-left: 10px;
 }
 
-.temperature {
+/* .temperature {
     color: #0ff;
 
-}
+} */
 
 .hidden {
     display: none;
@@ -125,7 +125,7 @@ button:hover {
 
 }
 
-#weather-data p {
+#weather-data p , .temperature {
     margin: 8px 0;
     color: #0ff;
     font-size: 1.1em;
