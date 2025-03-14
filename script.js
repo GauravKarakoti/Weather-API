@@ -3,6 +3,7 @@ const cityInput = document.getElementById('city');
 const weatherData = document.getElementById('weather-data');
 const submitBtn = document.getElementById('submit-btn');
 const spinner = document.querySelector('.spinner');
+const errorElement = document.getElementById('city-error');
 
 form.addEventListener('submit', handleSubmit);
 
@@ -14,7 +15,10 @@ function initialize() {
 async function handleSubmit(e) {
     e.preventDefault();
     const city = cityInput.value.trim();
-    
+
+    // Clear the previous error message when a new search starts
+    clearError();
+
     if (!isValidInput(city)) {
         showError('Please enter a valid city name');
         return;
@@ -32,24 +36,23 @@ async function handleSubmit(e) {
     }
 }
 
-async function fetchWeatherData(city) {
 
-    const URL ='https://weather-api-ex1z.onrender.com'
+async function fetchWeatherData(city) {
+    const URL = 'https://weather-api-ex1z.onrender.com';
     const response = await fetch(`${URL}/api/weather/${city}`);
-    
- 
 
     if (!response.ok) {
+        const errorData = await response.json();
+        const errorMessage = errorData.error || 'Failed to fetch weather data';
+
         if (response.status === 404) {
             throw new Error('City not found. Please enter a valid city name.');
-        } else {
-            const error = await response.json();
-            throw new Error(error.message || 'Failed to fetch weather data');
         }
+
+        throw new Error(errorMessage);
     }
 
     return response.json();
-
 }
 
 function toggleLoading(isLoading) {
@@ -62,29 +65,25 @@ function displayWeather(data) {
         showError('Failed to retrieve weather data. Please try again.');
         return;
     }
-        
-    const temperature = data.temperature || 'N/A';
-    const humidity = data.humidity || 'N/A';
-    const pressure = data.pressure || 'N/A';
-    const minTemperature = data.minTemperature || 'N/A';
-    const maxTemperature = data.maxTemperature || 'N/A';
 
     const template = `
         <div class="weather-card">
             <div class="weather-main">
                 <div class="temp-container">
-                    <span class="temperature">Temp: ${temperature}</span>
+                    <span class="temperature">Temp: ${data.temperature || 'N/A'}</span>
                 </div>
             </div>
             <div class="weather-details">
-                <p>Humidity: ${humidity}</p>
-                <p>Pressure: ${pressure}</p>
-                <p>Min Temp: ${minTemperature}</p>
-                <p>Max Temp: ${maxTemperature}</p>
+                <p><strong>Date:</strong> ${data.date || 'N/A'}</p>
+                <p><strong>Condition:</strong> ${data.condition || 'N/A'}</p>
+                <p><strong>Min Temp:</strong> ${data.minTemperature || 'N/A'}</p>
+                <p><strong>Max Temp:</strong> ${data.maxTemperature || 'N/A'}</p>
+                <p><strong>Humidity:</strong> ${data.humidity || 'N/A'}</p>
+                <p><strong>Pressure:</strong> ${data.pressure || 'N/A'}</p>
             </div>
         </div>
     `;
-    
+
     weatherData.innerHTML = template;
     weatherData.classList.remove('hidden');
 }
@@ -94,10 +93,10 @@ function isValidInput(city) {
 }
 
 function showError(message) {
-    const errorElement = document.getElementById('city-error');
     errorElement.textContent = message;
     errorElement.classList.add('visible');
-    
+    weatherData.innerHTML = ''; // Clear previous data
+
     setTimeout(() => {
         errorElement.classList.remove('visible');
     }, 5000);
@@ -132,6 +131,13 @@ function setupServiceWorker() {
             .catch(err => console.log('SW registration failed:', err));
     }
 }
+
+function clearError() {
+    const errorElement = document.getElementById('city-error');
+    errorElement.textContent = '';
+    errorElement.classList.remove('visible');
+}
+
 
 // Initialize the app
 initialize();

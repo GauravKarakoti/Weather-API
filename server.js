@@ -17,7 +17,7 @@ const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
   message: {
-    status:429,
+    status: 429,
     error: "Too many requests, please try again later."
   }
 });
@@ -26,58 +26,59 @@ app.use(limiter);
 // Enhanced API endpoint
 app.get("/api/weather/:city", async (req, res) => {
   try {
+    const city = req.params.city.trim();
+
+    if (!city || city.length < 2) {
+      return res.status(400).json({ error: "Invalid city name. Please enter a valid city." });
+    }
+
     const response = await axios.get(
-      `${process.env.SCRAPE_API_FIRST}${encodeURIComponent(req.params.city)}${process.env.SCRAPE_API_LAST}`
+      `${process.env.SCRAPE_API_FIRST}${encodeURIComponent(city)}${process.env.SCRAPE_API_LAST}`
     );
-    
+
     const $ = cheerio.load(response.data);
-    
+
     // Improved error handling for element selection
     const getElementText = (selector) => $(selector).text()?.trim() || null;
+
     const temperature = getElementText(process.env.TEMPERATURE_CLASS);
     const minMaxTemperature = getElementText(process.env.MIN_MAX_TEMPERATURE_CLASS);
     const humidityPressure = getElementText(process.env.HUMIDITY_PRESSURE_CLASS);
+    const condition = getElementText(process.env.CONDITION_CLASS);
+    const date = getElementText(process.env.DATE_CLASS);
 
-    let minTemperature = "", maxTemperature = "", humidity = "", pressure = "";
-
-    for (let i = 0; i < 6; i++) {
-        if (i < 3) minTemperature += minMaxTemperature[i];
-        else maxTemperature += minMaxTemperature[i];
+    if (!temperature || !condition) {
+      return res.status(404).json({ error: "Weather data not found for the specified city." });
     }
 
-    for (let i = 0; i < 6; i++) {
-        if (i < 2) humidity += humidityPressure[i];
-        else pressure += humidityPressure[i];
-    }
+    // Improved parsing for min/max temp and humidity/pressure
+    const minTemperature = minMaxTemperature?.substring(0, 3).trim() || "N/A";
+    const maxTemperature = minMaxTemperature?.substring(3).trim() || "N/A";
+    const humidity = humidityPressure?.substring(0, 2).trim() || "N/A";
+    const pressure = humidityPressure?.substring(2).trim() || "N/A";
+
     const weatherData = {
-      date: getElementText(process.env.DATE_CLASS),
+      date,
       temperature,
-      condition: getElementText(process.env.CONDITION_CLASS), // New condition field
+      condition,
       minTemperature,
       maxTemperature,
       humidity,
       pressure
     };
 
-    // Validate essential data
-    if (!weatherData.temperature || !weatherData.condition) {
-      return res.status(404).json({ 
-        error: "Weather data not found for the specified city" 
-      });
-    }
-
     res.json(weatherData);
   } catch (error) {
     console.error("Scraping error:", error);
     const statusCode = error.response?.status || 500;
+
     res.status(statusCode).json({
-      error: statusCode === 404 
-        ? "City not found" 
-        : "Failed to retrieve weather data"
+      error: statusCode === 404 ? "City not found. Please enter a valid city name." : "Failed to retrieve weather data."
     });
   }
 });
 
-app.listen(process.env.PORT, () => {
-  console.log(`Server running on port ${process.env.PORT}`);
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
