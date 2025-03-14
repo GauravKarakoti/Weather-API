@@ -17,11 +17,19 @@ const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // limit each IP to 100 requests per windowMs
   message: {
-    status:429,
+    status: 429,
     error: "Too many requests, please try again later."
   }
 });
 app.use(limiter);
+
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"), (err) => {
+    if (err) {
+      res.status(500).send("Error loading the frontend.");
+    }
+  });
+});
 
 // Enhanced API endpoint
 app.get("/api/weather/:city", async (req, res) => {
@@ -29,9 +37,9 @@ app.get("/api/weather/:city", async (req, res) => {
     const response = await axios.get(
       `${process.env.SCRAPE_API_FIRST}${encodeURIComponent(req.params.city)}${process.env.SCRAPE_API_LAST}`
     );
-    
+
     const $ = cheerio.load(response.data);
-    
+
     // Improved error handling for element selection
     const getElementText = (selector) => $(selector).text()?.trim() || null;
     const temperature = getElementText(process.env.TEMPERATURE_CLASS);
@@ -41,13 +49,13 @@ app.get("/api/weather/:city", async (req, res) => {
     let minTemperature = "", maxTemperature = "", humidity = "", pressure = "";
 
     for (let i = 0; i < 6; i++) {
-        if (i < 3) minTemperature += minMaxTemperature[i];
-        else maxTemperature += minMaxTemperature[i];
+      if (i < 3) minTemperature += minMaxTemperature[i];
+      else maxTemperature += minMaxTemperature[i];
     }
 
     for (let i = 0; i < 6; i++) {
-        if (i < 2) humidity += humidityPressure[i];
-        else pressure += humidityPressure[i];
+      if (i < 2) humidity += humidityPressure[i];
+      else pressure += humidityPressure[i];
     }
     const weatherData = {
       date: getElementText(process.env.DATE_CLASS),
@@ -61,8 +69,8 @@ app.get("/api/weather/:city", async (req, res) => {
 
     // Validate essential data
     if (!weatherData.temperature || !weatherData.condition) {
-      return res.status(404).json({ 
-        error: "Weather data not found for the specified city" 
+      return res.status(404).json({
+        error: "Weather data not found for the specified city"
       });
     }
 
@@ -71,8 +79,8 @@ app.get("/api/weather/:city", async (req, res) => {
     console.error("Scraping error:", error);
     const statusCode = error.response?.status || 500;
     res.status(statusCode).json({
-      error: statusCode === 404 
-        ? "City not found" 
+      error: statusCode === 404
+        ? "City not found"
         : "Failed to retrieve weather data"
     });
   }
