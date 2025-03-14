@@ -23,6 +23,14 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"), (err) => {
+    if (err) {
+      res.status(500).send("Error loading the frontend.");
+    }
+  });
+});
+
 // Enhanced API endpoint
 app.get("/api/weather/:city", async (req, res) => {
   try {
