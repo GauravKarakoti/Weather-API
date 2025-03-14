@@ -1,0 +1,11 @@
+version: "3.8"
+
+services:
+  weather-api:
+    build: .
+    ports:
+      - "3003:3003" 
+    env_file:
+      - .env 
+    restart: always 
+    container_name: weather-api-container
