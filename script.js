@@ -120,9 +120,19 @@ function displayRecentSearches(recent) {
     list.innerHTML = recent.map(city => `
         <button class="recent-item" data-city="${city}">${city}</button>
     `).join('');
+    
     list.style.display = 'flex';
     list.style.flexWrap = 'wrap';
+
+    // Add click event listener to each recent search button
+    document.querySelectorAll('.recent-item').forEach(button => {
+        button.addEventListener('click', function () {
+            cityInput.value = this.dataset.city;  // Set input value to clicked city
+            handleSubmit(new Event('submit'));    // Trigger search
+        });
+    });
 }
+
 
 function loadRecentSearches() {
     const recent = JSON.parse(localStorage.getItem('recentSearches')) || [];
