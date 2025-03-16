@@ -36,7 +36,6 @@ async function handleSubmit(e) {
     }
 }
 
-
 async function fetchWeatherData(city) {
     const URL = 'https://weather-api-ex1z.onrender.com';
     const response = await fetch(`${URL}/api/weather/${city}`);
@@ -66,6 +65,22 @@ function displayWeather(data) {
         return;
     }
 
+    // Fix the -0 issue for minTemperature
+    const minTemperature = data.minTemperature === '-0°' ? '0°' : data.minTemperature;
+
+    // Clean the maxTemperature to remove any extra characters after the degree symbol
+    let maxTemperature = data.maxTemperature ? data.maxTemperature : 'N/A';  // Default value if empty
+
+    // Use regular expression to only capture numbers and the degree symbol (°)
+    maxTemperature = maxTemperature.match(/\d+°/);  // This matches a number followed by the degree symbol
+
+    // If match is found, take the first match; otherwise, return 'N/A'
+    maxTemperature = maxTemperature ? maxTemperature[0] : 'N/A';
+
+    // Parse humidity and pressure correctly
+    const parsedData = parseHumidityPressure(data.humidity, data.pressure);
+
+    // Create the template for displaying weather data
     const template = `
         <div class="weather-card">
             <div class="weather-main">
@@ -76,10 +91,10 @@ function displayWeather(data) {
             <div class="weather-details">
                 <p><strong>Date:</strong> ${data.date || 'N/A'}</p>
                 <p><strong>Condition:</strong> ${data.condition || 'N/A'}</p>
-                <p><strong>Min Temp:</strong> ${data.minTemperature || 'N/A'}</p>
-                <p><strong>Max Temp:</strong> ${data.maxTemperature || 'N/A'}</p>
-                <p><strong>Humidity:</strong> ${data.humidity || 'N/A'}</p>
-                <p><strong>Pressure:</strong> ${data.pressure || 'N/A'}</p>
+                <p><strong>Min Temp:</strong> ${minTemperature || 'N/A'}</p>
+                <p><strong>Max Temp:</strong> ${maxTemperature || 'N/A'}</p>
+                <p><strong>Humidity:</strong> ${parsedData.humidity || 'N/A'}%</p>
+                <p><strong>Pressure:</strong> ${parsedData.pressure || 'N/A'} Pa</p>
             </div>
         </div>
     `;
@@ -87,6 +102,8 @@ function displayWeather(data) {
     weatherData.innerHTML = template;
     weatherData.classList.remove('hidden');
 }
+
+
 
 function isValidInput(city) {
     return /^[a-zA-Z\s-]{2,50}$/.test(city);
@@ -122,6 +139,13 @@ function displayRecentSearches(recent) {
     `).join('');
     list.style.display = 'flex';
     list.style.flexWrap = 'wrap';
+
+    document.querySelectorAll('.recent-item').forEach(button => {
+        button.addEventListener('click', function () {
+            cityInput.value = this.dataset.city;  // Set input value to clicked city
+            handleSubmit(new Event('submit'));    // Trigger search
+        });
+    });
 }
 
 function loadRecentSearches() {
@@ -136,6 +160,33 @@ function setupServiceWorker() {
             .then(() => console.log('Service Worker registered'))
             .catch(err => console.log('SW registration failed:', err));
     }
+}
+
+// Parsing humidity and pressure data
+function parseHumidityPressure(humidity, pressure) {
+    // Handle if the humidity and pressure are direct numeric values from API
+    const parsedHumidity = humidity || "N/A";
+
+    const parsePressure = (rawPressure) => {
+        // Convert the raw pressure value to float
+        const pressure = parseFloat(rawPressure);
+
+        // If the pressure value seems unusually high (greater than 10000), divide it to normalize it to a realistic range
+        if (pressure > 10000) {
+            return Math.round(pressure / 100);  // Scale it down by dividing by 100
+        }
+
+        // If the pressure value is large but not too big, divide by 10 to bring it into a more standard range
+        if (pressure > 1000) {
+            return Math.round(pressure / 10);  // Divide by 10 for pressure within a realistic atmospheric range
+        }
+
+        // Otherwise, just return the pressure as is, rounded to the nearest integer
+        return Math.round(pressure);
+    };
+
+    const parsedPressure = parsePressure(pressure);
+    return { humidity: parsedHumidity, pressure: parsedPressure };
 }
 
 // Initialize the app
