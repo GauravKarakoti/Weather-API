@@ -66,7 +66,8 @@ function displayWeather(data) {
     }
 
     // Fix the -0 issue for minTemperature
-    const minTemperature = data.minTemperature === '-0°' ? '0°' : data.minTemperature;
+    const minTemperature = data.minTemperature === '-0°' || '0°1' ? '0°' : data.minTemperature;
+    
 
     // Clean the maxTemperature to remove any extra characters after the degree symbol
     let maxTemperature = data.maxTemperature ? data.maxTemperature : 'N/A';  // Default value if empty
@@ -137,14 +138,9 @@ function displayRecentSearches(recent) {
     list.innerHTML = recent.map(city => `
         <button class="recent-item" data-city="${city}">${city}</button>
     `).join('');
-    
     list.style.display = 'flex';
     list.style.flexWrap = 'wrap';
 
-<<<<<<< HEAD
-=======
-    // Add click event listener to each recent search button
->>>>>>> 55905b8d855abc1bcc5e4f2800e37612f0efffe2
     document.querySelectorAll('.recent-item').forEach(button => {
         button.addEventListener('click', function () {
             cityInput.value = this.dataset.city;  // Set input value to clicked city
@@ -152,7 +148,6 @@ function displayRecentSearches(recent) {
         });
     });
 }
-
 
 function loadRecentSearches() {
     const recent = JSON.parse(localStorage.getItem('recentSearches')) || [];
