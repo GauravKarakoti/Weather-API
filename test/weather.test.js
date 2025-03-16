@@ -23,7 +23,7 @@ beforeAll(() => {
         clear: jest.fn(),
     };
 
-    global.script = require("../script");
+    global.script = require("../public/script");
 });
 
 describe("Weather App Tests", () => {
