@@ -140,3 +140,9 @@ function setupServiceWorker() {
 
 // Initialize the app
 initialize();
+
+module.exports = {
+    fetchWeatherData,
+    isValidInput,
+    addToRecentSearches
+}
