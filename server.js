@@ -82,55 +82,91 @@ app.get("/api/weather/:city", async (req, res) => {
   try {
     const city = req.params.city.trim();
 
-    if (!city || city.length < 2) {
-      return res.status(400).json({ error: "Invalid city name. Please enter a valid city." });
+    // Enhanced input validation
+    if (!city || !/^[a-zA-Z\s-]{2,50}$/.test(city)) {
+      return res.status(400).json({ 
+        error: "Invalid city name. City should contain only letters, spaces, and hyphens (2-50 characters)." 
+      });
     }
 
-    const response = await axios.get(
-      `${process.env.SCRAPE_API_FIRST}${encodeURIComponent(city)}${process.env.SCRAPE_API_LAST}`
-    );
+    try {
+      const response = await axios.get(
+        `${process.env.SCRAPE_API_FIRST}${encodeURIComponent(city)}${process.env.SCRAPE_API_LAST}`,
+        { timeout: 5000 } // Add timeout to prevent hanging requests
+      );
 
-    const $ = cheerio.load(response.data);
+      const $ = cheerio.load(response.data);
 
-    // Function to safely get text from a given selector
-    const getElementText = (selector) => {
-      return $(selector).text()?.trim() || null;
-    };
+      // Function to safely get text from a given selector with error checking
+      const getElementText = (selector) => {
+        const element = $(selector);
+        if (!element.length) {
+          throw new Error(`Required element ${selector} not found`);
+        }
+        return element.text()?.trim() || null;
+      };
 
-    const temperature = getElementText(process.env.TEMPERATURE_CLASS);
-    const minMaxTemperature = getElementText(process.env.MIN_MAX_TEMPERATURE_CLASS);
-    const humidityPressureText = getElementText(process.env.HUMIDITY_PRESSURE_CLASS); // Raw humidity and pressure text
-    const condition = getElementText(process.env.CONDITION_CLASS);
-    const date = getElementText(process.env.DATE_CLASS);
+      try {
+        const temperature = getElementText(process.env.TEMPERATURE_CLASS);
+        const minMaxTemperature = getElementText(process.env.MIN_MAX_TEMPERATURE_CLASS);
+        const humidityPressureText = getElementText(process.env.HUMIDITY_PRESSURE_CLASS);
+        const condition = getElementText(process.env.CONDITION_CLASS);
+        const date = getElementText(process.env.DATE_CLASS);
 
-    if (!temperature || !condition) {
-      return res.status(404).json({ error: "Weather data not found for the specified city." });
+        if (!temperature || !condition) {
+          return res.status(404).json({ 
+            error: "Weather data not found for the specified city." 
+          });
+        }
+
+        // Parse weather data
+        const minTemperature = minMaxTemperature?.match(/(\d+°)/)?.[0] || "N/A";
+        const maxTemperature = minMaxTemperature?.match(/(\d+°)/)?.[1] || "N/A";
+        const { humidity, pressure } = parseHumidityPressure(humidityPressureText);
+
+        const weatherData = {
+          date,
+          temperature,
+          condition,
+          minTemperature,
+          maxTemperature,
+          humidity,
+          pressure
+        };
+
+        res.json(weatherData);
+
+      } catch (parsingError) {
+        console.error("Data parsing error:", parsingError);
+        return res.status(503).json({
+          error: "Unable to parse weather data. The weather service might be temporarily unavailable."
+        });
+      }
+
+    } catch (scrapingError) {
+      console.error("Scraping error:", scrapingError);
+      
+      if (scrapingError.code === 'ECONNABORTED') {
+        return res.status(504).json({
+          error: "Request timeout. The weather service is taking too long to respond."
+        });
+      }
+
+      if (scrapingError.response?.status === 404) {
+        return res.status(404).json({
+          error: "City not found. Please check the spelling and try again."
+        });
+      }
+
+      return res.status(503).json({
+        error: "Weather service is temporarily unavailable. Please try again later."
+      });
     }
 
-    // Correctly parsing min/max temperature using regex
-    const minTemperature = minMaxTemperature?.match(/(\d+°)/)?.[0] || "N/A";
-    const maxTemperature = minMaxTemperature?.match(/(\d+°)/)?.[1] || "N/A";
-
-    // Parse the humidity and pressure
-    const { humidity, pressure } = parseHumidityPressure(humidityPressureText);
-
-    // Construct the weather data object
-    const weatherData = {
-      date,
-      temperature,
-      condition,
-      minTemperature,
-      maxTemperature,
-      humidity,
-      pressure
-    };
-
-    res.json(weatherData);
   } catch (error) {
-    console.error("Scraping error:", error);
-    const statusCode = error.response?.status || 500;
-    res.status(statusCode).json({
-      error: statusCode === 404 ? "City not found. Please enter a valid city name." : "Failed to retrieve weather data."
+    console.error("Server error:", error);
+    res.status(500).json({
+      error: "An unexpected error occurred. Please try again later."
     });
   }
 });
