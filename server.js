@@ -3,14 +3,23 @@ const cheerio = require("cheerio");
 const axios = require("axios");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
+const helmet = require("helmet");
+const xss = require("xss");
 require("dotenv").config();
 
 const app = express();
 
 // Security and configuration improvements
+app.use(helmet());
 app.use(cors());
 app.use(express.static("public")); // Serve frontend files
 app.use(express.json());
+app.use((req, res, next) => {
+  res.setHeader(
+    "Content-Security-Policy",
+    "default-src 'self'; script-src 'self'; style-src 'self';"
+  )
+})
 
 // Environment variable validation
 const requiredEnvVars = ['SCRAPE_API_FIRST', 'SCRAPE_API_LAST', 'TEMPERATURE_CLASS', 'MIN_MAX_TEMPERATURE_CLASS', 'HUMIDITY_PRESSURE_CLASS', 'CONDITION_CLASS', 'DATE_CLASS'];
@@ -32,6 +41,9 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
+// Sanitize input to prevent XSS
+const sanitizeInput = (str) => xss(str.trim());
+
 // Parsing function to extract humidity and pressure
 const parseHumidityPressure = (rawText) => {
   // Split the raw text by periods (.)
@@ -49,13 +61,13 @@ const parseHumidityPressure = (rawText) => {
 
   // Extract humidity (last part) and pressure (second last part)
   const humidity = parts[parts.length - 1] || "N/A";  // Last part is humidity
-  const rawPressure = parts[parts.length - 2] || "N/A";  
+  const rawPressure = parts[parts.length - 2] || "N/A";
 
   // Function to parse pressure correctly
   const parsePressure = (rawPressure) => {
     // Convert the raw pressure value to float and divide by 100 to adjust scale if necessary
     const pressure = parseFloat(rawPressure);
-    
+
     // If pressure is greater than 10000 (indicating it might be in Pascals), convert to hPa (divide by 100)
     if (pressure > 10000) {
       return (pressure / 100).toFixed(2); // Scale down by dividing by 100 and return with 2 decimal places
@@ -80,12 +92,12 @@ const parseHumidityPressure = (rawText) => {
 // Enhanced API endpoint
 app.get("/api/weather/:city", async (req, res) => {
   try {
-    const city = req.params.city.trim();
+    const city = sanitizeInput(req.params.city);
 
     // Enhanced input validation
     if (!city || !/^[a-zA-Z\s-]{2,50}$/.test(city)) {
-      return res.status(400).json({ 
-        error: "Invalid city name. City should contain only letters, spaces, and hyphens (2-50 characters)." 
+      return res.status(400).json({
+        error: "Invalid city name. City should contain only letters, spaces, and hyphens (2-50 characters)."
       });
     }
 
@@ -114,8 +126,8 @@ app.get("/api/weather/:city", async (req, res) => {
         const date = getElementText(process.env.DATE_CLASS);
 
         if (!temperature || !condition) {
-          return res.status(404).json({ 
-            error: "Weather data not found for the specified city." 
+          return res.status(404).json({
+            error: "Weather data not found for the specified city."
           });
         }
 
@@ -145,7 +157,7 @@ app.get("/api/weather/:city", async (req, res) => {
 
     } catch (scrapingError) {
       console.error("Scraping error:", scrapingError);
-      
+
       if (scrapingError.code === 'ECONNABORTED') {
         return res.status(504).json({
           error: "Request timeout. The weather service is taking too long to respond."
