@@ -3,14 +3,12 @@ const cheerio = require("cheerio");
 const axios = require("axios");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
-const helmet = require("helmet");
 const xss = require("xss");
 require("dotenv").config();
 
 const app = express();
 
 // Security and configuration improvements
-app.use(helmet());
 app.use(cors());
 app.use(express.static("public")); // Serve frontend files
 app.use(express.json());
