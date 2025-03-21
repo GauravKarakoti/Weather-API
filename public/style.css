@@ -17,7 +17,7 @@ body {
     align-items: center;
     justify-content: center;
     height: 100vh;
-    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    background: linear-gradient(135deg, #0f0c29, #302b63, #0d0d24);
     overflow: hidden;
 }
 
@@ -27,7 +27,7 @@ body {
     background: rgba(0, 0, 0, 0.6);
     padding: 20px;
     border-radius: 10px;
-    box-shadow: 0 0 15px #0ff;
+    box-shadow: 0 0 15px rgb(8, 173, 232);
     
 }
 
@@ -36,8 +36,8 @@ body {
 }
 
 h1 {
-    color: #0ff;
-    text-shadow: 0 0 10px #0ff, 0 0 20px #0ff, 0 0 40px #00f;
+    color: rgb(45, 33, 2);
+    text-shadow: 0 0 10px rgb(255, 34, 0), 0 0 20px rgb(242, 208, 12), 0 0 40px rgb(236, 121, 5);
     font-size: 2.5em;
     text-align: center;
 }
@@ -59,8 +59,8 @@ input {
     border-radius: 4px;
     font-size: 1rem;
     background: rgba(0, 0, 0, 0.6);
-    color: #0ff;
-    box-shadow: 0 0 10px #0ff;
+    color: rgb(255, 55, 0);
+    box-shadow: 0 0 10px rgb(121, 24, 21);
 }
 
 
@@ -68,14 +68,14 @@ input {
 button {
     padding: 10px 15px;
     border: none;
-    background: rgba(0, 255, 255, 0.8); /* Adjusted background color with opacity */
+    background: linear-gradient(rgba(167, 12, 9, 0.8),rgb(255, 145, 0)); /* Adjusted background color with opacity */
     color: black;
     font-size: 1em;
     font-weight: bold;
     border-radius: 8px;
     cursor: pointer;
     text-transform: uppercase;
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.8), 0 0 20px rgba(0, 255, 255, 0.8); /* Adjusted box-shadow color with opacity */
+    box-shadow: 0 0 10px rgba(255, 0, 251, 0.8), 0 0 20px rgba(90, 32, 92, 0.8); /* Adjusted box-shadow color with opacity */
     transition: 0.3s ease-in-out;
 }
  
@@ -90,7 +90,7 @@ button:disabled {
 
 
 button:hover {
-    background: #00f;
+    background: rgb(255, 0, 0);
     color: white;
     box-shadow: 0 0 20px #00f, 0 0 40px #00f;
 }
@@ -119,15 +119,15 @@ button:hover {
     background: rgba(0, 0, 0, 0.6);
     padding: 10px;
     border-radius: 10px;
-    box-shadow: 0 0 15px #0ff;
-    border: 2px solid #0ff;
+    box-shadow: 0 0 15px rgb(205, 53, 6);
+    border: 2px solid rgb(0, 19, 19);
     text-align: center;
 
 }
 
 #weather-data p , .temperature {
     margin: 8px 0;
-    color: #0ff;
+    color: rgb(219, 78, 12);
     font-size: 1.1em;
     text-shadow: 0 0 5px #0ff;
 }
@@ -137,9 +137,10 @@ button:hover {
 }
 
 .recent-searches h2 {
-    color: #0ff;
-    text-shadow: 0 0 10px #0ff, 0 0 20px #0ff, 0 0 40px #00f;
+    color: rgb(197, 78, 22);
+    text-shadow: 0 0 10px rgb(25, 174, 156), 0 0 20px #0ff, 0 0 40px #00f;
     font-size: 1.5em;
+    font-weight: 600;
     text-align: center;
 }
 
@@ -147,8 +148,8 @@ button:hover {
     background: rgba(0, 0, 0, 0.6);
     padding: 10px;
     border-radius: 10px;
-    box-shadow: 0 0 15px #0ff;
-    border: 2px solid #0ff;
+    box-shadow: 0 0 15px rgb(109, 107, 107);
+    border: 2px solid rgb(38, 10, 0);
 }
 .recent-item {
     margin:5px;
