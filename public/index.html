@@ -1,38 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Weather Scraper</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
     <div class="container">
-        <h1>Weather Information</h1>
-        <form id="weather-form">
-            <div class="form-group">
-            <label for="city">Enter City Name:</label>
-            <input type="text" id="city" name="city" 
-                   placeholder="E.g. London" required
-                   aria-describedby="city-error">
-            <div id="city-error" class="error-message" aria-live="polite"></div>
-            </div>
-            <button type="submit" id="submit-btn">
-                <span class="button-text">Get Weather</span>
-                <div class="spinner hidden" aria-hidden="true"></div>
-            </button>
-        </form>
+      <h1>Weather Information</h1>
+      <form id="weather-form">
+        <div class="form-group">
+          <label for="city">Enter City Name:</label>
+          <input
+            type="text"
+            id="city"
+            name="city"
+            placeholder="E.g. London"
+            required
+            aria-describedby="city-error"
+          />
+          <div id="city-error" class="error-message" aria-live="polite"></div>
+        </div>
+        <button type="submit" id="submit-btn">
+          <span class="button-text">Get Weather</span>
+          <div class="spinner hidden" aria-hidden="true"></div>
+        </button>
+      </form>
 
-        <div id="weather-data" class="hidden" aria-live="polite">
-            <!-- Weather data template -->
-         </div> 
+      <div id="weather-data" class="hidden" aria-live="polite">
+        <!-- Weather data template -->
+      </div>
 
-        <section class="recent-searches" aria-label="Recent searches">
-            <h2>Recent Searches</h2>
-            <div id="recent-list"></div>
-        </section>
+      <section class="recent-searches" aria-label="Recent searches">
+        <h2>Recent Searches</h2>
+        <div id="recent-list"></div>
+      </section>
     </div>
-    
-    <script src="script.js"></script>
-</body>
-</html> 
+
+    <script src="script.js" type="module"></script>
+  </body>
+</html>
