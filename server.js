@@ -12,6 +12,7 @@ const app = express();
 app.use(cors());
 app.use(express.static("public")); // Serve frontend files
 app.use(express.json());
+app.set("trust proxy", 1);
 app.use((req, res, next) => {
   res.setHeader(
     "Content-Security-Policy",
@@ -35,6 +36,15 @@ const limiter = rateLimit({
   message: {
     status: 429,
     error: "Too many requests, please try again later."
+  },
+  headers: true,  // Send rate limit headers
+  keyGenerator: (req) => req.ip, // Ensure consistent IP extraction
+  handler: (req, res) => {
+    res.set("Retry-After", Math.ceil(limiter.windowMs / 1000));  // Add Retry-After header
+    res.status(429).json({
+      error: "Too many requests. Please try again later.",
+      retryAfter: Math.ceil(limiter.windowMs / 1000) + " seconds"
+    });
   }
 });
 app.use(limiter);
@@ -86,6 +96,13 @@ const parseHumidityPressure = (rawText) => {
   return { humidity, pressure };
 };
 
+// Improved Error Handling Middleware
+const handleError = (res, statusCode, message, code) => {
+  res.status(statusCode).json({
+    error: message,
+    code: code || statusCode
+  });
+};
 
 // Enhanced API endpoint
 app.get("/api/weather/:city", async (req, res) => {
@@ -94,9 +111,7 @@ app.get("/api/weather/:city", async (req, res) => {
 
     // Enhanced input validation
     if (!city || !/^[a-zA-Z\s-]{2,50}$/.test(city)) {
-      return res.status(400).json({
-        error: "Invalid city name. City should contain only letters, spaces, and hyphens (2-50 characters)."
-      });
+      return handleError(res, 400, "Invalid city name. Use letters, spaces, and hyphens (2-50 chars).", "INVALID_CITY");
     }
 
     try {
@@ -124,9 +139,7 @@ app.get("/api/weather/:city", async (req, res) => {
         const date = getElementText(process.env.DATE_CLASS);
 
         if (!temperature || !condition) {
-          return res.status(404).json({
-            error: "Weather data not found for the specified city."
-          });
+          return handleError(res, 404, "Weather data not found for the specified city.", "DATA_NOT_FOUND");
         }
 
         // Parse weather data
@@ -157,27 +170,18 @@ app.get("/api/weather/:city", async (req, res) => {
       console.error("Scraping error:", scrapingError);
 
       if (scrapingError.code === 'ECONNABORTED') {
-        return res.status(504).json({
-          error: "Request timeout. The weather service is taking too long to respond."
-        });
+        return handleError(res, 504, "Request timeout. Weather service took too long.", "TIMEOUT");
       }
 
       if (scrapingError.response?.status === 404) {
-        return res.status(404).json({
-          error: "City not found. Please check the spelling and try again."
-        });
+        return handleError(res, 404, "City not found. Please check the spelling.", "CITY_NOT_FOUND");
       }
 
-      return res.status(503).json({
-        error: "Weather service is temporarily unavailable. Please try again later."
-      });
+      return handleError(res, 503, "Weather service temporarily unavailable.", "SERVICE_UNAVAILABLE");
     }
-
   } catch (error) {
     console.error("Server error:", error);
-    res.status(500).json({
-      error: "An unexpected error occurred. Please try again later."
-    });
+    handleError(res, 500, "Unexpected server error. Please try again later.", "SERVER_ERROR");
   }
 });
 
