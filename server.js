@@ -17,8 +17,10 @@ app.use((req, res, next) => {
   res.setHeader(
     "Content-Security-Policy",
     "default-src 'self'; script-src 'self'; style-src 'self';"
-  )
-})
+  );
+  next();
+});
+
 
 // Environment variable validation
 const requiredEnvVars = ['SCRAPE_API_FIRST', 'SCRAPE_API_LAST', 'TEMPERATURE_CLASS', 'MIN_MAX_TEMPERATURE_CLASS', 'HUMIDITY_PRESSURE_CLASS', 'CONDITION_CLASS', 'DATE_CLASS'];
