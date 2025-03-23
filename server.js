@@ -1,4 +1,3 @@
-
 const express = require("express");
 const cheerio = require("cheerio");
 const axios = require("axios");
@@ -204,11 +203,11 @@ const maxTemperature = matches?.[1] || "N/A"; // Second match
 
         const weatherData = {
           date: formatDate(date),
-          temperature: ecelsius(temperature),
+          temperature: ensureCelsius(temperature),
           condition,
           minTemperature: ensureCelsius(minTemperature),
           maxTemperature: ensureCelsius(maxTemperature),
-          humidity,
+          humidity: `${humidity}%`, // Ensure humidity has % suffix
           pressure,
         };
 
