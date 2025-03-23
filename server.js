@@ -54,25 +54,61 @@ requiredEnvVars.forEach((varName) => {
   }
 });
 
-// Rate limiting middleware
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: {
-    status: 429,
-    error: "Too many requests, please try again later.",
-  },
-  headers: true,
-  keyGenerator: (req) => req.ip,
-  handler: (req, res) => {
-    res.set("Retry-After", Math.ceil(limiter.windowMs / 1000));
-    res.status(429).json({
-      error: "Too many requests. Please try again later.",
-      retryAfter: Math.ceil(limiter.windowMs / 1000) + " seconds",
-    });
-  },
+// Rate limiting middleware with different strategies per origin
+const rateLimiters = {
+  default: rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    message: {
+      status: 429,
+      error: "Too many requests, please try again later.",
+    },
+    headers: true,
+    keyGenerator: (req) => req.ip,
+    handler: (req, res) => {
+      res.set("Retry-After", Math.ceil(rateLimiters.default.windowMs / 1000));
+      res.status(429).json({
+        error: "Too many requests. Please try again later.",
+        retryAfter: Math.ceil(rateLimiters.default.windowMs / 1000) + " seconds",
+      });
+    },
+  }),
+  special: rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 200,
+    message: {
+      status: 429,
+      error: "Too many requests, please try again later.",
+    },
+    headers: true,
+    keyGenerator: (req) => req.ip,
+    handler: (req, res) => {
+      res.set("Retry-After", Math.ceil(rateLimiters.special.windowMs / 1000));
+      res.status(429).json({
+        error: "Too many requests. Please try again later.",
+        retryAfter: Math.ceil(rateLimiters.special.windowMs / 1000) + " seconds",
+      });
+    },
+  }),
+};
+
+// Middleware to select rate limiter based on origin
+app.use((req, res, next) => {
+  const origin = req.get('origin');
+  if (origin && origin.includes('special-domain.com')) {
+    rateLimiters.special(req, res, next);
+  } else {
+    rateLimiters.default(req, res, next);
+  }
 });
-app.use(limiter);
+
+// Middleware to add rate limit status headers
+app.use((req, res, next) => {
+  res.setHeader('X-RateLimit-Limit', rateLimiters.default.max);
+  res.setHeader('X-RateLimit-Remaining', Math.max(0, rateLimiters.default.max - req.rateLimit.current));
+  res.setHeader('X-RateLimit-Reset', new Date(Date.now() + rateLimiters.default.windowMs).toISOString());
+  next();
+});
 
 // Sanitize input to prevent XSS
 const sanitizeInput = (str) => xss(str.trim());
@@ -83,33 +119,46 @@ const isValidCity = (city) => {
   return /^[a-zA-Z\s'-]{2,50}$/.test(city) || /^[\p{L}\s'-]{2,50}$/u.test(city);
 };
 
-// Function to parse humidity and pressure
-const parseHumidityPressure = (rawText) => {
-  if (!rawText) return { humidity: "N/A", pressure: "N/A" };
-
-  const parts = rawText.split(".");
-  if (parts.length < 2) return { humidity: "N/A", pressure: "N/A" };
-
-  const humidity = parts[parts.length - 1] || "N/A";
-  const rawPressure = parts[parts.length - 2] || "N/A";
-
-  // Convert pressure correctly
-  const parsePressure = (pressure) => {
-    const value = parseFloat(pressure);
-    if (value > 10000) {
-      return `${(value / 100).toFixed(2)} hPa`;
-    } else if (value > 1000) {
-      return `${value} hPa`;
-    } else {
-      return `${value} Pa`;
+// Function to parse temperature with sanity check
+const parseTemperature = (rawText) => {
+  const match = rawText.match(/-?\d+(\.\d+)?\s*°C/);
+  if (match) {
+    const temp = parseFloat(match[0]);
+    if (temp < -100 || temp > 100) {
+      return "N/A"; // Sanity check for temperature range
     }
-  };
+    return `${temp.toFixed(1)} °C`;
+  }
+  return "N/A";
+};
 
-  return { humidity, pressure: parsePressure(rawPressure) };
+// Function to parse min and max temperatures with sanity check
+const parseMinMaxTemperature = (rawText) => {
+  const matches = rawText.match(/-?\d+(\.\d+)?\s*°C/g);
+  const minTemp = matches?.[0] ? parseFloat(matches[0]) : null;
+  const maxTemp = matches?.[1] ? parseFloat(matches[1]) : null;
+
+  return {
+    minTemperature: minTemp !== null && minTemp >= -100 && minTemp <= 100 ? `${minTemp.toFixed(1)} °C` : "N/A",
+    maxTemperature: maxTemp !== null && maxTemp >= -100 && maxTemp <= 100 ? `${maxTemp.toFixed(1)} °C` : "N/A",
+  };
+};
+
+// Function to parse humidity and pressure with validation
+const parseHumidityPressure = (rawText) => {
+  const humidityMatch = rawText.match(/Humidity:\s*(\d+)%/i);
+  const pressureMatch = rawText.match(/Pressure:\s*(\d+(\.\d+)?)\s*(hPa|Pa)/i);
+
+  const humidity = humidityMatch ? parseInt(humidityMatch[1], 10) : null;
+  const pressure = pressureMatch ? parseFloat(pressureMatch[1]) : null;
+
+  return {
+    humidity: humidity !== null && humidity >= 0 && humidity <= 100 ? `${humidity}%` : "N/A",
+    pressure: pressure !== null && pressure >= 300 && pressure <= 1100 ? `${pressure.toFixed(1)} hPa` : "N/A",
+  };
 };
 
 const formatDate = (dateString) => {
-  
   try {
     return new Intl.DateTimeFormat("en-US", {
       year: "numeric", // Add year
@@ -122,51 +171,78 @@ const formatDate = (dateString) => {
 };
 
 // Improved Error Handling
-const handleError = (res, statusCode, message, code) => {
-  res.status(statusCode).json({
+const handleError = (res, statusCode, message, code, details = null) => {
+  const errorResponse = {
     error: message,
     code,
     statusCode,
     timestamp: new Date().toISOString(),
-  });
+  };
+  if (details) {
+    errorResponse.details = details;
+  }
+  res.status(statusCode).json(errorResponse);
+};
+
+// Retry mechanism for failed requests
+const fetchWithRetry = async (url, options, retries = 3, backoff = 300) => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await axios.get(url, options);
+    } catch (error) {
+      if (i === retries - 1) throw error;
+      await new Promise((resolve) => setTimeout(resolve, backoff * (i + 1)));
+    }
+  }
+};
+
+// Fallback data source strategy
+const fetchWeatherData = async (city) => {
+  const encodedCity = city
+    .normalize('NFD')
+    .replace(/'/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, '-')
+    .toLowerCase();
+
+  const primaryUrl = `${process.env.SCRAPE_API_FIRST}${encodedCity}${process.env.SCRAPE_API_LAST}`;
+  const fallbackUrl = `${process.env.SCRAPE_API_FALLBACK}${encodedCity}`;
+
+  try {
+    return await fetchWithRetry(primaryUrl, {
+      timeout: 5000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      }
+    });
+  } catch (error) {
+    console.warn("Primary source failed, trying fallback:", error.message);
+    return await fetchWithRetry(fallbackUrl, {
+      timeout: 5000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      }
+    });
+  }
 };
 
 // API route to fetch weather data
 app.get("/api/weather/:city", async (req, res) => {
   try {
-   
     const city = sanitizeInput(req.params.city);
-   
+
     // Validate city input
     if (!city || !isValidCity(city)) {
       return handleError(
-          res, 
-          401, 
-          "Invalid city name. Use letters, spaces, apostrophes (') and hyphens (-)", 
-          "INVALID_CITY"
+        res,
+        401,
+        "Invalid city name. Use letters, spaces, apostrophes (') and hyphens (-)",
+        "INVALID_CITY"
       );
-  }
+    }
 
-    
     try {
-      
-      const encodedCity = city
-      .normalize('NFD')  // Normalize decomposed form
-      .replace(/'/g, '')  // Remove apostrophes
-      .replace(/[\u0300-\u036f]/g, '')  // Remove combining diacritical marks
-      .replace(/\s+/g, '-')  // Replace spaces with hyphens
-      .toLowerCase();  // Convert to lowercase
-
-      const response = await axios.get(
-        `${process.env.SCRAPE_API_FIRST}${encodedCity}${process.env.SCRAPE_API_LAST}`,
-        { 
-          timeout: 5000,
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-          }
-        }
-      );
-    
+      const response = await fetchWeatherData(city);
       const $ = cheerio.load(response.data);
 
       // Function to extract text safely
@@ -177,47 +253,31 @@ app.get("/api/weather/:city", async (req, res) => {
       };
 
       try {
-        const temperature = getElementText(process.env.TEMPERATURE_CLASS);
-        const minMaxTemperature = getElementText(process.env.MIN_MAX_TEMPERATURE_CLASS);
-        const humidityPressureText = getElementText(process.env.HUMIDITY_PRESSURE_CLASS);
+        const temperature = parseTemperature(getElementText(process.env.TEMPERATURE_CLASS));
+        const { minTemperature, maxTemperature } = parseMinMaxTemperature(getElementText(process.env.MIN_MAX_TEMPERATURE_CLASS));
+        const { humidity, pressure } = parseHumidityPressure(getElementText(process.env.HUMIDITY_PRESSURE_CLASS));
         const condition = getElementText(process.env.CONDITION_CLASS);
         const date = getElementText(process.env.DATE_CLASS);
-       
+
         if (!temperature || !condition) {
           return handleError(res, 404, "Weather data not found for the specified city.", "DATA_NOT_FOUND");
         }
 
-      
-       
-        const matches = minMaxTemperature.match(/-?\d+°/g); 
-        // 'g' ensures we get all matches
-const minTemperature = matches?.[0] || "N/A"; // First match
-const maxTemperature = matches?.[1] || "N/A"; // Second match
-
-
-        const { humidity, pressure } = parseHumidityPressure(humidityPressureText);
-
-        // Ensure temperature has °C suffix
-        const ecelsius =(temp)=>(temp.includes("°C") ? temp : `${temp}`)
-        const ensureCelsius = (temp) => (temp.includes("°C") ? temp : `${temp}C`);
-
         const weatherData = {
           date: formatDate(date),
-          temperature: ensureCelsius(temperature),
+          temperature,
           condition,
-          minTemperature: ensureCelsius(minTemperature),
-          maxTemperature: ensureCelsius(maxTemperature),
-          humidity: `${humidity}%`, // Ensure humidity has % suffix
+          minTemperature,
+          maxTemperature,
+          humidity,
           pressure,
         };
 
         res.json(weatherData);
-        
+
       } catch (parsingError) {
         console.error("Data parsing error:", parsingError);
-        return res.status(503).json({
-          error: "Unable to parse weather data. The weather service might be temporarily unavailable.",
-        });
+        return handleError(res, 503, "Unable to parse weather data. The weather service might be temporarily unavailable.", "PARSING_ERROR", parsingError.message);
       }
 
     } catch (scrapingError) {
@@ -231,11 +291,11 @@ const maxTemperature = matches?.[1] || "N/A"; // Second match
         return handleError(res, 404, "City not found. Please check the spelling.", "CITY_NOT_FOUND");
       }
 
-      return handleError(res, 503, "Weather service temporarily unavailable.", "SERVICE_UNAVAILABLE");
+      return handleError(res, 503, "Weather service temporarily unavailable.", "SERVICE_UNAVAILABLE", scrapingError.message);
     }
   } catch (error) {
     console.error("Server error:", error);
-    handleError(res, 500, "Unexpected server error. Please try again later.", "SERVER_ERROR");
+    handleError(res, 500, "Unexpected server error. Please try again later.", "SERVER_ERROR", error.message);
   }
 });
 
