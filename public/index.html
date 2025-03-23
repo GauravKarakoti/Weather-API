@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -20,10 +19,11 @@
             placeholder="E.g. London "
             required
             aria-describedby="city-error"
+            aria-label="City Name"
           />
           <div id="city-error" class="error-message" aria-live="polite"></div>
         </div>
-        <button type="submit" id="submit-btn">
+        <button type="submit" id="submit-btn" aria-label="Get Weather">
           <span class="button-text">Get Weather</span>
           <div class="spinner hidden" aria-hidden="true"></div>
         </button>
@@ -35,7 +35,7 @@
 
       <section class="recent-searches" aria-label="Recent searches">
         <h2>Recent Searches</h2>
-        <div id="recent-list"></div>
+        <div id="recent-list" tabindex="0" role="list"></div>
       </section>
     </div>
 
