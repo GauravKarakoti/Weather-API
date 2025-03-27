@@ -3,10 +3,47 @@
     --secondary-color: #3498db;
     --error-color: #e74c3c;
     --success-color: #2ecc71;
+
+    --background-gradient-start: #0f0c29; 
+    --background-gradient-middle: #302b63;
+    --background-gradient-end: #0d0d24; 
+
+    --text-color: #ddd; 
+    --highlight-color: rgb(45, 33, 2); 
+    --highlight-first: rgb(255, 34, 0);
+    --highlight-second: rgb(242, 208, 12); 
+    --highlight-third: rgb(236, 121, 5); 
+    --highlight-glow:rgb(8, 173, 232);
+    --button-shadow-first:rgba(255, 0, 251, 0.8);
+    --button-shadow-second:rgba(90, 32, 92, 0.8);
+    --input-border-color: #ddd; 
+    --input-text-color: #ff3700; 
+    --input-box-shadow: rgb(121, 24, 21); 
+    --input-data-bg-color:rgb(0,0,0,0.6);
+    --button-background-start: rgba(167, 12, 9, 0.8); 
+    --button-background-end: rgb(255, 145, 0);
+    --button-text-color: black;
+    --button-hover-background: rgb(255, 0, 0); 
+    --button-hover-text-color: white;
+    --button-hover-shadow: #00f; 
+
+    --weather-data-bg-color: rgb(0, 0, 0, 0.6);
+    --weather-box-shadow: rgb(205, 53, 6); 
+    --weather-border-color: rgb(0, 19, 19); 
+    --weather-text-color: rgb(219, 78, 12); 
+    --weather-text-glow: #0ff; 
+
+    --recent-searches-bg: rgb(197, 78, 22); 
+    --recent-title-glow2: #0ff; 
+    --recent-title-glow1: rgb(25, 174, 156);
+    --recent-title-shadow: #00f; 
+    --recent-list-bg-color: rgba(0, 0, 0, 0.6);
+    --recent-list-bx-shadow: rgb(109, 107, 107); 
+    --recent-list-border-color: rgb(38, 10, 0); 
+
+    --spinner-border: rgba(255, 255, 255, 0.3); 
+    --spinner-top-border: #fff; 
 }
-
-
-
 
 body {
     font-family: 'Orbitron', sans-serif;
@@ -17,18 +54,15 @@ body {
     align-items: center;
     justify-content: center;
     height: 100vh;
-    background: linear-gradient(135deg, #0f0c29, #302b63, #0d0d24);
+    background: linear-gradient(135deg, var(--background-gradient-start), var(--background-gradient-middle), var(--background-gradient-end));
     overflow: hidden;
 }
 
-
-
 .container {
-    background: rgba(0, 0, 0, 0.6);
+    background: var(--weather-data-bg-color);
     padding: 20px;
     border-radius: 10px;
-    box-shadow: 0 0 15px rgb(8, 173, 232);
-    
+    box-shadow: 0 0 15px var(--highlight-glow);
 }
 
 #city {
@@ -36,14 +70,15 @@ body {
 }
 
 h1 {
-    color: rgb(45, 33, 2);
-    text-shadow: 0 0 10px rgb(255, 34, 0), 0 0 20px rgb(242, 208, 12), 0 0 40px rgb(236, 121, 5);
+    color: var(--highlight-color);
+    text-shadow: 0 0 10px var(--highlight-first), 0 0 20px var(--highlight-second), 0 0 40px var(--highlight-third);
     font-size: 2.5em;
     text-align: center;
 }
 
 .form-group {
     margin-bottom: 1rem;
+    color:var(--text-color);
 }
 
 label {
@@ -55,81 +90,67 @@ label {
 input {
     width: 100%;
     padding: 0.8rem;
-    border: 2px solid #ddd;
+    border: 2px solid var(--input-border-color);
     border-radius: 4px;
     font-size: 1rem;
-    background: rgba(0, 0, 0, 0.6);
-    color: rgb(255, 55, 0);
-    box-shadow: 0 0 10px rgb(121, 24, 21);
+    background: var(--input-data-bg-color);
+    box-shadow: 0 0 10px var(--input-box-shadow);
 }
-
-
 
 button {
     padding: 10px 15px;
     border: none;
-    background: linear-gradient(rgba(167, 12, 9, 0.8),rgb(255, 145, 0)); /* Adjusted background color with opacity */
-    color: black;
+    background: linear-gradient(var(--button-background-start), var(--button-background-end));
+    color: var(--button-text-color);
     font-size: 1em;
     font-weight: bold;
     border-radius: 8px;
     cursor: pointer;
     text-transform: uppercase;
-    box-shadow: 0 0 10px rgba(255, 0, 251, 0.8), 0 0 20px rgba(90, 32, 92, 0.8); /* Adjusted box-shadow color with opacity */
+    box-shadow: 0 0 10px var(--button-shadow-first), 0 0 20px var(--button-shadow-second);
     transition: 0.3s ease-in-out;
 }
- 
 
 button:disabled {
     opacity: 0.7;
     cursor: not-allowed;
-} 
-.form-group{
-    color: #ddd;
 }
-
 
 button:hover {
-    background: rgb(255, 0, 0);
-    color: white;
-    box-shadow: 0 0 20px #00f, 0 0 40px #00f;
+    background: var(--button-hover-background);
+    color: var(--button-hover-text-color);
+    box-shadow: 0 0 20px var(--button-hover-shadow), 0 0 40px var(--button-hover-shadow);
 }
+
 .spinner {
     display: inline-block;
     width: 1.5rem;
     height: 1.5rem;
-    border: 3px solid rgba(255,255,255,0.3);
+    border: 3px solid var(--spinner-border);
     border-radius: 50%;
-    border-top-color: #fff;
+    border-top-color: var(--spinner-top-border);
     animation: spin 1s ease-in-out infinite;
     margin-left: 10px;
 }
-
-/* .temperature {
-    color: #0ff;
-
-} */
 
 .hidden {
     display: none;
 }
 
 #weather-data {
- 
-    background: rgba(0, 0, 0, 0.6);
+    background: var(--weather-data-bg-color);
     padding: 10px;
     border-radius: 10px;
-    box-shadow: 0 0 15px rgb(205, 53, 6);
-    border: 2px solid rgb(0, 19, 19);
+    box-shadow: 0 0 15px var(--weather-box-shadow);
+    border: 2px solid var(--weather-border-color);
     text-align: center;
-
 }
 
-#weather-data p , .temperature {
+#weather-data p, .temperature {
     margin: 8px 0;
-    color: rgb(219, 78, 12);
+    color: var(--weather-text-color);
     font-size: 1.1em;
-    text-shadow: 0 0 5px #0ff;
+    text-shadow: 0 0 5px var(--weather-text-glow);
 }
 
 .recent-searches {
@@ -137,23 +158,25 @@ button:hover {
 }
 
 .recent-searches h2 {
-    color: rgb(197, 78, 22);
-    text-shadow: 0 0 10px rgb(25, 174, 156), 0 0 20px #0ff, 0 0 40px #00f;
+    color: var(--recent-searches-bg);
+    text-shadow: 0 0 10px var(--recent-title-glow1), 0 0 20px var(--recent-title-glow2), 0 0 40px var(--recent-title-shadow);
     font-size: 1.5em;
     font-weight: 600;
     text-align: center;
 }
 
 #recent-list {
-    background: rgba(0, 0, 0, 0.6);
+    background: var(--recent-list-bg-color);
     padding: 10px;
     border-radius: 10px;
-    box-shadow: 0 0 15px rgb(109, 107, 107);
-    border: 2px solid rgb(38, 10, 0);
+    box-shadow: 0 0 15px var(--recent-list-bx-shadow);
+    border: 2px solid var(--recent-list-border-color);
 }
+
 .recent-item {
-    margin:5px;
+    margin: 5px;
 }
+
 .error-message {
     color: var(--error-color);
     font-size: 0.9em;
@@ -164,13 +187,12 @@ button:hover {
     body {
         padding: 10px;
     }
-    
+
     .container {
         width: 95%;
     }
 }
 
-/* Accessibility */
 .sr-only {
     position: absolute;
     width: 1px;
@@ -178,7 +200,7 @@ button:hover {
     padding: 0;
     margin: -1px;
     overflow: hidden;
-    clip: rect(0,0,0,0);
+    clip: rect(0, 0, 0, 0);
     border: 0;
 }
 
@@ -187,6 +209,3 @@ button:hover {
         transform: rotate(360deg);
     }
 }
-
-
-
