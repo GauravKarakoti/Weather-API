@@ -144,9 +144,7 @@ function clearError() {
 }
 
 function sanitizeHTML(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
+    return DOMPurify.sanitize(str);
 }
 
 function isLocalStorageAvailable() {
@@ -175,7 +173,7 @@ function addToRecentSearches(city) {
                 .slice(0, 4);
             recentSearches.unshift(city);
         }
-    }catch (error) {
+    } catch (error) {
         if (error.name === 'QuotaExceededError') {
             console.warn('LocalStorage quota exceeded. Removing oldest search.');
 
