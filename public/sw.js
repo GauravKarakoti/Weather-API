@@ -2,7 +2,7 @@ const CACHE_NAME = 'app-cache-v1';
 const CORE_ASSETS = [
     '/',
     '/index.html',
-    '/styles.css',
+    '/style.css',
     '/script.js',
 ];
 
@@ -11,12 +11,20 @@ self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => {
-                console.log('Caching core assets');
-                return cache.addAll(CORE_ASSETS);
+                return Promise.all(
+                    CORE_ASSETS.map((url) =>
+                        fetch(url).then((response) => {
+                            if (!response.ok) throw new Error(`Failed to fetch ${url}`);
+                            return cache.put(url, response);
+                        })
+                    )
+                );
             })
             .then(() => self.skipWaiting())
+            .catch((error) => console.error('Cache addAll failed:', error))
     );
 });
+
 
 // Activate event: Clean up old caches
 self.addEventListener('activate', (event) => {
