@@ -45,6 +45,7 @@ const requiredEnvVars = [
   "HUMIDITY_PRESSURE_CLASS",
   "CONDITION_CLASS",
   "DATE_CLASS",
+  "SCRAPE_API_FALLBACK",
 ];
 
 requiredEnvVars.forEach((varName) => {
