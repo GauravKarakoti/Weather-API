@@ -175,7 +175,7 @@ function addToRecentSearches(city) {
                 .slice(0, 4);
             recentSearches.unshift(city);
         }
-    }catch (error) {
+    } catch (error) {
         if (error.name === 'QuotaExceededError') {
             console.warn('LocalStorage quota exceeded. Removing oldest search.');
 
@@ -223,12 +223,23 @@ function loadRecentSearches() {
 }
 
 function setupServiceWorker() {
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker
-            .register('./sw.js')  // Use relative path for service worker
-            .then(() => console.log('Service Worker registered'))
-            .catch(err => console.log('SW registration failed:', err));
-    }
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+                console.log('Service Worker registered with scope:', registration.scope);
+
+                // Listen for updates
+                registration.onupdatefound = () => {
+                    const newSW = registration.installing;
+                    newSW.onstatechange = () => {
+                        if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+                            console.log('New content is available, please refresh.');
+                        }
+                    };
+                };
+            })
+            .catch((error) => console.error('Service Worker registration failed:', error));
+    });
 }
 
 function parseHumidityPressure(humidity, pressure) {
