@@ -23,8 +23,18 @@ if (envResult.error) {
 
 const app = express();
 
+const allowedOrigins = ["http://localhost:3003", "add-more-url"];
+
 // Security and middleware configurations
-app.use(cors());
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  }
+}));
 app.use(express.static("public"));
 app.use(express.json());
 app.set("trust proxy", 1);
