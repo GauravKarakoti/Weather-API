@@ -122,41 +122,62 @@ const isValidCity = (city) => {
 
 // Function to parse temperature with sanity check
 const parseTemperature = (rawText) => {
-  const match = rawText.match(/-?\d+(\.\d+)?\s*°C/);
-  if (match) {
-    const temp = parseFloat(match[0]);
-    if (temp < -100 || temp > 100) {
-      return "N/A"; // Sanity check for temperature range
+  try {
+    const match = rawText.match(/-?\d+(\.\d+)?\s*°C/);
+    if (match) {
+      const temp = parseFloat(match[0]);
+      if (temp < -100 || temp > 100) {
+        return "N/A"; // Sanity check for temperature range
+      }
+      return `${temp.toFixed(1)} °C`;
     }
-    return `${temp.toFixed(1)} °C`;
+    return "N/A";
+  } catch (error) {
+    console.error("Error parsing temperature:", error);
+    return "N/A";
   }
-  return "N/A";
 };
 
 // Function to parse min and max temperatures with sanity check
 const parseMinMaxTemperature = (rawText) => {
-  const matches = rawText.match(/-?\d+(\.\d+)?\s*°C/g);
-  const minTemp = matches?.[0] ? parseFloat(matches[0]) : null;
-  const maxTemp = matches?.[1] ? parseFloat(matches[1]) : null;
+  try {
+    const matches = rawText.match(/-?\d+(\.\d+)?\s*°C/g);
+    const minTemp = matches?.[0] ? parseFloat(matches[0]) : null;
+    const maxTemp = matches?.[1] ? parseFloat(matches[1]) : null;
 
-  return {
-    minTemperature: minTemp !== null && minTemp >= -100 && minTemp <= 100 ? `${minTemp.toFixed(1)} °C` : "N/A",
-    maxTemperature: maxTemp !== null && maxTemp >= -100 && maxTemp <= 100 ? `${maxTemp.toFixed(1)} °C` : "N/A",
-  };
+    return {
+      minTemperature: minTemp !== null && minTemp >= -100 && minTemp <= 100 ? `${minTemp.toFixed(1)} °C` : "N/A",
+      maxTemperature: maxTemp !== null && maxTemp >= -100 && maxTemp <= 100 ? `${maxTemp.toFixed(1)} °C` : "N/A",
+    };
+  } catch (error) {
+    console.error("Error parsing min/max temperature:", error);
+    return {
+      minTemperature: "N/A",
+      maxTemperature: "N/A",
+    };
+  }
 };
 
 // Function to parse humidity and pressure with validation
 const parseHumidityPressure = (rawText) => {
-  const humidityMatch = rawText.match(/Humidity:\s*(\d+)%/i);
-  const pressureMatch = rawText.match(/Pressure:\s*(\d+(\.\d+)?)\s*(hPa|Pa)/i);
+  try {
+    const humidityMatch = rawText.match(/Humidity:\s*(\d+)%/i);
+    const pressureMatch = rawText.match(/Pressure:\s*(\d+(\.\d+)?)\s*(hPa|Pa)/i);
 
-  const humidity = humidityMatch ? parseInt(humidityMatch[1], 10) : null;
-  const pressure = pressureMatch ? parseFloat(pressureMatch[1]) : null;
+    const humidity = humidityMatch ? parseInt(humidityMatch[1], 10) : null;
+    const pressure = pressureMatch ? parseFloat(pressureMatch[1]) : null;
 
-  return {
-    humidity: humidity !== null && humidity >= 0 && humidity <= 100 ? `${humidity}%` : "N/A",
-    pressure: pressure !== null && pressure >= 300 && pressure <= 1100 ? `${pressure.toFixed(1)} hPa` : "N/A",
-  };
+    return {
+      humidity: humidity !== null && humidity >= 0 && humidity <= 100 ? `${humidity}%` : "N/A",
+      pressure: pressure !== null && pressure >= 300 && pressure <= 1100 ? `${pressure.toFixed(1)} hPa` : "N/A",
+    };
+  } catch (error) {
+    console.error("Error parsing humidity/pressure:", error);
+    return {
+      humidity: "N/A",
+      pressure: "N/A",
+    };
+  }
 };
 
 const formatDate = (dateString) => {
@@ -248,9 +269,14 @@ app.get("/api/weather/:city", async (req, res) => {
 
       // Function to extract text safely
       const getElementText = (selector) => {
-        const element = $(selector);
-        if (!element.length) throw new Error(`Required element ${selector} not found`);
-        return element.text()?.trim() || null;
+        try {
+          const element = $(selector);
+          if (!element.length) throw new Error(`Required element ${selector} not found`);
+          return element.text()?.trim() || null;
+        } catch (error) {
+          console.error(`Error extracting text for selector ${selector}:`, error);
+          return null;
+        }
       };
 
       try {
