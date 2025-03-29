@@ -116,8 +116,7 @@ const sanitizeInput = (str) => xss(str.trim());
 
 // Enhanced city validation to support special characters
 const isValidCity = (city) => {
-  // Updated regex to better handle apostrophes and special characters
-  return /^[a-zA-Z\s'-]{2,50}$/.test(city) || /^[\p{L}\s'-]{2,50}$/u.test(city);
+  return /^[\p{L}\p{M}\s'’-]{2,50}$/u.test(city);
 };
 
 // Function to parse temperature with sanity check
