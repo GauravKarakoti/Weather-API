@@ -23,7 +23,7 @@ if (envResult.error) {
 
 const app = express();
 
-const allowedOrigins = ["http://localhost:3003", "add-more-url"];
+const allowedOrigins = ["http://localhost:3003", "https://weather-api-ex1z.onrender.com"];
 
 // Security and middleware configurations
 app.use(cors({
