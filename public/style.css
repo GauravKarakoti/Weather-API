@@ -4,45 +4,45 @@
     --error-color: #e74c3c;
     --success-color: #2ecc71;
 
-    --background-gradient-start: #0f0c29; 
+    --background-gradient-start: #0f0c29;
     --background-gradient-middle: #302b63;
-    --background-gradient-end: #0d0d24; 
+    --background-gradient-end: #0d0d24;
 
-    --text-color: #ddd; 
-    --highlight-color: rgb(45, 33, 2); 
+    --text-color: #ddd;
+    --highlight-color: rgb(45, 33, 2);
     --highlight-first: rgb(255, 34, 0);
-    --highlight-second: rgb(242, 208, 12); 
-    --highlight-third: rgb(236, 121, 5); 
-    --highlight-glow:rgb(8, 173, 232);
-    --button-shadow-first:rgba(255, 0, 251, 0.8);
-    --button-shadow-second:rgba(90, 32, 92, 0.8);
-    --input-border-color: #ddd; 
-    --input-text-color: #ff3700; 
-    --input-box-shadow: rgb(121, 24, 21); 
-    --input-data-bg-color:rgb(0,0,0,0.6);
-    --button-background-start: rgba(167, 12, 9, 0.8); 
+    --highlight-second: rgb(242, 208, 12);
+    --highlight-third: rgb(236, 121, 5);
+    --highlight-glow: rgb(8, 173, 232);
+    --button-shadow-first: rgba(255, 0, 251, 0.8);
+    --button-shadow-second: rgba(90, 32, 92, 0.8);
+    --input-border-color: #ddd;
+    --input-text-color: #ff3700;
+    --input-box-shadow: rgb(121, 24, 21);
+    --input-data-bg-color: rgb(0, 0, 0, 0.6);
+    --button-background-start: rgba(167, 12, 9, 0.8);
     --button-background-end: rgb(255, 145, 0);
     --button-text-color: black;
-    --button-hover-background: rgb(255, 0, 0); 
+    --button-hover-background: rgb(255, 0, 0);
     --button-hover-text-color: white;
-    --button-hover-shadow: #00f; 
+    --button-hover-shadow: #00f;
 
     --weather-data-bg-color: rgb(0, 0, 0, 0.6);
-    --weather-box-shadow: rgb(205, 53, 6); 
-    --weather-border-color: rgb(0, 19, 19); 
-    --weather-text-color: rgb(219, 78, 12); 
-    --weather-text-glow: #0ff; 
+    --weather-box-shadow: rgb(205, 53, 6);
+    --weather-border-color: rgb(0, 19, 19);
+    --weather-text-color: rgb(219, 78, 12);
+    --weather-text-glow: #0ff;
 
-    --recent-searches-bg: rgb(197, 78, 22); 
-    --recent-title-glow2: #0ff; 
+    --recent-searches-bg: rgb(197, 78, 22);
+    --recent-title-glow2: #0ff;
     --recent-title-glow1: rgb(25, 174, 156);
-    --recent-title-shadow: #00f; 
+    --recent-title-shadow: #00f;
     --recent-list-bg-color: rgba(0, 0, 0, 0.6);
-    --recent-list-bx-shadow: rgb(109, 107, 107); 
-    --recent-list-border-color: rgb(38, 10, 0); 
+    --recent-list-bx-shadow: rgb(109, 107, 107);
+    --recent-list-border-color: rgb(38, 10, 0);
 
-    --spinner-border: rgba(255, 255, 255, 0.3); 
-    --spinner-top-border: #fff; 
+    --spinner-border: rgba(255, 255, 255, 0.3);
+    --spinner-top-border: #fff;
 }
 
 body {
@@ -66,6 +66,7 @@ body {
 }
 
 #city {
+    color: white;
     padding: 5px;
 }
 
@@ -78,7 +79,7 @@ h1 {
 
 .form-group {
     margin-bottom: 1rem;
-    color:var(--text-color);
+    color: var(--text-color);
 }
 
 label {
@@ -146,7 +147,8 @@ button:hover {
     text-align: center;
 }
 
-#weather-data p, .temperature {
+#weather-data p,
+.temperature {
     margin: 8px 0;
     color: var(--weather-text-color);
     font-size: 1.1em;
