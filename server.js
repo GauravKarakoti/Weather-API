@@ -23,7 +23,7 @@ if (envResult.error) {
 
 const app = express();
 
-const allowedOrigins = ["http://localhost:3003", "https://weather-api-ex1z.onrender.com" , "https://weather-available.netligy.app"];
+const allowedOrigins = ["http://localhost:3003", "https://weather-api-ex1z.onrender.com", "https://weather-available.netligy.app"];
 
 // Security and middleware configurations
 app.use(cors({
@@ -115,9 +115,11 @@ app.use((req, res, next) => {
 
 // Middleware to add rate limit status headers
 app.use((req, res, next) => {
-  res.setHeader('X-RateLimit-Limit', rateLimiters.default.max);
-  res.setHeader('X-RateLimit-Remaining', Math.max(0, rateLimiters.default.max - req.rateLimit.current));
-  res.setHeader('X-RateLimit-Reset', new Date(Date.now() + rateLimiters.default.windowMs).toISOString());
+  if (req.rateLimit) {
+    res.setHeader('X-RateLimit-Limit', req.rateLimit.limit);
+    res.setHeader('X-RateLimit-Remaining', Math.max(0, req.rateLimit.limit - req.rateLimit.current));
+    res.setHeader('X-RateLimit-Reset', Date.now() + req.rateLimit.resetTime);
+  }
   next();
 });
 
@@ -132,13 +134,10 @@ const isValidCity = (city) => {
 // Function to parse temperature with sanity check
 const parseTemperature = (rawText) => {
   try {
-    const match = rawText.match(/-?\d+(\.\d+)?\s*°C/);
+    const match = rawText.match(/-?\d+(\.\d+)?\s*° c/gi);;
     if (match) {
       const temp = parseFloat(match[0]);
-      if (temp < -100 || temp > 100) {
-        return "N/A"; // Sanity check for temperature range
-      }
-      return `${temp.toFixed(1)} °C`;
+      return (temp >= -100 && temp <= 100) ? `${temp.toFixed(1)} °C` : "N/A";
     }
     return "N/A";
   } catch (error) {
@@ -150,7 +149,7 @@ const parseTemperature = (rawText) => {
 // Function to parse min and max temperatures with sanity check
 const parseMinMaxTemperature = (rawText) => {
   try {
-    const matches = rawText.match(/-?\d+(\.\d+)?\s*°C/g);
+    const matches = rawText.match(/-?\d+(\.\d+)?\s*°/gi) || [];
     const minTemp = matches?.[0] ? parseFloat(matches[0]) : null;
     const maxTemp = matches?.[1] ? parseFloat(matches[1]) : null;
 
@@ -170,8 +169,8 @@ const parseMinMaxTemperature = (rawText) => {
 // Function to parse humidity and pressure with validation
 const parseHumidityPressure = (rawText) => {
   try {
-    const humidityMatch = rawText.match(/Humidity:\s*(\d+)%/i);
-    const pressureMatch = rawText.match(/Pressure:\s*(\d+(\.\d+)?)\s*(hPa|Pa)/i);
+    const humidityMatch = rawText.match(/(\d+\.?\d*)\s*Humidity/i);
+    const pressureMatch = rawText.match(/(\d+\.?\d*)\s*Pressure/i);
 
     const humidity = humidityMatch ? parseInt(humidityMatch[1], 10) : null;
     const pressure = pressureMatch ? parseFloat(pressureMatch[1]) : null;
