@@ -335,6 +335,12 @@ app.get("/api/weather/:city", async (req, res) => {
   }
 });
 
+app.get('/config', (req, res) => {
+  res.json({
+    RECENT_SEARCH_LIMIT: process.env.RECENT_SEARCH_LIMIT || 5
+  });
+});
+
 // Start server
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {
