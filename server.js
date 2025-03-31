@@ -23,7 +23,8 @@ if (envResult.error) {
 
 const app = express();
 
-const allowedOrigins = ["http://localhost:3003", "https://weather-api-ex1z.onrender.com", "https://weather-available.netlify.app"];
+const allowedOrigins = [process.env.ALLOWED_ORIGIN, process.env.ALLOWED_ORIGIN2,
+process.env.ALLOWED_ORIGIN3];
 
 // Security and middleware configurations
 app.use(cors({
