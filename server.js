@@ -337,7 +337,8 @@ app.get("/api/weather/:city", async (req, res) => {
 
 app.get('/config', (req, res) => {
   res.json({
-    RECENT_SEARCH_LIMIT: process.env.RECENT_SEARCH_LIMIT || 5
+    RECENT_SEARCH_LIMIT: process.env.RECENT_SEARCH_LIMIT || 5,
+    API_URL: process.env.API_URL,
   });
 });
 
