@@ -1,3 +1,4 @@
+
 const express = require("express");
 const cheerio = require("cheerio");
 const axios = require("axios");
@@ -7,8 +8,10 @@ const xss = require("xss");
 const dotenv = require("dotenv");
 const fs = require("fs");
 const path = require("path");
+//const { console } = require("inspector");
 
 // Load environment variables
+
 const envResult = dotenv.config();
 if (envResult.error) {
   const envExamplePath = path.join(__dirname, ".env.example");
@@ -261,12 +264,13 @@ const fetchWeatherData = async (city) => {
 app.get("/api/weather/:city", async (req, res) => {
   try {
     const city = sanitizeInput(req.params.city);
-
+   
+   
     // Validate city input
     if (!city || !isValidCity(city)) {
       return handleError(
         res,
-        401,
+        400,
         "Invalid city name. Use letters, spaces, apostrophes (') and hyphens (-)",
         "INVALID_CITY"
       );
@@ -275,7 +279,7 @@ app.get("/api/weather/:city", async (req, res) => {
     try {
       const response = await fetchWeatherData(city);
       const $ = cheerio.load(response.data);
-
+      
       // Function to extract text safely
       const getElementText = (selector) => {
         try {
