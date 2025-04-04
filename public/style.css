@@ -54,8 +54,71 @@ body {
     align-items: center;
     justify-content: center;
     height: 100vh;
-    background: linear-gradient(135deg, var(--background-gradient-start), var(--background-gradient-middle), var(--background-gradient-end));
     overflow: hidden;
+    background: linear-gradient(135deg, rgba(15, 12, 41, 0.8), rgba(48, 43, 99, 0.8)), 
+                linear-gradient(135deg, rgba(44, 62, 80, 0.6), rgba(52, 152, 219, 0.6));
+    position: relative;*/
+}
+
+body::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5); /* Dark overlay */
+    z-index: 1;
+}
+
+@keyframes backgroundAnimation {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+body {
+    background: linear-gradient(270deg, #0f0c29, #302b63, #0d0d24);
+    background-size: 300% 300%; 
+    animation: backgroundAnimation 15s ease infinite;
+}
+
+body::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    opacity: 0.1;
+    z-index: 2; 
+}
+
+body {
+    position: relative; /* Positioning for shapes */
+}
+
+.shape {
+    position: absolute;
+    width: 200px;
+    height: 200px;
+    background: rgba(52, 152, 219, 0.5); /* Semi-transparent color */
+    border-radius: 50%; /* Circular shape */
+    top: 20%; /* Positioning */
+    left: 10%; /* Positioning */
+    z-index: 0; /* Behind other content */
+}
+
+.shape:nth-child(2) {
+    background: rgba(231, 76, 60, 0.5);
+    top: 60%;
+    left: 70%;
+}
+
+.shape:nth-child(3) {
+    background: rgba(46, 204, 113, 0.5);
+    top: 80%;
+    left: 30%;
 }
 
 .container {
