@@ -78,7 +78,8 @@ const rateLimiters = {
       status: 429,
       error: "Too many requests, please try again later.",
     },
-    headers: true,
+    legacyHeaders: false,
+    standardHeaders: true,
     keyGenerator: (req) => req.ip,
     handler: (req, res) => {
       res.set("Retry-After", Math.ceil(rateLimiters.default.windowMs / 1000));
@@ -95,7 +96,8 @@ const rateLimiters = {
       status: 429,
       error: "Too many requests, please try again later.",
     },
-    headers: true,
+    legacyHeaders: false,
+    standardHeaders: true,
     keyGenerator: (req) => req.ip,
     handler: (req, res) => {
       res.set("Retry-After", Math.ceil(rateLimiters.special.windowMs / 1000));
@@ -107,15 +109,19 @@ const rateLimiters = {
   }),
 };
 
-// Middleware to select rate limiter based on origin
-app.use((req, res, next) => {
-  const origin = req.get('origin');
-  if (origin && origin.includes('special-domain.com')) {
-    rateLimiters.special(req, res, next);
-  } else {
-    rateLimiters.default(req, res, next);
-  }
-});
+// Step 2: Secure client check (API Key instead of Origin)
+const isSpecialClient = (req) => {
+  const apiKey = req.get("x-api-key");
+  console.log(apiKey)
+  return apiKey && apiKey === process.env.SPECIAL_API_KEY;
+};
+
+const dynamicRateLimiter = (req, res, next) => {
+  const limiter = isSpecialClient(req) ? rateLimiters.special : rateLimiters.default;
+  return limiter(req, res, next);
+};
+
+app.use(dynamicRateLimiter);
 
 // Middleware to add rate limit status headers
 app.use((req, res, next) => {
@@ -264,8 +270,8 @@ const fetchWeatherData = async (city) => {
 app.get("/api/weather/:city", async (req, res) => {
   try {
     const city = sanitizeInput(req.params.city);
-   
-   
+
+
     // Validate city input
     if (!city || !isValidCity(city)) {
       return handleError(
@@ -279,7 +285,7 @@ app.get("/api/weather/:city", async (req, res) => {
     try {
       const response = await fetchWeatherData(city);
       const $ = cheerio.load(response.data);
-      
+
       // Function to extract text safely
       const getElementText = (selector) => {
         try {
