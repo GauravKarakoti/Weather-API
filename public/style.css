@@ -56,6 +56,16 @@ body {
     height: 100vh;
     background: linear-gradient(135deg, var(--background-gradient-start), var(--background-gradient-middle), var(--background-gradient-end));
     overflow: hidden;
+     background: linear-gradient(135deg, #0f0c29, #302b63, #0d0d24); 
+        background-attachment: fixed; 
+}
+
+body::after
+{
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
 }
 
 .container {
@@ -210,4 +220,22 @@ button:hover {
     to {
         transform: rotate(360deg);
     }
+}
+
+@keyframes gradientAnimation {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+body {
+    background: linear-gradient(135deg, #0f0c29, #302b63, #0d0d24);
+    background-size: 300% 300%; 
+    animation: gradientAnimation 15s ease infinite; 
 }
