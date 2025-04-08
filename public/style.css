@@ -50,9 +50,7 @@
 }
 
 body {
-    font-family: 'Orbitron', sans-serif;
     margin: 0;
-    padding: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -61,6 +59,9 @@ body {
     /* background: linear-gradient(135deg, var(--background-gradient-start), var(--background-gradient-middle), var(--background-gradient-end)); */
     background: url('./assets/WeatherBackground.png') no-repeat center center/cover;
     overflow: hidden;
+    color: #ffffff; 
+    padding: 20px;
+    font-family: 'Arial', sans-serif;
 } 
 
 .container {
@@ -68,6 +69,9 @@ body {
     backdrop-filter: blur(5px);
     padding: 1.5em;
     border-radius: 10px;
+    box-shadow: 0 0 15px var(--highlight-glow);
+    max-width: 800px;
+    margin: auto;
     transition: all ease-in-out 300ms;
     min-height: 300px;
     min-width: 400px;
@@ -112,6 +116,7 @@ label {
     background-clip: text;
     display: block;
     margin-bottom: 0.5rem;
+    font-size: 1.2em;
     font-weight: 300;
     margin-left: 0.2em;
 }
@@ -163,10 +168,25 @@ button {
     font-size: 0.8em;
     border-radius: 8px;
     cursor: pointer;
-    font-weight: 400;
+    font-weight: bold;
     text-transform: uppercase;
     transition: all 0.3s ease-in-out;
     padding: 0.8rem 1.2rem;
+}
+
+input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 5px;
+    background: rgba(171, 169, 169, 0.2);
+    color: #ffffff;
+    transition: background 0.3s;
+}
+
+input[type="text"]:focus {
+    background: rgba(255, 255, 255, 0.3);
+    outline: none;
 }
 
 button:hover, button:active {
@@ -181,7 +201,13 @@ button:hover, button:active {
     top: 47.65%;
     right: 1.6%;
     padding: 0 !important;
+    box-shadow: 0 0 10px var(--button-shadow-first), 0 0 20px var(--button-shadow-second);
+    color: #ffffff;
     border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1.1em;
+    transition: transform 0.2s, background 0.3s;
     background: none;
     font-weight: 300;
     border: none !important;
@@ -190,6 +216,14 @@ button:hover, button:active {
 button:disabled {
     opacity: 0.7;
     cursor: not-allowed;
+}
+
+button:hover {
+    background: var(--button-hover-background);
+    color: var(--button-hover-text-color);
+    box-shadow: 0 0 20px var(--button-hover-shadow), 0 0 40px var(--button-hover-shadow);
+    transform: scale(1.05);
+    background: linear-gradient(180deg, #BAE67E, #73D0FF);
 }
 
 .spinner {
@@ -213,11 +247,11 @@ button:disabled {
     padding-top: 15px;
     padding-bottom: 15px;
     border-radius: 10px;
-    border: 1px solid var(--input-border-color);
     border: 1px solid #4fc3f7;
     text-align: left;
     margin-top: 1em;
     margin-bottom: 1em;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
 }
 
 #weather-data p,
@@ -230,6 +264,11 @@ button:disabled {
     -webkit-text-fill-color: transparent;
     background-clip: text;
     color: transparent;
+    text-shadow: 0 0 5px var(--weather-text-glow);
+    margin-bottom: 10px;
+    padding: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 5px;
 }
 
 .recent-searches {
@@ -249,6 +288,8 @@ button:disabled {
     font-weight: 300;
     margin: 0;
     margin-left: 0.2em;
+    text-shadow: 0 0 10px var(--recent-title-glow1), 0 0 20px var(--recent-title-glow2), 0 0 40px var(--recent-title-shadow);
+    margin-bottom: 10px;
 }
 
 #recent-list {
@@ -258,6 +299,20 @@ button:disabled {
     border: 1px solid var(--input-border-color);
     margin-top: 0.3em;
     margin-bottom: 0.3em;
+    box-shadow: 0 0 15px var(--recent-list-bx-shadow);
+    list-style-type: none;
+}
+
+#recent-list li {
+    background: rgba(255, 255, 255, 0.2);
+    margin: 5px 0;
+    padding: 10px;
+    border-radius: 5px;
+    transition: background 0.3s;
+}
+
+#recent-list li:hover {
+    background: rgba(255, 255, 255, 0.3);
 }
 
 .recent-item {
