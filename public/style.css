@@ -46,9 +46,7 @@
 }
 
 body {
-    font-family: 'Orbitron', sans-serif;
     margin: 0;
-    padding: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -56,6 +54,10 @@ body {
     height: 100vh;
     background: linear-gradient(135deg, var(--background-gradient-start), var(--background-gradient-middle), var(--background-gradient-end));
     overflow: hidden;
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(135deg, #1F2430, #2C2F3A);
+    color: #ffffff;
+    padding: 20px;
 }
 
 .container {
@@ -63,6 +65,12 @@ body {
     padding: 20px;
     border-radius: 10px;
     box-shadow: 0 0 15px var(--highlight-glow);
+    max-width: 800px;
+    margin: auto;
+    padding: 20px;
+    background: rgba(114, 120, 161, 0.1);
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(11, 6, 176, 0.2);
 }
 
 #city {
@@ -78,14 +86,16 @@ h1 {
 }
 
 .form-group {
-    margin-bottom: 1rem;
     color: var(--text-color);
+    margin-bottom: 15px;
 }
 
 label {
     display: block;
     margin-bottom: 0.5rem;
     font-weight: 600;
+    font-size: 1.2em;
+    margin-bottom: 5px;
 }
 
 input {
@@ -98,18 +108,37 @@ input {
     box-shadow: 0 0 10px var(--input-box-shadow);
 }
 
-button {
-    padding: 10px 15px;
+input[type="text"] {
+    width: 100%;
+    padding: 10px;
     border: none;
+    border-radius: 5px;
+    background: rgba(171, 169, 169, 0.2);
+    color: #ffffff;
+    transition: background 0.3s;
+}
+
+input[type="text"]:focus {
+    background: rgba(255, 255, 255, 0.3);
+    outline: none;
+}
+
+button {
     background: linear-gradient(var(--button-background-start), var(--button-background-end));
     color: var(--button-text-color);
-    font-size: 1em;
     font-weight: bold;
     border-radius: 8px;
     cursor: pointer;
     text-transform: uppercase;
     box-shadow: 0 0 10px var(--button-shadow-first), 0 0 20px var(--button-shadow-second);
     transition: 0.3s ease-in-out;
+    color: #ffffff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1.1em;
+    transition: transform 0.2s, background 0.3s;
 }
 
 button:disabled {
@@ -121,6 +150,8 @@ button:hover {
     background: var(--button-hover-background);
     color: var(--button-hover-text-color);
     box-shadow: 0 0 20px var(--button-hover-shadow), 0 0 40px var(--button-hover-shadow);
+    transform: scale(1.05);
+    background: linear-gradient(180deg, #BAE67E, #73D0FF);
 }
 
 .spinner {
@@ -145,6 +176,10 @@ button:hover {
     box-shadow: 0 0 15px var(--weather-box-shadow);
     border: 2px solid var(--weather-border-color);
     text-align: center;
+    margin-top: 20px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
 }
 
 #weather-data p,
@@ -153,6 +188,10 @@ button:hover {
     color: var(--weather-text-color);
     font-size: 1.1em;
     text-shadow: 0 0 5px var(--weather-text-glow);
+    margin-bottom: 10px;
+    padding: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 5px;
 }
 
 .recent-searches {
@@ -165,6 +204,7 @@ button:hover {
     font-size: 1.5em;
     font-weight: 600;
     text-align: center;
+    margin-bottom: 10px;
 }
 
 #recent-list {
@@ -173,6 +213,19 @@ button:hover {
     border-radius: 10px;
     box-shadow: 0 0 15px var(--recent-list-bx-shadow);
     border: 2px solid var(--recent-list-border-color);
+    list-style-type: none;
+}
+
+#recent-list li {
+    background: rgba(255, 255, 255, 0.2);
+    margin: 5px 0;
+    padding: 10px;
+    border-radius: 5px;
+    transition: background 0.3s;
+}
+
+#recent-list li:hover {
+    background: rgba(255, 255, 255, 0.3);
 }
 
 .recent-item {
