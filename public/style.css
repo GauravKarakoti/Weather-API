@@ -106,7 +106,7 @@ body {
     height: fit-content;
     margin-bottom: 0rem;
     color: var(--text-color);
-    position: relative;
+    /* position: relative; */
 }
 
 label {
@@ -119,6 +119,10 @@ label {
     font-size: 1.2em;
     font-weight: 300;
     margin-left: 0.2em;
+}
+
+.searching{
+    position: relative;
 }
 
 input {
@@ -198,15 +202,15 @@ button:hover, button:active {
 
 .searchBtn{
     position: absolute;
-    top: 47.65%;
-    right: 1.6%;
+    top: 7.75%;
+    right: 0% !important;
     padding: 0 !important;
-    box-shadow: 0 0 10px var(--button-shadow-first), 0 0 20px var(--button-shadow-second);
+    box-shadow: 0 0 6px var(--button-shadow-first), 0 0 8px var(--button-shadow-second);
     color: #ffffff;
     border: none;
-    border-radius: 5px;
+    border-radius: 100%;
     cursor: pointer;
-    font-size: 1.1em;
+    font-size: 0.9em;
     transition: transform 0.2s, background 0.3s;
     background: none;
     font-weight: 300;
@@ -219,11 +223,22 @@ button:disabled {
 }
 
 button:hover {
-    background: var(--button-hover-background);
-    color: var(--button-hover-text-color);
-    box-shadow: 0 0 20px var(--button-hover-shadow), 0 0 40px var(--button-hover-shadow);
     transform: scale(1.05);
-    background: linear-gradient(180deg, #BAE67E, #73D0FF);
+    border: 1px solid var(--text-color);
+    color: var(--text-color);
+    background: linear-gradient(135deg, #17172e, #833092);
+    box-shadow: 0 0 10px rgba(186, 104, 200, 0.5), 0 0 20px rgba(186, 104, 200, 0.3);
+}
+
+.get-weather{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.buttons{
+    display: flex;
+    gap: 0.7em;
 }
 
 .spinner {
@@ -239,6 +254,11 @@ button:hover {
 
 .hidden {
     display: none;
+}
+
+.close-btn{
+    font-size: 1.2em;
+    padding: 0.4em 0.8em;
 }
 
 #weather-data {
@@ -323,6 +343,11 @@ button:hover {
     color: var(--error-color);
     font-size: 0.9em;
     margin-top: 0.5rem;
+    display: flex;
+    gap: 0.8em;
+    justify-content: left;
+    align-items: center;
+    margin: 1em 0em;
 }
 
 @media (max-width: 475px) {

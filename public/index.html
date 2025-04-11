@@ -17,19 +17,23 @@
     <form id="weather-form">
       <div class="form-group">
         <label for="city">Enter City Name:</label>
+        <div class="searching">
         <input type="text" id="city" name="city" placeholder="Search" required aria-describedby="city-error" aria-label="City Name" />
           <button type="submit" id="submit-btn" aria-label="Get Weather" class="searchBtn">
             <i class="fa-solid fa-magnifying-glass search"></i>
           </button>
+        </div>
         <div id="city-error" class="error-message" aria-live="assertive" tabindex="-1"></div>
       </div>
-      <button type="submit" id="submit-btn" aria-label="Get Weather">
+      <div class="buttons">
+      <button type="submit" id="submit-btn" aria-label="Get Weather" class="get-weather">
         <span class="button-text">Get Weather</span>
         <div class="spinner hidden" aria-hidden="true"></div>
       </button>
-      <button type="submit" id="submit-btn">
+      <button type="button" id="clear-btn">
         <span class="button-text">CLEAR</span>
       </button>
+    </div>
     </form>
 
     <div id="weather-data" class="hidden" aria-live="polite">
