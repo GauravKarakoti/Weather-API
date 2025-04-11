@@ -18,12 +18,18 @@ const form = getElement('#weather-form');
 const cityInput = getElement('#city');
 const weatherData = getElement('#weather-data');
 const submitBtn = getElement('#submit-btn');
+const clearBtn = getElement('#clear-btn'); // Add this line
 const spinner = getElement('.spinner');
 const errorElement = getElement('#city-error');
 
 let recentSearches = [];
 
 form.addEventListener('submit', handleSubmit);
+
+// Add the clear button event listener after form event listener
+if (clearBtn) {
+    clearBtn.addEventListener('click', handleClear);
+}
 
 function initialize() {
     loadRecentSearches();
@@ -350,6 +356,12 @@ function showUpdateNotification() {
 
 // Initialize the app
 initialize();
+
+function handleClear(e) {
+    e.preventDefault(); // Prevent form submission
+    cityInput.value = ''; // Clear the input field
+    clearError(); // Clear any error messages
+}
 
 export {
     fetchWeatherData,

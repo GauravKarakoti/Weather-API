@@ -6,6 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Weather Scraper</title>
   <link rel="stylesheet" href="style.css" />
+  <!-- Font Awesome CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <link rel="icon" href="Favicon/favicon.png" type="image/png">
 </head>
 
@@ -15,14 +17,23 @@
     <form id="weather-form">
       <div class="form-group">
         <label for="city">Enter City Name:</label>
-        <input type="text" id="city" name="city" placeholder="E.g. London " required aria-describedby="city-error"
-          aria-label="City Name" />
+        <div class="searching">
+        <input type="text" id="city" name="city" placeholder="Search" required aria-describedby="city-error" aria-label="City Name" />
+          <button type="submit" id="submit-btn" aria-label="Get Weather" class="searchBtn">
+            <i class="fa-solid fa-magnifying-glass search"></i>
+          </button>
+        </div>
         <div id="city-error" class="error-message" aria-live="assertive" tabindex="-1"></div>
       </div>
-      <button type="submit" id="submit-btn" aria-label="Get Weather">
+      <div class="buttons">
+      <button type="submit" id="submit-btn" aria-label="Get Weather" class="get-weather">
         <span class="button-text">Get Weather</span>
         <div class="spinner hidden" aria-hidden="true"></div>
       </button>
+      <button type="button" id="clear-btn">
+        <span class="button-text">CLEAR</span>
+      </button>
+    </div>
     </form>
 
     <div id="weather-data" class="hidden" aria-live="polite">
