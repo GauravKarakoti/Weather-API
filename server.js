@@ -40,7 +40,7 @@ app.use(cors({
 }));
 app.use(express.static("public"));
 app.use(express.json());
-app.set("trust proxy", 1);
+app.set("trust proxy", true);
 app.use((req, res, next) => {
   res.setHeader(
     "Content-Security-Policy",
@@ -68,6 +68,12 @@ requiredEnvVars.forEach((varName) => {
   }
 });
 
+// Function to get client IP considering x-forwarded-for header
+const getClientIp = (req) => {
+  const forwarded = req.headers['x-forwarded-for'];
+  return forwarded ? forwarded.split(',')[0].trim() : req.ip;
+};
+
 // Rate limiting middleware with different strategies per origin
 const rateLimiters = {
   default: rateLimit({
@@ -79,7 +85,7 @@ const rateLimiters = {
     },
     legacyHeaders: false,
     standardHeaders: true,
-    keyGenerator: (req) => req.ip,
+    keyGenerator: getClientIp,
     handler: (req, res) => {
       res.set("Retry-After", Math.ceil(rateLimiters.default.windowMs / 1000));
       res.status(429).json({
@@ -97,7 +103,7 @@ const rateLimiters = {
     },
     legacyHeaders: false,
     standardHeaders: true,
-    keyGenerator: (req) => req.ip,
+    keyGenerator: getClientIp,
     handler: (req, res) => {
       res.set("Retry-After", Math.ceil(rateLimiters.special.windowMs / 1000));
       res.status(429).json({
