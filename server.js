@@ -1,4 +1,3 @@
-
 const express = require("express");
 const cheerio = require("cheerio");
 const axios = require("axios");
@@ -266,11 +265,65 @@ const fetchWeatherData = async (city) => {
   }
 };
 
+// Fallback selector patterns
+const fallbackSelectors = {
+  TEMPERATURE_CLASS: ".temp-fallback",
+  MIN_MAX_TEMPERATURE_CLASS: ".min-max-temp-fallback",
+  HUMIDITY_PRESSURE_CLASS: ".humidity-pressure-fallback",
+  CONDITION_CLASS: ".condition-fallback",
+  DATE_CLASS: ".date-fallback",
+};
+
+// Function to validate selectors
+const validateSelectors = async () => {
+  const testCity = "test-city"; // Replace with a valid test city
+  const testUrl = `${process.env.SCRAPE_API_FIRST}${testCity}${process.env.SCRAPE_API_LAST}`;
+
+  try {
+    const response = await axios.get(testUrl, {
+      timeout: 5000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      }
+    });
+    const $ = cheerio.load(response.data);
+
+    const missingSelectors = [];
+    Object.keys(fallbackSelectors).forEach((key) => {
+      if (!$(process.env[key]).length) {
+        missingSelectors.push(key);
+      }
+    });
+
+    if (missingSelectors.length) {
+      console.warn("Selector validation failed for:", missingSelectors);
+      sendAdminAlert(missingSelectors);
+    } else {
+      console.log("All selectors validated successfully.");
+    }
+  } catch (error) {
+    console.error("Error during selector validation:", error.message);
+    sendAdminAlert(["ALL_SELECTORS_FAILED"]);
+  }
+};
+
+// Function to send admin alerts
+const sendAdminAlert = (failedSelectors) => {
+  const adminEmail = process.env.ADMIN_EMAIL;
+  if (!adminEmail) {
+    console.error("Admin email not configured. Cannot send alert.");
+    return;
+  }
+
+  const alertMessage = `The following selectors failed validation: ${failedSelectors.join(", ")}. Please update the environment variables or fallback selectors.`;
+  console.log(`Sending alert to admin: ${alertMessage}`);
+  // Implement email or notification logic here
+};
+
 // API route to fetch weather data
 app.get("/api/weather/:city", async (req, res) => {
   try {
     const city = sanitizeInput(req.params.city);
-
 
     // Validate city input
     if (!city || !isValidCity(city)) {
@@ -287,11 +340,16 @@ app.get("/api/weather/:city", async (req, res) => {
       const $ = cheerio.load(response.data);
 
       // Function to extract text safely
-      const getElementText = (selector) => {
+      const getElementText = (selector, fallbackSelector) => {
         try {
           const element = $(selector);
-          if (!element.length) throw new Error(`Required element ${selector} not found`);
-          return element.text()?.trim() || null;
+          if (element.length) return element.text()?.trim() || null;
+
+          // Use fallback selector if primary fails
+          const fallbackElement = $(fallbackSelector);
+          if (fallbackElement.length) return fallbackElement.text()?.trim() || null;
+
+          throw new Error(`Required element ${selector} not found`);
         } catch (error) {
           console.error(`Error extracting text for selector ${selector}:`, error);
           return null;
@@ -299,11 +357,11 @@ app.get("/api/weather/:city", async (req, res) => {
       };
 
       try {
-        const temperature = parseTemperature(getElementText(process.env.TEMPERATURE_CLASS));
-        const { minTemperature, maxTemperature } = parseMinMaxTemperature(getElementText(process.env.MIN_MAX_TEMPERATURE_CLASS));
-        const { humidity, pressure } = parseHumidityPressure(getElementText(process.env.HUMIDITY_PRESSURE_CLASS));
-        const condition = getElementText(process.env.CONDITION_CLASS);
-        const date = getElementText(process.env.DATE_CLASS);
+        const temperature = parseTemperature(getElementText(process.env.TEMPERATURE_CLASS, fallbackSelectors.TEMPERATURE_CLASS));
+        const { minTemperature, maxTemperature } = parseMinMaxTemperature(getElementText(process.env.MIN_MAX_TEMPERATURE_CLASS, fallbackSelectors.MIN_MAX_TEMPERATURE_CLASS));
+        const { humidity, pressure } = parseHumidityPressure(getElementText(process.env.HUMIDITY_PRESSURE_CLASS, fallbackSelectors.HUMIDITY_PRESSURE_CLASS));
+        const condition = getElementText(process.env.CONDITION_CLASS, fallbackSelectors.CONDITION_CLASS);
+        const date = getElementText(process.env.DATE_CLASS, fallbackSelectors.DATE_CLASS);
 
         if (!temperature || !condition) {
           return handleError(res, 404, "Weather data not found for the specified city.", "DATA_NOT_FOUND");
@@ -345,6 +403,12 @@ app.get("/api/weather/:city", async (req, res) => {
   }
 });
 
+// Schedule daily selector validation
+const scheduleSelectorValidation = () => {
+  const interval = 24 * 60 * 60 * 1000; // 24 hours
+  setInterval(validateSelectors, interval);
+};
+
 app.get('/config', (req, res) => {
   res.json({
     RECENT_SEARCH_LIMIT: process.env.RECENT_SEARCH_LIMIT || 5,
@@ -352,10 +416,20 @@ app.get('/config', (req, res) => {
   });
 });
 
+// Version tracking for target website structure
+app.get("/api/version", (req, res) => {
+  res.json({
+    version: "1.0.0", // Update this manually when selectors or logic change
+    lastUpdated: "2023-10-01", // Update this date when changes are made
+  });
+});
+
 // Start server
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  validateSelectors(); // Initial validation on startup
+  scheduleSelectorValidation(); // Schedule daily validation
 });
 
 module.exports = { app, server };
