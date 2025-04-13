@@ -74,7 +74,7 @@ const getClientIp = (req) => {
   return forwarded ? forwarded.split(',')[0].trim() : req.ip;
 };
 
-// Rate limiting middleware with different strategies per origin
+// Rate limiting middleware with endpoint-specific strategies
 const rateLimiters = {
   default: rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -85,7 +85,7 @@ const rateLimiters = {
     },
     legacyHeaders: false,
     standardHeaders: true,
-    keyGenerator: getClientIp,
+    keyGenerator: (req) => req.get("x-api-key") || getClientIp(req),
     handler: (req, res) => {
       res.set("Retry-After", Math.ceil(rateLimiters.default.windowMs / 1000));
       res.status(429).json({
@@ -94,36 +94,32 @@ const rateLimiters = {
       });
     },
   }),
-  special: rateLimit({
-    windowMs: 60 * 60 * 1000,
-    max: 200,
+  weather: rateLimit({
+    windowMs: 10 * 60 * 1000, // 10 minutes
+    max: 50, // Stricter limit for /api/weather
     message: {
       status: 429,
-      error: "Too many requests, please try again later.",
+      error: "Too many requests to the weather API. Please try again later.",
     },
     legacyHeaders: false,
     standardHeaders: true,
-    keyGenerator: getClientIp,
+    keyGenerator: (req) => req.get("x-api-key") || getClientIp(req),
     handler: (req, res) => {
-      res.set("Retry-After", Math.ceil(rateLimiters.special.windowMs / 1000));
+      res.set("Retry-After", Math.ceil(rateLimiters.weather.windowMs / 1000));
       res.status(429).json({
-        error: "Too many requests. Please try again later.",
-        retryAfter: Math.ceil(rateLimiters.special.windowMs / 1000) + " seconds",
+        error: "Too many requests to the weather API. Please try again later.",
+        retryAfter: Math.ceil(rateLimiters.weather.windowMs / 1000) + " seconds",
       });
     },
   }),
 };
 
-// Step 2: Secure client check (API Key instead of Origin)
-const isSpecialClient = (req) => {
-  const apiKey = req.get("x-api-key");
-  console.log(apiKey)
-  return apiKey && apiKey === process.env.SPECIAL_API_KEY;
-};
-
+// Apply rate limiting dynamically based on endpoint
 const dynamicRateLimiter = (req, res, next) => {
-  const limiter = isSpecialClient(req) ? rateLimiters.special : rateLimiters.default;
-  return limiter(req, res, next);
+  if (req.path.startsWith("/api/weather")) {
+    return rateLimiters.weather(req, res, next);
+  }
+  return rateLimiters.default(req, res, next);
 };
 
 app.use(dynamicRateLimiter);

@@ -36,3 +36,24 @@ describe("Weather API Endpoint", () => {
     });
 });
 
+describe("Rate Limiting", () => {
+    test("should return 429 when exceeding rate limit for /api/weather", async () => {
+        const apiKey = "test-api-key"; // Replace with a valid API key if needed
+        const headers = { "x-api-key": apiKey };
+
+        // Simulate exceeding the rate limit
+        for (let i = 0; i < 51; i++) {
+            await request(app).get("/api/weather/London").set(headers);
+        }
+
+        const response = await request(app).get("/api/weather/London").set(headers);
+        expect(response.status).toBe(429);
+        expect(response.body.error).toBe("Too many requests to the weather API. Please try again later.");
+    });
+
+    test("should not apply rate limit to different endpoints", async () => {
+        const response = await request(app).get("/api/version");
+        expect(response.status).toBe(200);
+    });
+});
+
