@@ -58,7 +58,7 @@ body {
     height: 100vh;
     /* background: linear-gradient(135deg, var(--background-gradient-start), var(--background-gradient-middle), var(--background-gradient-end)); */
     background: url('./assets/WeatherBackground.png') no-repeat center center/cover;
-    overflow: hidden;
+    overflow-x: hidden;
     color: #ffffff; 
     padding: 20px;
     font-family: 'Arial', sans-serif;
