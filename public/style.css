@@ -74,6 +74,7 @@ body {
     margin: auto;
     transition: all ease-in-out 300ms;
     min-height: 300px;
+    height: auto;
     min-width: 400px;
     display: flex;
     flex-direction: column;
