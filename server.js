@@ -26,7 +26,7 @@ if (envResult.error) {
 const app = express();
 
 const allowedOrigins = [process.env.ALLOWED_ORIGIN, process.env.ALLOWED_ORIGIN2,
-process.env.ALLOWED_ORIGIN3];
+process.env.ALLOWED_ORIGIN3,process.env.ALLOWED_ORIGIN4];
 
 // Security and middleware configurations
 app.use(cors({
