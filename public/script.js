@@ -40,8 +40,6 @@ function initialize() {
 async function handleSubmit(e) {
     e.preventDefault();
     const city = cityInput.value.trim();
-    console.log('hi')
-    console.log(city)
 
     // Clear the previous error message when a new search starts
     clearError();
