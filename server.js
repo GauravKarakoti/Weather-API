@@ -278,7 +278,8 @@ const fallbackSelectors = {
 
 // Function to validate selectors
 const validateSelectors = async () => {
-  const testCity = "test-city"; // Replace with a valid test city
+  const testCity = "delhi";
+  
   const testUrl = `${process.env.SCRAPE_API_FIRST}${testCity}${process.env.SCRAPE_API_LAST}`;
 
   try {
