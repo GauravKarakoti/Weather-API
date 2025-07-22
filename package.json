@@ -5,7 +5,9 @@
   "scripts": {
     "test": "jest",
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "lint": "eslint . --ext .js",
+    "lint:fix": "eslint . --ext .js --fix"
   },
   "keywords": [],
   "author": "",
@@ -23,6 +25,7 @@
     "xss": "^1.0.15"
   },
   "devDependencies": {
+    "eslint": "^9.31.0",
     "jest": "^30.0.3",
     "jsdom": "^26.0.0",
     "supertest": "^7.0.0"
