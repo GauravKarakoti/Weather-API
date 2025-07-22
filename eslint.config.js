@@ -1,12 +1,12 @@
 // eslint.config.js (CommonJS version)
-const js = require('@eslint/js');
+const js = require("@eslint/js");
 
 module.exports = [
   {
-    files: ['**/*.js'],
+    files: ["**/*.js"],
     languageOptions: {
-      ecmaVersion: 'latest',
-      sourceType: 'module',
+      ecmaVersion: "latest",
+      sourceType: "module",
     },
     plugins: {
       js,
