@@ -32,10 +32,15 @@ describe("Weather App Tests", () => {
     });
 
     test("should reject invalid city names", () => {
-        expect(global.script.isValidInput("!@#")).toBe(false);
-        expect(global.script.isValidInput("L")).toBe(false);
-        expect(global.script.isValidInput("London")).toBe(true);
-    });
+    expect(global.script.isValidInput("!@#")).toBe(false);
+    expect(global.script.isValidInput("L")).toBe(false);
+    expect(global.script.isValidInput("London")).toBe(true);
+    expect(global.script.isValidInput("São Gonçalo")).toBe(true);  // ✅ Accented name
+    expect(global.script.isValidInput("O'Connor")).toBe(true);     // ✅ Apostrophe
+    expect(global.script.isValidInput("St. Louis")).toBe(true);    // ✅ Period
+    expect(global.script.isValidInput("Rio-de-Janeiro")).toBe(true); // ✅ Hyphen
+});
+
 
     test("should fetch weather data successfully", async () => {
         jest.spyOn(global, "fetch").mockResolvedValue({
