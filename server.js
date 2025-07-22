@@ -61,6 +61,20 @@ const requiredEnvVars = [
   "SCRAPE_API_FALLBACK",
 ];
 
+// Improved Error Handling
+const handleError = (res, statusCode, message, code, details = null) => {
+  const errorResponse = {
+    error: message,
+    code,
+    statusCode,
+    timestamp: new Date().toISOString(),
+  };
+  if (details) {
+    errorResponse.details = details;
+  }
+  res.status(statusCode).json(errorResponse);
+};
+
 requiredEnvVars.forEach((varName) => {
   if (!process.env[varName]) {
     console.error(`Error: Missing environment variable ${varName}`);
@@ -88,10 +102,15 @@ const rateLimiters = {
     keyGenerator: (req) => req.get("x-api-key") || getClientIp(req),
     handler: (req, res) => {
       res.set("Retry-After", Math.ceil(rateLimiters.default.windowMs / 1000));
-      res.status(429).json({
-        error: "Too many requests. Please try again later.",
-        retryAfter: Math.ceil(rateLimiters.default.windowMs / 1000) + " seconds",
-      });
+      return handleError(
+        res,
+        429,
+        "Too many requests to the weather API. Please try again later.",
+        "TOO_MANY_REQUESTS",
+        {
+          retryAfter: Math.ceil(rateLimiters.default.windowMs / 1000) + " seconds",
+        }
+      );
     },
   }),
   weather: rateLimit({
@@ -106,10 +125,15 @@ const rateLimiters = {
     keyGenerator: (req) => req.get("x-api-key") || getClientIp(req),
     handler: (req, res) => {
       res.set("Retry-After", Math.ceil(rateLimiters.weather.windowMs / 1000));
-      res.status(429).json({
-        error: "Too many requests to the weather API. Please try again later.",
-        retryAfter: Math.ceil(rateLimiters.weather.windowMs / 1000) + " seconds",
-      });
+      return handleError(
+        res,
+        429,
+        "Too many requests to the weather API. Please try again later.",
+        "RATE_LIMIT_EXCEEDED",
+        {
+          retryAfter: Math.ceil(rateLimiters.weather.windowMs / 1000) + " seconds",
+        }
+      );
     },
   }),
 };
@@ -209,20 +233,6 @@ const formatDate = (dateString) => {
   } catch {
     return dateString; // Fallback to the original string if parsing fails
   }
-};
-
-// Improved Error Handling
-const handleError = (res, statusCode, message, code, details = null) => {
-  const errorResponse = {
-    error: message,
-    code,
-    statusCode,
-    timestamp: new Date().toISOString(),
-  };
-  if (details) {
-    errorResponse.details = details;
-  }
-  res.status(statusCode).json(errorResponse);
 };
 
 // Retry mechanism for failed requests
@@ -367,7 +377,12 @@ app.get("/api/weather/:city", async (req, res) => {
         const date = getElementText(process.env.DATE_CLASS, fallbackSelectors.DATE_CLASS);
 
         if (!temperature || !condition) {
-          return handleError(res, 404, "Weather data not found for the specified city.", "DATA_NOT_FOUND");
+          return handleError(
+            res, 
+            404, 
+            "Weather data not found for the specified city.", 
+            "DATA_NOT_FOUND"
+          );
         }
 
         const weatherData = {
@@ -384,25 +399,53 @@ app.get("/api/weather/:city", async (req, res) => {
 
       } catch (parsingError) {
         console.error("Data parsing error:", parsingError);
-        return handleError(res, 503, "Unable to parse weather data. The weather service might be temporarily unavailable.", "PARSING_ERROR", parsingError.message);
+        return handleError(
+          res, 
+          503, 
+          "Unable to parse weather data. The weather service might be temporarily unavailable.", 
+          "PARSING_ERROR", 
+          parsingError.message
+        );
       }
 
     } catch (scrapingError) {
       console.error("Scraping error:", scrapingError);
 
       if (scrapingError.code === "ECONNABORTED") {
-        return handleError(res, 504, "The weather service is taking too long. Try again later.", "TIMEOUT");
+        return handleError(
+          res, 
+          504, 
+          "The weather service is taking too long. Try again later.", 
+          "TIMEOUT"
+        );
       }
 
       if (scrapingError.response?.status === 404) {
-        return handleError(res, 404, "City not found. Please check the spelling.", "CITY_NOT_FOUND");
+        return handleError(
+          res, 
+          404, 
+          "City not found. Please check the spelling.", 
+          "CITY_NOT_FOUND"
+        );
       }
 
-      return handleError(res, 503, "Weather service temporarily unavailable.", "SERVICE_UNAVAILABLE", scrapingError.message);
+      return handleError(
+        res, 
+        503, 
+        "Weather service temporarily unavailable.", 
+        "SERVICE_UNAVAILABLE", 
+        scrapingError.message
+      );
     }
   } catch (error) {
     console.error("Server error:", error);
-    handleError(res, 500, "Unexpected server error. Please try again later.", "SERVER_ERROR", error.message);
+    handleError(
+      res, 
+      500, 
+      "Unexpected server error. Please try again later.", 
+      "SERVER_ERROR", 
+      error.message
+    );
   }
 });
 
@@ -426,6 +469,39 @@ app.get("/api/version", (req, res) => {
     lastUpdated: "2023-10-01", // Update this date when changes are made
   });
 });
+
+app.use((err, req, res, next) => {
+  if (err.message === "Not allowed by CORS") {
+    return handleError(
+      res, 
+      403, 
+      "CORS policy disallows access from this origin.", "CORS_DENIED"
+    );
+  }
+  next(err);
+});
+
+// if route is not found, return 404
+app.use((req, res) => {
+  return handleError(
+    res, 
+    404, 
+    "Route not found.", "ROUTE_NOT_FOUND"
+  );
+});
+
+// Global error handler for unhandled errors
+app.use((err, req, res, next) => {
+  console.error("Unhandled error:", err);
+  return handleError(
+    res, 
+    500, 
+    "Internal server error.", 
+    "UNHANDLED_EXCEPTION", 
+    err.message || null
+  );
+});
+
 
 // Start server
 const PORT = process.env.PORT || 5000;
