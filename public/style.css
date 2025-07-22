@@ -72,7 +72,7 @@ body {
     border-radius: 10px;
     box-shadow: 0 0 15px var(--highlight-glow);
     max-width: 800px;
-    margin: 20 px auto;
+    margin: 20px auto;
     transition: all ease-in-out 300ms;
     min-height: auto; 
     max-height: 90vh;
