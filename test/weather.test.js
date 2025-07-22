@@ -9,7 +9,10 @@ describe("Weather App Tests", () => {
   let script;
 
   beforeAll(() => {
-    html = fs.readFileSync(path.resolve(__dirname, "../public/index.html"), "utf8");
+    html = fs.readFileSync(
+      path.resolve(__dirname, "../public/index.html"),
+      "utf8",
+    );
     document.documentElement.innerHTML = html;
     script = require("../public/script.js");
     global.script = script;
@@ -24,7 +27,7 @@ describe("Weather App Tests", () => {
     global.script.addToRecentSearches("London");
     expect(localStorage.setItem).toHaveBeenCalledWith(
       "recentSearches",
-      JSON.stringify(["London"])
+      JSON.stringify(["London"]),
     );
   });
 });
