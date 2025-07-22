@@ -3,6 +3,7 @@ const { JSDOM } = require("jsdom");
 /**
  * @jest-environment jsdom
  */
+global.fetch = require("node-fetch");
 
 beforeAll(() => {
   const dom = new JSDOM(` 
@@ -31,36 +32,47 @@ describe("Weather App Tests", () => {
     jest.restoreAllMocks();
   });
 
-  test("should reject invalid city names", () => {
+  test("should validate city names correctly", () => {
+    // Invalid names
+    expect(global.script.isValidInput("")).toBe(false);
     expect(global.script.isValidInput("!@#")).toBe(false);
     expect(global.script.isValidInput("L")).toBe(false);
+    expect(global.script.isValidInput("1234")).toBe(false);
+    expect(global.script.isValidInput("Delhi, IN")).toBe(false); // comma not allowed
+
+    // Valid names
     expect(global.script.isValidInput("London")).toBe(true);
-    expect(global.script.isValidInput("São Gonçalo")).toBe(true); // ✅ Accented name
-    expect(global.script.isValidInput("O'Connor")).toBe(true); // ✅ Apostrophe
-    expect(global.script.isValidInput("St. Louis")).toBe(true); // ✅ Period
-    expect(global.script.isValidInput("Rio-de-Janeiro")).toBe(true); // ✅ Hyphen
+    expect(global.script.isValidInput("São Gonçalo")).toBe(true); // accented
+    expect(global.script.isValidInput("O'Connor")).toBe(true);    // apostrophe
+    expect(global.script.isValidInput("St. Louis")).toBe(true);   // period
+    expect(global.script.isValidInput("Rio-de-Janeiro")).toBe(true); // hyphen
   });
 
   test("should fetch weather data successfully", async () => {
-    jest.spyOn(global, "fetch").mockResolvedValue({
-      ok: true,
-      json: async () => ({ temperature: "20°C", condition: "Sunny" }),
-    });
-
-    const data = await global.script.fetchWeatherData("London");
-    expect(data.temperature).toBe("20°C");
-    expect(data.condition).toBe("Sunny");
+  global.fetch = jest.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({ temperature: "20°C", condition: "Sunny" }),
   });
+
+  const data = await global.script.fetchWeatherData("London");
+  expect(data.temperature).toBe("20°C");
+  expect(data.condition).toBe("Sunny");
+});
+
+
 
   test("should handle 404 error in fetchWeatherData", async () => {
     jest.spyOn(global, "fetch").mockResolvedValue({
       ok: false,
       status: 404,
+      headers: {
+        get: () => "application/json",
+      },
       json: async () => ({ error: "City not found" }),
     });
 
     await expect(global.script.fetchWeatherData("InvalidCity")).rejects.toThrow(
-      "City not found. Please enter a valid city name.",
+      "City not found. Please check the city name."
     );
   });
 
@@ -68,7 +80,12 @@ describe("Weather App Tests", () => {
     global.script.addToRecentSearches("London");
     expect(localStorage.setItem).toHaveBeenCalledWith(
       "recentSearches",
-      JSON.stringify(["London"]),
+      JSON.stringify(["London"])
     );
   });
+});
+
+
+afterEach(() => {
+  jest.clearAllMocks();
 });
