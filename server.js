@@ -9,6 +9,7 @@ const fs = require("fs");
 const path = require("path");
 //const { console } = require("inspector");
 
+
 // Load environment variables
 
 const envResult = dotenv.config();
@@ -26,7 +27,7 @@ if (envResult.error) {
 const app = express();
 
 const allowedOrigins = [process.env.ALLOWED_ORIGIN, process.env.ALLOWED_ORIGIN2,
-process.env.ALLOWED_ORIGIN3,process.env.ALLOWED_ORIGIN4];
+process.env.ALLOWED_ORIGIN3, process.env.ALLOWED_ORIGIN4];
 
 // Security and middleware configurations
 app.use(cors({
@@ -268,12 +269,19 @@ const fetchWeatherData = async (city) => {
     });
   } catch (error) {
     console.warn("Primary source failed, trying fallback:", error.message);
-    return await fetchWithRetry(fallbackUrl, {
-      timeout: 5000,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-      }
-    });
+
+    try {
+      return await fetchWithRetry(fallbackUrl, {
+        timeout: 5000,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+      });
+    } catch (fallbackError) {
+      console.error("Fallback also failed:", fallbackError.message);
+      // ✅ Throw an actual error so app route can handle it
+      throw fallbackError;
+    }
   }
 };
 
@@ -289,7 +297,7 @@ const fallbackSelectors = {
 // Function to validate selectors
 const validateSelectors = async () => {
   const testCity = "delhi";
-  
+
   const testUrl = `${process.env.SCRAPE_API_FIRST}${testCity}${process.env.SCRAPE_API_LAST}`;
 
   try {
@@ -378,9 +386,9 @@ app.get("/api/weather/:city", async (req, res) => {
 
         if (!temperature || !condition) {
           return handleError(
-            res, 
-            404, 
-            "Weather data not found for the specified city.", 
+            res,
+            404,
+            "Weather data not found for the specified city.",
             "DATA_NOT_FOUND"
           );
         }
@@ -400,10 +408,10 @@ app.get("/api/weather/:city", async (req, res) => {
       } catch (parsingError) {
         console.error("Data parsing error:", parsingError);
         return handleError(
-          res, 
-          503, 
-          "Unable to parse weather data. The weather service might be temporarily unavailable.", 
-          "PARSING_ERROR", 
+          res,
+          503,
+          "Unable to parse weather data. The weather service might be temporarily unavailable.",
+          "PARSING_ERROR",
           parsingError.message
         );
       }
@@ -413,47 +421,63 @@ app.get("/api/weather/:city", async (req, res) => {
 
       if (scrapingError.code === "ECONNABORTED") {
         return handleError(
-          res, 
-          504, 
-          "The weather service is taking too long. Try again later.", 
+          res,
+          504,
+          "The weather service is taking too long. Try again later.",
           "TIMEOUT"
         );
       }
 
-      if (scrapingError.response?.status === 404) {
+      // Handle axios 404 error
+      if (scrapingError.response && scrapingError.response.status === 404) {
         return handleError(
-          res, 
-          404, 
-          "City not found. Please check the spelling.", 
+          res,
+          404,
+          "City not found. Please check the spelling.",
           "CITY_NOT_FOUND"
         );
       }
 
+      // Handle generic axios error
+      if (scrapingError.message && scrapingError.message.match(/not found|city not found/i)) {
+        return handleError(
+          res,
+          404,
+          "City not found. Please check the spelling.",
+          "CITY_NOT_FOUND"
+        );
+      }
+
+      // Handle all other errors as 500
       return handleError(
-        res, 
-        503, 
-        "Weather service temporarily unavailable.", 
-        "SERVICE_UNAVAILABLE", 
+        res,
+        500,
+        "Failed to retrieve weather data.",
+        "SERVER_ERROR",
         scrapingError.message
       );
     }
   } catch (error) {
     console.error("Server error:", error);
     handleError(
-      res, 
-      500, 
-      "Unexpected server error. Please try again later.", 
-      "SERVER_ERROR", 
+      res,
+      500,
+      "Unexpected server error. Please try again later.",
+      "SERVER_ERROR",
       error.message
     );
   }
 });
 
 // Schedule daily selector validation
+
+let selectorValidationInterval;
+
 const scheduleSelectorValidation = () => {
   const interval = 24 * 60 * 60 * 1000; // 24 hours
-  setInterval(validateSelectors, interval);
+  selectorValidationInterval = setInterval(validateSelectors, interval);
 };
+
 
 app.get('/config', (req, res) => {
   res.json({
@@ -473,8 +497,8 @@ app.get("/api/version", (req, res) => {
 app.use((err, req, res, next) => {
   if (err.message === "Not allowed by CORS") {
     return handleError(
-      res, 
-      403, 
+      res,
+      403,
       "CORS policy disallows access from this origin.", "CORS_DENIED"
     );
   }
@@ -484,8 +508,8 @@ app.use((err, req, res, next) => {
 // if route is not found, return 404
 app.use((req, res) => {
   return handleError(
-    res, 
-    404, 
+    res,
+    404,
     "Route not found.", "ROUTE_NOT_FOUND"
   );
 });
@@ -494,13 +518,24 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err);
   return handleError(
-    res, 
-    500, 
-    "Internal server error.", 
-    "UNHANDLED_EXCEPTION", 
+    res,
+    500,
+    "Internal server error.",
+    "UNHANDLED_EXCEPTION",
     err.message || null
   );
 });
+
+
+const stopServer = () => {
+  if (selectorValidationInterval) clearInterval(selectorValidationInterval);
+  return new Promise((resolve, reject) => {
+    server.close((err) => {
+      if (err) reject(err);
+      else resolve();
+    });
+  });
+};
 
 
 // Start server
@@ -511,4 +546,4 @@ const server = app.listen(PORT, () => {
   scheduleSelectorValidation(); // Schedule daily validation
 });
 
-module.exports = { app, server };
+module.exports = { app, server, rateLimiters, stopServer, fetchWeatherData };
