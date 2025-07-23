@@ -8,7 +8,10 @@ const xss = require("xss");
 const dotenv = require("dotenv");
 const fs = require("fs");
 const path = require("path");
+
 const nodemailer = require("nodemailer");
+
+
 
 // Load environment variables
 const envResult = dotenv.config();
@@ -16,7 +19,9 @@ if (envResult.error) {
   const envExamplePath = path.join(__dirname, ".env.example");
   if (fs.existsSync(envExamplePath)) {
     dotenv.config({ path: envExamplePath });
-    console.warn("Using .env.example for environment variables. Please create a .env file for production.");
+    console.warn(
+      "Using .env.example for environment variables. Please create a .env file for production.",
+    );
   } else {
     console.error("No .env or .env.example file found!");
     process.exit(1);
@@ -80,7 +85,11 @@ app.use(
         callback(new Error("Not allowed by CORS"));
       }
     },
+
   })
+
+  }),
+
 );
 app.use(express.static("public"));
 app.use(express.json());
@@ -88,12 +97,11 @@ app.set("trust proxy", true);
 app.use((req, res, next) => {
   res.setHeader(
     "Content-Security-Policy",
-    "default-src 'self'; script-src 'self'; style-src 'self';"
+    "default-src 'self'; script-src 'self'; style-src 'self';",
   );
   next();
 });
 
-// Required environment variables validation
 const requiredEnvVars = [
   "SCRAPE_API_FIRST",
   "SCRAPE_API_LAST",
@@ -126,13 +134,22 @@ const handleError = (res, statusCode, message, code, details = null) => {
   res.status(statusCode).json(errorResponse);
 };
 
+
 // Function to get client IP considering x-forwarded-for header
+
+requiredEnvVars.forEach((varName) => {
+  if (!process.env[varName]) {
+    console.error(`Error: Missing environment variable ${varName}`);
+    process.exit(1);
+  }
+});
+
+
 const getClientIp = (req) => {
   const forwarded = req.headers["x-forwarded-for"];
   return forwarded ? forwarded.split(",")[0].trim() : req.ip;
 };
 
-// Rate limiting middleware with endpoint-specific strategies
 const rateLimiters = {
   default: rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -152,14 +169,15 @@ const rateLimiters = {
         "Too many requests to the weather API. Please try again later.",
         "TOO_MANY_REQUESTS",
         {
-          retryAfter: Math.ceil(rateLimiters.default.windowMs / 1000) + " seconds",
-        }
+          retryAfter:
+            Math.ceil(rateLimiters.default.windowMs / 1000) + " seconds",
+        },
       );
     },
   }),
   weather: rateLimit({
-    windowMs: 10 * 60 * 1000, // 10 minutes
-    max: 50, // Stricter limit for /api/weather
+    windowMs: 10 * 60 * 1000,
+    max: 50,
     message: {
       status: 429,
       error: "Too many requests to the weather API. Please try again later.",
@@ -175,14 +193,14 @@ const rateLimiters = {
         "Too many requests to the weather API. Please try again later.",
         "RATE_LIMIT_EXCEEDED",
         {
-          retryAfter: Math.ceil(rateLimiters.weather.windowMs / 1000) + " seconds",
-        }
+          retryAfter:
+            Math.ceil(rateLimiters.weather.windowMs / 1000) + " seconds",
+        },
       );
     },
   }),
 };
 
-// Apply rate limiting dynamically based on endpoint
 const dynamicRateLimiter = (req, res, next) => {
   if (req.path.startsWith("/api/weather")) {
     return rateLimiters.weather(req, res, next);
@@ -192,43 +210,56 @@ const dynamicRateLimiter = (req, res, next) => {
 
 app.use(dynamicRateLimiter);
 
-// Middleware to add rate limit status headers
 app.use((req, res, next) => {
   if (req.rateLimit) {
     res.setHeader("X-RateLimit-Limit", req.rateLimit.limit);
     res.setHeader(
       "X-RateLimit-Remaining",
+
       Math.max(0, req.rateLimit.limit - req.rateLimit.current)
+
+      Math.max(0, req.rateLimit.limit - req.rateLimit.current),
+
     );
     res.setHeader("X-RateLimit-Reset", Date.now() + req.rateLimit.resetTime);
   }
   next();
 });
 
-// Sanitize input to prevent XSS
 const sanitizeInput = (str) => xss(str.trim());
 
-// Enhanced city validation to support special characters
 const isValidCity = (city) => {
   return /^[\p{L}\p{M}\s'’-]{2,50}$/u.test(city);
 };
 
-// Function to parse temperature with sanity check
 const parseTemperature = (rawText) => {
+
   try {
     const match = rawText.match(/-?\d+(\.\d+)?\s*° c/gi);
     if (match) {
       const temp = parseFloat(match[0]);
       return temp >= -100 && temp <= 100 ? `${temp.toFixed(1)} °C` : "N/A";
     }
-    return "N/A";
-  } catch (error) {
-    console.error("Error parsing temperature:", error);
+
+  // quick length check to avoid processing enormous inputs
+  if (typeof rawText !== 'string' || rawText.length > 200) {
+
     return "N/A";
   }
+
+  // non‑capturing groups, no 'g' flag, anchored to avoid backtracking
+  const re = /^-?\d+(?:\.\d+)?\s*°\s*[Cc]/u;
+
+  const m = re.exec(rawText);
+  if (!m) return "N/A";
+
+  const temp = parseFloat(m[0]);
+  if (Number.isNaN(temp) || temp < -100 || temp > 100) {
+    return "N/A";
+  }
+  return `${temp.toFixed(1)} °C`;
 };
 
-// Function to parse min and max temperatures with sanity check
 const parseMinMaxTemperature = (rawText) => {
   try {
     const matches = rawText.match(/-?\d+(\.\d+)?\s*°/gi) || [];
@@ -254,7 +285,6 @@ const parseMinMaxTemperature = (rawText) => {
   }
 };
 
-// Function to parse humidity and pressure with validation
 const parseHumidityPressure = (rawText) => {
   try {
     const humidityMatch = rawText.match(/(\d+\.?\d*)\s*Humidity/i);
@@ -294,7 +324,6 @@ const formatDate = (dateString) => {
   }
 };
 
-// Retry mechanism for failed requests
 const fetchWithRetry = async (url, options, retries = 3, backoff = 300) => {
   for (let i = 0; i < retries; i++) {
     try {
@@ -306,7 +335,6 @@ const fetchWithRetry = async (url, options, retries = 3, backoff = 300) => {
   }
 };
 
-// Fallback data source strategy
 const fetchWeatherData = async (city) => {
   const encodedCity = city
     .normalize("NFD")
@@ -338,7 +366,6 @@ const fetchWeatherData = async (city) => {
   }
 };
 
-// Fallback selector patterns
 const fallbackSelectors = {
   TEMPERATURE_CLASS: ".temp-fallback",
   MIN_MAX_TEMPERATURE_CLASS: ".min-max-temp-fallback",
@@ -347,7 +374,6 @@ const fallbackSelectors = {
   DATE_CLASS: ".date-fallback",
 };
 
-// Function to validate selectors
 const validateSelectors = async () => {
   const testCity = "delhi";
   const testUrl = `${process.env.SCRAPE_API_FIRST}${testCity}${process.env.SCRAPE_API_LAST}`;
@@ -377,22 +403,38 @@ const validateSelectors = async () => {
     }
   } catch (error) {
     console.error("Error during selector validation:", error.message);
+
     await sendAdminAlert(["ALL_SELECTORS_FAILED"]);
+  }
+
+    sendAdminAlert(["ALL_SELECTORS_FAILED"]);
   }
 };
 
-// API route to fetch weather data
+const sendAdminAlert = (failedSelectors) => {
+  const adminEmail = process.env.ADMIN_EMAIL;
+  if (!adminEmail) {
+    console.error("Admin email not configured. Cannot send alert.");
+    return;
+  }
+
+  const alertMessage = `The following selectors failed validation: ${failedSelectors.join(
+    ", ",
+  )}. Please update the environment variables or fallback selectors.`;
+  console.log(`Sending alert to admin: ${alertMessage}`);
+
+};
+
 app.get("/api/weather/:city", async (req, res) => {
   try {
     const city = sanitizeInput(req.params.city);
 
-    // Validate city input
     if (!city || !isValidCity(city)) {
       return handleError(
         res,
         400,
         "Invalid city name. Use letters, spaces, apostrophes (') and hyphens (-)",
-        "INVALID_CITY"
+        "INVALID_CITY",
       );
     }
 
@@ -400,22 +442,52 @@ app.get("/api/weather/:city", async (req, res) => {
       const response = await fetchWeatherData(city);
       const $ = cheerio.load(response.data);
 
-      // Function to extract text safely
       const getElementText = (selector, fallbackSelector) => {
         try {
           const element = $(selector);
           if (element.length) return element.text()?.trim() || null;
 
-          // Use fallback selector if primary fails
           const fallbackElement = $(fallbackSelector);
-          if (fallbackElement.length) return fallbackElement.text()?.trim() || null;
+          if (fallbackElement.length)
+            return fallbackElement.text()?.trim() || null;
 
           throw new Error(`Required element ${selector} not found`);
         } catch (error) {
-          console.error(`Error extracting text for selector ${selector}:`, error);
+          console.error(
+            `Error extracting text for selector ${selector}:`,
+            error,
+          );
           return null;
         }
       };
+      
+      const temperature = parseTemperature(
+        getElementText(
+          process.env.TEMPERATURE_CLASS,
+          fallbackSelectors.TEMPERATURE_CLASS,
+        ),
+      );
+      const { minTemperature, maxTemperature } = parseMinMaxTemperature(
+        getElementText(
+          process.env.MIN_MAX_TEMPERATURE_CLASS,
+          fallbackSelectors.MIN_MAX_TEMPERATURE_CLASS,
+        ),
+      );
+      const { humidity, pressure } = parseHumidityPressure(
+        getElementText(
+          process.env.HUMIDITY_PRESSURE_CLASS,
+          fallbackSelectors.HUMIDITY_PRESSURE_CLASS,
+        ),
+      );
+      const condition = getElementText(
+        process.env.CONDITION_CLASS,
+        fallbackSelectors.CONDITION_CLASS,
+      );
+      const date = getElementText(
+        process.env.DATE_CLASS,
+        fallbackSelectors.DATE_CLASS,
+      );
+
 
       try {
         const temperature = parseTemperature(
@@ -478,6 +550,47 @@ app.get("/api/weather/:city", async (req, res) => {
 
       if (scrapingError.response?.status === 404) {
         return handleError(res, 404, "City not found. Please check the spelling.", "CITY_NOT_FOUND");
+
+      if (!temperature || !condition) {
+        return handleError(
+          res,
+          404,
+          "Weather data not found for the specified city.",
+          "DATA_NOT_FOUND",
+        );
+      }
+
+      const weatherData = {
+        date: formatDate(date),
+        temperature,
+        condition,
+        minTemperature,
+        maxTemperature,
+        humidity,
+        pressure,
+      };
+
+      res.json(weatherData);
+    } catch (err) {
+      console.error("Scraping error:", err);
+
+      if (err.code === "ECONNABORTED") {
+        return handleError(
+          res,
+          504,
+          "The weather service is taking too long. Try again later.",
+          "TIMEOUT",
+        );
+      }
+
+      if (err.response?.status === 404) {
+        return handleError(
+          res,
+          404,
+          "City not found. Please check the spelling.",
+          "CITY_NOT_FOUND",
+        );
+
       }
 
       return handleError(
@@ -485,24 +598,31 @@ app.get("/api/weather/:city", async (req, res) => {
         503,
         "Weather service temporarily unavailable.",
         "SERVICE_UNAVAILABLE",
+
         scrapingError.message
+
+        err.message,
+
       );
     }
-  } catch (error) {
-    console.error("Server error:", error);
+  } catch (err) {
+    console.error("Server error:", err);
     handleError(
       res,
       500,
       "Unexpected server error. Please try again later.",
       "SERVER_ERROR",
+
       error.message
+
+      err.message,
+
     );
   }
 });
 
-// Schedule daily selector validation
 const scheduleSelectorValidation = () => {
-  const interval = 24 * 60 * 60 * 1000; // 24 hours
+  const interval = 24 * 60 * 60 * 1000;
   setInterval(validateSelectors, interval);
 };
 
@@ -513,7 +633,6 @@ app.get("/config", (req, res) => {
   });
 });
 
-// Version tracking for target website structure
 app.get("/api/version", (req, res) => {
   res.json({
     version: "1.0.0",
@@ -523,28 +642,51 @@ app.get("/api/version", (req, res) => {
 
 app.use((err, req, res, next) => {
   if (err.message === "Not allowed by CORS") {
+
     return handleError(res, 403, "CORS policy disallows access from this origin.", "CORS_DENIED");
+
+    return handleError(
+      res,
+      403,
+      "CORS policy disallows access from this origin.",
+      "CORS_DENIED",
+    );
+
   }
   next(err);
 });
 
+
 // If route is not found, return 404
+
+
 app.use((req, res) => {
   return handleError(res, 404, "Route not found.", "ROUTE_NOT_FOUND");
 });
 
-// Global error handler for unhandled errors
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err);
+
   return handleError(res, 500, "Internal server error.", "UNHANDLED_EXCEPTION", err.message || null);
 });
 
 // Start server
+
+  return handleError(
+    res,
+    500,
+    "Internal server error.",
+    "UNHANDLED_EXCEPTION",
+    err.message || null,
+  );
+});
+
+
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  validateSelectors(); // Initial validation on startup
-  scheduleSelectorValidation(); // Schedule daily validation
+  validateSelectors();
+  scheduleSelectorValidation();
 });
 
 module.exports = { app, server };
