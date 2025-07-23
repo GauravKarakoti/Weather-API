@@ -127,22 +127,44 @@ function displayWeather(data) {
         return;
     }
 
-    // Create the template for displaying weather data
+    // Determine emoji based on condition
+    let emoji = '';
+    const condition = data.condition?.toLowerCase() || '';
+    if (condition.includes('sun')) emoji = '☀️';
+    else if (condition.includes('rain')) emoji = '🌧️';
+    else if (condition.includes('cloud')) emoji = '☁️';
+    else if (condition.includes('snow')) emoji = '❄️';
+    else if (condition.includes('storm')) emoji = '⛈️';
+    else emoji = '🌈';
+
+    // Show emoji at the top
+    const weatherIcon = document.getElementById('weather-icon');
+    if (weatherIcon) {
+        weatherIcon.textContent = emoji;
+        weatherIcon.style.display = 'block'; // in case it's hidden
+        weatherIcon.classList.remove('hidden');
+    }
+
+    // Clear old cards but keep emoji
+    Array.from(weatherData.children).forEach(child => {
+        if (child.id !== 'weather-icon') child.remove();
+    });
+
     const template = `
         <div class="weather-card">
             <div class="weather-details">
-                <p><strong>Temp:</strong> ${data.temperature || 'N/A'}</p>
+                <p><strong>Temp:</strong> ${data.temperature || 'N/A'}°C</p>
                 <p><strong>Date:</strong> ${data.date || 'N/A'}</p>
                 <p><strong>Condition:</strong> ${data.condition || 'N/A'}</p>
-                <p><strong>Min Temp:</strong> ${`${data.minTemperature}` || 'N/A'}</p>
-                <p><strong>Max Temp:</strong> ${`${data.maxTemperature}` || 'N/A'}</p>
+                <p><strong>Min Temp:</strong> ${data.minTemperature || 'N/A'}°C</p>
+                <p><strong>Max Temp:</strong> ${data.maxTemperature || 'N/A'}°C</p>
                 <p><strong>Humidity:</strong> ${data.humidity || 'N/A'}%</p>
                 <p><strong>Pressure:</strong> ${data.pressure || 'N/A'}</p>
             </div>
         </div>
     `;
 
-    weatherData.innerHTML = template;
+    weatherData.insertAdjacentHTML('beforeend', template);
     weatherData.classList.remove('hidden');
 }
 
