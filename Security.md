@@ -2,9 +2,9 @@ Security Policy
 Supported Versions
 The following versions of Weather-API are currently supported with security updates:
 
-Version	Supported
-1.x.x	✅ Supported
-0.x.x	❌ Not supported
+Version Supported
+1.x.x ✅ Supported
+0.x.x ❌ Not supported
 Reporting a Vulnerability
 If you discover a security vulnerability in Weather-API, we encourage you to report it as soon as possible. We will investigate all legitimate reports and do our best to quickly fix the issue.
 
@@ -23,4 +23,3 @@ Regularly update your dependencies to the latest versions.
 
 Acknowledgements
 We appreciate contributions from the community and researchers who help us improve the security of Weather-API. Thank you for keeping the platform secure for everyone!
-
