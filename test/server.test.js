@@ -59,7 +59,7 @@ describe("Weather API Endpoint", () => {
 
   test("should send email alert for selector failure", async () => {
     process.env.TEMPERATURE_CLASS = "";
-    const response = await request(app).get("/api/weather/London");
+    await request(app).get("/api/weather/London"); // Removed unused 'response'
     expect(nodemailer.createTransport).toHaveBeenCalled();
     expect(nodemailer.createTransport().sendMail).toHaveBeenCalledWith(
       expect.objectContaining({
