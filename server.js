@@ -171,17 +171,22 @@ const isValidCity = (city) => {
 };
 
 const parseTemperature = (rawText) => {
-  try {
-    const match = rawText.match(/-?\d+(\.\d+)?\s*° c/gi);
-    if (match) {
-      const temp = parseFloat(match[0]);
-      return temp >= -100 && temp <= 100 ? `${temp.toFixed(1)} °C` : "N/A";
-    }
-    return "N/A";
-  } catch (error) {
-    console.error("Error parsing temperature:", error);
+  // quick length check to avoid processing enormous inputs
+  if (typeof rawText !== 'string' || rawText.length > 200) {
     return "N/A";
   }
+
+  // non‑capturing groups, no 'g' flag, anchored to avoid backtracking
+  const re = /^-?\d+(?:\.\d+)?\s*°\s*[Cc]/u;
+
+  const m = re.exec(rawText);
+  if (!m) return "N/A";
+
+  const temp = parseFloat(m[0]);
+  if (Number.isNaN(temp) || temp < -100 || temp > 100) {
+    return "N/A";
+  }
+  return `${temp.toFixed(1)} °C`;
 };
 
 const parseMinMaxTemperature = (rawText) => {
@@ -379,7 +384,7 @@ app.get("/api/weather/:city", async (req, res) => {
           return null;
         }
       };
-
+      
       const temperature = parseTemperature(
         getElementText(
           process.env.TEMPERATURE_CLASS,
