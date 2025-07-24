@@ -277,21 +277,31 @@ const fetchWeatherData = async (city) => {
 
   try {
     return await fetchWithRetry(primaryUrl, {
-      timeout: 5000,
+      timeout: 10000, // MODIFICATION: Increased timeout
       headers: {
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
       },
     });
   } catch (error) {
-    console.warn("Primary source failed, trying fallback:", error.message);
-    return await fetchWithRetry(fallbackUrl, {
-      timeout: 5000,
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-      },
-    });
+    // MODIFICATION: Added detailed logging for the primary failure
+    console.error(`Primary source (${primaryUrl}) failed:`, error.message);
+    console.warn("Trying fallback source...");
+    
+    try {
+        return await fetchWithRetry(fallbackUrl, {
+            timeout: 10000, // MODIFICATION: Increased timeout for fallback
+            headers: {
+            "User-Agent":
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            },
+        });
+    } catch (fallbackError) {
+        // MODIFICATION: Added detailed logging for the fallback failure
+        console.error(`Fallback source (${fallbackUrl}) also failed:`, fallbackError.message);
+        // Re-throw the final error to be handled by the route handler
+        throw fallbackError;
+    }
   }
 };
 
