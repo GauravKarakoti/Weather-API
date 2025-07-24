@@ -171,22 +171,18 @@ const isValidCity = (city) => {
 };
 
 const parseTemperature = (rawText) => {
-  // quick length check to avoid processing enormous inputs
-  if (typeof rawText !== 'string' || rawText.length > 200) {
+  try {
+    const safeRawText = rawText.slice(0, 100); // stricter limit
+    const match = safeRawText.match(/-?\d{1,3}(?:\.\d{1,2})?\s?°\s?[cC]/);
+    if (match) {
+      const temp = parseFloat(match[0]);
+      return (temp >= -100 && temp <= 100) ? `${temp.toFixed(1)} °C` : "N/A";
+    }
+    return "N/A";
+  } catch (error) {
+    console.error("Error parsing temperature:", error);
     return "N/A";
   }
-
-  // non‑capturing groups, no 'g' flag, anchored to avoid backtracking
-  const re = /^-?\d+(?:\.\d+)?\s*°\s*[Cc]/u;
-
-  const m = re.exec(rawText);
-  if (!m) return "N/A";
-
-  const temp = parseFloat(m[0]);
-  if (Number.isNaN(temp) || temp < -100 || temp > 100) {
-    return "N/A";
-  }
-  return `${temp.toFixed(1)} °C`;
 };
 
 const parseMinMaxTemperature = (rawText) => {
@@ -482,7 +478,7 @@ app.get("/api/weather/:city", async (req, res) => {
 
 let selectorValidationInterval;
 const scheduleSelectorValidation = () => {
-  const interval = 24 * 60 * 60 * 1000;
+  const interval = 24 * 60 * 60 * 1000; // 24 hours
   selectorValidationInterval = setInterval(validateSelectors, interval);
 };
 
@@ -505,15 +501,18 @@ app.use((err, req, res, next) => {
     return handleError(
       res,
       403,
-      "CORS policy disallows access from this origin.",
-      "CORS_DENIED",
+      "CORS policy disallows access from this origin.", "CORS_DENIED"
     );
   }
   next(err);
 });
 
 app.use((req, res) => {
-  return handleError(res, 404, "Route not found.", "ROUTE_NOT_FOUND");
+  return handleError(
+    res,
+    404,
+    "Route not found.", "ROUTE_NOT_FOUND"
+  );
 });
 
 app.use((err, req, res, next) => {
@@ -523,7 +522,7 @@ app.use((err, req, res, next) => {
     500,
     "Internal server error.",
     "UNHANDLED_EXCEPTION",
-    err.message || null,
+    err.message || null
   );
 });
 
