@@ -1,3 +1,4 @@
+
 const { JSDOM } = require("jsdom");
 
 
@@ -119,3 +120,4 @@ describe("Weather App Tests", () => {
 
 const script = require("../public/script"); // import after mocks and DOM setup
 global.script = script;
+
