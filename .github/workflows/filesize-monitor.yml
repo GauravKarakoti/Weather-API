@@ -1,0 +1,22 @@
+# .github/workflows/filesize-monitor.yml
+
+name: Filesize Monitor
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check-file-sizes:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Report Public Asset Sizes
+        run: |
+          echo "### Frontend Asset Sizes" >> $GITHUB_STEP_SUMMARY
+          echo "| File | Size |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|" >> $GITHUB_STEP_SUMMARY
+          ls -lh public/ | awk 'NR>1 {print "| " $9 " | " $5 " |"}' >> $GITHUB_STEP_SUMMARY
