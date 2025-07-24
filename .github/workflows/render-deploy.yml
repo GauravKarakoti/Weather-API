@@ -1,0 +1,18 @@
+# .github/workflows/render-deploy.yml
+
+name: Deploy to Render
+
+on:
+  push:
+    branches:
+      - main  # Trigger deployment on push to main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render Deploy Hook
+        run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        #  Project admin please add the deployment hook URL from Render 
+        # as a secret named RENDER_DEPLOY_HOOK_URL in the GitHub repository
+        #  settings for this to work.
