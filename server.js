@@ -8,6 +8,7 @@ const dotenv = require("dotenv");
 const fs = require("fs");
 const path = require("path");
 
+
 // Load environment variables
 const envResult = dotenv.config();
 if (envResult.error) {
@@ -25,12 +26,10 @@ if (envResult.error) {
 
 const app = express();
 
-const allowedOrigins = [
-  process.env.ALLOWED_ORIGIN,
-  process.env.ALLOWED_ORIGIN2,
-  process.env.ALLOWED_ORIGIN3,
-  process.env.ALLOWED_ORIGIN4,
-];
+
+const allowedOrigins = [process.env.ALLOWED_ORIGIN, process.env.ALLOWED_ORIGIN2,
+process.env.ALLOWED_ORIGIN3, process.env.ALLOWED_ORIGIN4];
+
 
 // Security and middleware configurations
 app.use(
@@ -171,22 +170,19 @@ const isValidCity = (city) => {
 };
 
 const parseTemperature = (rawText) => {
-  // quick length check to avoid processing enormous inputs
-  if (typeof rawText !== 'string' || rawText.length > 200) {
+  try {
+    const safeRawText = rawText.slice(0, 100); // stricter limit
+    const match = safeRawText.match(/-?\d{1,3}(?:\.\d{1,2})?\s?°\s?[cC]/);
+    if (match) {
+      const temp = parseFloat(match[0]);
+      return (temp >= -100 && temp <= 100) ? `${temp.toFixed(1)} °C` : "N/A";
+    }
+
+    return "N/A";
+  } catch (error) {
+    console.error("Error parsing temperature:", error);
     return "N/A";
   }
-
-  // non‑capturing groups, no 'g' flag, anchored to avoid backtracking
-  const re = /^-?\d+(?:\.\d+)?\s*°\s*[Cc]/u;
-
-  const m = re.exec(rawText);
-  if (!m) return "N/A";
-
-  const temp = parseFloat(m[0]);
-  if (Number.isNaN(temp) || temp < -100 || temp > 100) {
-    return "N/A";
-  }
-  return `${temp.toFixed(1)} °C`;
 };
 
 const parseMinMaxTemperature = (rawText) => {
@@ -285,13 +281,19 @@ const fetchWeatherData = async (city) => {
     });
   } catch (error) {
     console.warn("Primary source failed, trying fallback:", error.message);
-    return await fetchWithRetry(fallbackUrl, {
-      timeout: 5000,
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-      },
-    });
+
+    try {
+      return await fetchWithRetry(fallbackUrl, {
+        timeout: 5000,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+      });
+    } catch (fallbackError) {
+      console.error("Fallback also failed:", fallbackError.message);
+      // ✅ Throw an actual error so app route can handle it
+      throw fallbackError;
+    }
   }
 };
 
@@ -305,6 +307,7 @@ const fallbackSelectors = {
 
 const validateSelectors = async () => {
   const testCity = "delhi";
+
   const testUrl = `${process.env.SCRAPE_API_FIRST}${testCity}${process.env.SCRAPE_API_LAST}`;
 
   try {
@@ -384,7 +387,7 @@ app.get("/api/weather/:city", async (req, res) => {
           return null;
         }
       };
-      
+
       const temperature = parseTemperature(
         getElementText(
           process.env.TEMPERATURE_CLASS,
@@ -412,12 +415,44 @@ app.get("/api/weather/:city", async (req, res) => {
         fallbackSelectors.DATE_CLASS,
       );
 
-      if (!temperature || !condition) {
+
+      try {
+        const temperature = parseTemperature(getElementText(process.env.TEMPERATURE_CLASS, fallbackSelectors.TEMPERATURE_CLASS));
+        const { minTemperature, maxTemperature } = parseMinMaxTemperature(getElementText(process.env.MIN_MAX_TEMPERATURE_CLASS, fallbackSelectors.MIN_MAX_TEMPERATURE_CLASS));
+        const { humidity, pressure } = parseHumidityPressure(getElementText(process.env.HUMIDITY_PRESSURE_CLASS, fallbackSelectors.HUMIDITY_PRESSURE_CLASS));
+        const condition = getElementText(process.env.CONDITION_CLASS, fallbackSelectors.CONDITION_CLASS);
+        const date = getElementText(process.env.DATE_CLASS, fallbackSelectors.DATE_CLASS);
+
+        if (!temperature || !condition) {
+          return handleError(
+            res,
+            404,
+            "Weather data not found for the specified city.",
+            "DATA_NOT_FOUND"
+          );
+        }
+
+        const weatherData = {
+          date: formatDate(date),
+          temperature,
+          condition,
+          minTemperature,
+          maxTemperature,
+          humidity,
+          pressure,
+        };
+
+        res.json(weatherData);
+
+      } catch (parsingError) {
+        console.error("Data parsing error:", parsingError);
         return handleError(
           res,
-          404,
-          "Weather data not found for the specified city.",
-          "DATA_NOT_FOUND",
+          503,
+          "Unable to parse weather data. The weather service might be temporarily unavailable.",
+          "PARSING_ERROR",
+          parsingError.message
+
         );
       }
 
@@ -440,25 +475,43 @@ app.get("/api/weather/:city", async (req, res) => {
           res,
           504,
           "The weather service is taking too long. Try again later.",
-          "TIMEOUT",
+
+          "TIMEOUT"
         );
       }
 
-      if (err.response?.status === 404) {
+      // Handle axios 404 error
+      if (scrapingError.response && scrapingError.response.status === 404) {
+
         return handleError(
           res,
           404,
           "City not found. Please check the spelling.",
-          "CITY_NOT_FOUND",
+
+          "CITY_NOT_FOUND"
+
         );
       }
 
+      // Handle generic axios error
+      if (scrapingError.message && scrapingError.message.match(/not found|city not found/i)) {
+        return handleError(
+          res,
+          404,
+          "City not found. Please check the spelling.",
+          "CITY_NOT_FOUND"
+        );
+      }
+
+      // Handle all other errors as 500
       return handleError(
         res,
-        503,
-        "Weather service temporarily unavailable.",
-        "SERVICE_UNAVAILABLE",
-        err.message,
+
+        500,
+        "Failed to retrieve weather data.",
+        "SERVER_ERROR",
+        scrapingError.message
+
       );
     }
   } catch (err) {
@@ -468,17 +521,24 @@ app.get("/api/weather/:city", async (req, res) => {
       500,
       "Unexpected server error. Please try again later.",
       "SERVER_ERROR",
-      err.message,
+
+      error.message
     );
   }
 });
 
+// Schedule daily selector validation
+
+let selectorValidationInterval;
+
 const scheduleSelectorValidation = () => {
-  const interval = 24 * 60 * 60 * 1000;
-  setInterval(validateSelectors, interval);
+  const interval = 24 * 60 * 60 * 1000; // 24 hours
+  selectorValidationInterval = setInterval(validateSelectors, interval);
 };
 
-app.get("/config", (req, res) => {
+
+app.get('/config', (req, res) => {
+
   res.json({
     RECENT_SEARCH_LIMIT: process.env.RECENT_SEARCH_LIMIT || 5,
     API_URL: process.env.API_URL,
@@ -497,15 +557,22 @@ app.use((err, req, res, next) => {
     return handleError(
       res,
       403,
-      "CORS policy disallows access from this origin.",
-      "CORS_DENIED",
+
+      "CORS policy disallows access from this origin.", "CORS_DENIED"
+
     );
   }
   next(err);
 });
 
 app.use((req, res) => {
-  return handleError(res, 404, "Route not found.", "ROUTE_NOT_FOUND");
+
+  return handleError(
+    res,
+    404,
+    "Route not found.", "ROUTE_NOT_FOUND"
+  );
+
 });
 
 app.use((err, req, res, next) => {
@@ -515,9 +582,24 @@ app.use((err, req, res, next) => {
     500,
     "Internal server error.",
     "UNHANDLED_EXCEPTION",
-    err.message || null,
+
+    err.message || null
   );
 });
+
+
+const stopServer = () => {
+  if (selectorValidationInterval) clearInterval(selectorValidationInterval);
+  return new Promise((resolve, reject) => {
+    server.close((err) => {
+      if (err) reject(err);
+      else resolve();
+    });
+  });
+};
+
+
+// Start server
 
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {
@@ -526,4 +608,4 @@ const server = app.listen(PORT, () => {
   scheduleSelectorValidation();
 });
 
-module.exports = { app, server };
+module.exports = { app, server, rateLimiters, stopServer, fetchWeatherData };
