@@ -29,7 +29,7 @@ const allowedOrigins = [
   process.env.ALLOWED_ORIGIN,
   process.env.ALLOWED_ORIGIN2,
   process.env.ALLOWED_ORIGIN3,
-  process.env.ALLOWED_ORIGIN4,
+  process.env.ALLOWED_ORIGIN4
 ];
 
 // Security and middleware configurations
@@ -277,29 +277,26 @@ const fetchWeatherData = async (city) => {
 
   try {
     return await fetchWithRetry(primaryUrl, {
-      timeout: 10000, // MODIFICATION: Increased timeout
+      timeout: 10000,
       headers: {
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
       },
     });
   } catch (error) {
-    // MODIFICATION: Added detailed logging for the primary failure
     console.error(`Primary source (${primaryUrl}) failed:`, error.message);
     console.warn("Trying fallback source...");
     
     try {
         return await fetchWithRetry(fallbackUrl, {
-            timeout: 10000, // MODIFICATION: Increased timeout for fallback
+            timeout: 10000, 
             headers: {
             "User-Agent":
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
             },
         });
     } catch (fallbackError) {
-        // MODIFICATION: Added detailed logging for the fallback failure
         console.error(`Fallback source (${fallbackUrl}) also failed:`, fallbackError.message);
-        // Re-throw the final error to be handled by the route handler
         throw fallbackError;
     }
   }
@@ -483,9 +480,10 @@ app.get("/api/weather/:city", async (req, res) => {
   }
 });
 
+let selectorValidationInterval;
 const scheduleSelectorValidation = () => {
   const interval = 24 * 60 * 60 * 1000;
-  setInterval(validateSelectors, interval);
+  selectorValidationInterval = setInterval(validateSelectors, interval);
 };
 
 app.get("/config", (req, res) => {
@@ -529,6 +527,16 @@ app.use((err, req, res, next) => {
   );
 });
 
+const stopServer = () => {
+  if (selectorValidationInterval) clearInterval(selectorValidationInterval);
+  return new Promise((resolve, reject) => {
+    server.close((err) => {
+      if (err) reject(err);
+      else resolve();
+    });
+  });
+};
+
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
@@ -536,4 +544,4 @@ const server = app.listen(PORT, () => {
   scheduleSelectorValidation();
 });
 
-module.exports = { app, server };
+module.exports = { app, server, rateLimiters, stopServer, fetchWeatherData };
