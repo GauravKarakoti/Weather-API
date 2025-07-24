@@ -170,7 +170,10 @@ const isValidCity = (city) => {
 // Function to parse temperature with sanity check
 const parseTemperature = (rawText) => {
   try {
-    const match = rawText.match(/-?\d+(\.\d+)?\s*° c/gi);;
+    // Limit input length to prevent ReDoS
+    const safeRawText = rawText.slice(0, 200);
+    // Stricter regex: only one optional space, case-insensitive C
+    const match = safeRawText.match(/-?\d+(\.\d+)?\s?°\s?[cC]/);
     if (match) {
       const temp = parseFloat(match[0]);
       return (temp >= -100 && temp <= 100) ? `${temp.toFixed(1)} °C` : "N/A";
