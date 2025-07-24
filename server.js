@@ -179,19 +179,10 @@ const parseTemperature = (rawText) => {
     }
 
     return "N/A";
-  }
-
-  // non‑capturing groups, no 'g' flag, anchored to avoid backtracking
-  const re = /^-?\d+(?:\.\d+)?\s*°\s*[Cc]/u;
-
-  const m = re.exec(rawText);
-  if (!m) return "N/A";
-
-  const temp = parseFloat(m[0]);
-  if (Number.isNaN(temp) || temp < -100 || temp > 100) {
+  } catch (error) {
+    console.error("Error parsing temperature:", error);
     return "N/A";
   }
-  return `${temp.toFixed(1)} °C`;
 };
 
 const parseMinMaxTemperature = (rawText) => {
@@ -396,7 +387,7 @@ app.get("/api/weather/:city", async (req, res) => {
           return null;
         }
       };
-      
+
       const temperature = parseTemperature(
         getElementText(
           process.env.TEMPERATURE_CLASS,
