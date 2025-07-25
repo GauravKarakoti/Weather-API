@@ -120,6 +120,7 @@ weather-api/
 - **Cheerio** – Scraping and parsing made easy 🧐
 - **CORS** – Secure cross-origin requests 🔄
 - **dotenv** – Manages environment variables 🔐
+- **Jest** - Efficient And RObut management for testing 💪🏻
 
 ---
 

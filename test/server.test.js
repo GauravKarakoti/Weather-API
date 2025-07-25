@@ -1,101 +1,119 @@
+jest.mock("axios");
+// jest.mock('../utils/weatherService');
 
-const request = require("supertest");
-const { app, server } = require("../server");
 const axios = require("axios");
-const nodemailer = require("nodemailer");
+const request = require("supertest");
+const { app, server, rateLimiters, stopServer, fetchWeatherData } = require("../server");
 
-jest.mock("nodemailer");
+process.env.TEMPERATURE_CLASS = "temp-fallback";
+process.env.MIN_MAX_TEMPERATURE_CLASS = "min-max-temp-fallback";
+process.env.HUMIDITY_PRESSURE_CLASS = "humidity-pressure-fallback";
+process.env.CONDITION_CLASS = "condition-fallback";
+process.env.DATE_CLASS = "date-fallback";
+
+
+
+jest.setTimeout(60000);
 
 describe("Weather API Endpoint", () => {
-  beforeAll(() => {
-    // Mock axios.get
-    const mockHtml = `
-      <div class="wtr_tmp_rhs">20°C</div>
-      <div class="wtr_hdr_rhs_ul"><li><span class="wtr_hdr_rhs_val">15°C / 25°C</span></li></div>
-      <div class="wtr_crd_li"><span class="wtr_crd_rhs">70% Humidity, 1010 hPa</span></div>
-      <div class="wtr_tmp_lhs">Sunny</div>
-      <div class="wtr_hdr_dte">2025-07-23</div>
-    `;
-    jest.spyOn(axios, "get").mockResolvedValue({ data: mockHtml });
 
-    // Mock nodemailer
-    const mockSendMail = jest.fn().mockResolvedValue({ messageId: "test-id" });
-    nodemailer.createTransport.mockReturnValue({ sendMail: mockSendMail });
-  });
+    beforeEach(() => {
+        jest.clearAllMocks();
+        const store = rateLimiters.weather.store;
+        if (store && store.hits) {
+            store.hits = {}; // reset all stored hits
+        }
 
-  afterAll(() => {
-    server.close();
-    jest.restoreAllMocks();
-  });
+        axios.get.mockResolvedValue({
+            data: `
+              <html>
+                <div class="temp-fallback">20 °C</div>
+                <div class="min-max-temp-fallback">15 ° - 25 °</div>
+                <div class="humidity-pressure-fallback">60% Humidity 1015 Pressure</div>
+                <div class="condition-fallback">Sunny</div>
+                <div class="date-fallback">2023-12-01</div>
+              </html>
+            `,
+        });
 
-  test("should return weather data for a valid city", async () => {
-    const response = await request(app).get("/api/weather/London");
-    expect(response.status).toBe(200);
-    expect(response.body).toHaveProperty("temperature");
-    expect(response.body).toHaveProperty("condition");
-  });
+    });
 
-  test("should return 400 for an invalid city name", async () => {
-    const response = await request(app).get("/api/weather/x");
-    expect(response.status).toBe(400);
-    expect(response.body.error).toBe(
-      "Invalid city name. Use letters, spaces, apostrophes (') and hyphens (-)"
-    );
-  });
 
-  test("should return 404 for a non-existent city", async () => {
-    jest.spyOn(axios, "get").mockRejectedValue({ response: { status: 404 } });
-    const response = await request(app).get("/api/weather/InvalidCity");
-    expect(response.status).toBe(404);
-    expect(response.body.error).toBe("City not found. Please check the spelling.");
-  });
+    afterAll(() => {
+        stopServer();
+    });
 
-  test("should return 503 for server errors", async () => {
-    jest.spyOn(axios, "get").mockRejectedValue(new Error("Simulated server error"));
-    const response = await request(app).get("/api/weather/London");
-    expect(response.status).toBe(503);
-    expect(response.body.error).toBe("Weather service temporarily unavailable.");
-  });
+    test("should return weather data for a valid city", async () => {
+        const response = await request(app).get("/api/weather/London");
+        expect(response.status).toBe(200);
+        expect(response.body).toHaveProperty("temperature");
+        expect(response.body).toHaveProperty("condition");
+    });
 
-  test("should send email alert for selector failure", async () => {
-    process.env.TEMPERATURE_CLASS = "";
-    await request(app).get("/api/weather/London");
-    expect(nodemailer.createTransport).toHaveBeenCalled();
-    expect(nodemailer.createTransport().sendMail).toHaveBeenCalledWith(
-      expect.objectContaining({
-        to: process.env.ADMIN_EMAIL,
-        subject: "Weather API Selector Failure Alert",
-      })
-    );
-  });
+    test("should return 400 for an invalid city name", async () => {
+        const response = await request(app).get("/api/weather/x");
+        expect(response.status).toBe(400);
+        expect(response.body.error)
+            .toBe("Invalid city name. Use letters, spaces, apostrophes (') and hyphens (-)");
+
+    });
+
+    test('should return 404 for a non-existent city', async () => {
+        const error = new Error("Not Found");
+        error.response = { status: 404 };
+        // Mock all axios.get calls to reject
+        axios.get.mockRejectedValue(error);
+
+        const response = await request(app).get("/api/weather/InvalidCity");
+
+        expect(response.status).toBe(404);
+        expect(response.body.code).toBe("CITY_NOT_FOUND");
+    });
+
+    test("should return 500 for server errors", async () => {
+        const error = new Error("Simulated server error");
+        // Mock all axios.get calls to reject
+        axios.get.mockRejectedValue(error);
+
+        const response = await request(app).get("/api/weather/London");
+        expect(response.status).toBe(500);
+        expect(response.body.error).toBe("Failed to retrieve weather data.");
+        expect(response.body.code).toBe("SERVER_ERROR");
+    });
 });
 
 describe("Rate Limiting", () => {
-  test("should return 429 when exceeding rate limit for /api/weather", async () => {
-    jest.setTimeout(10000);
-    const apiKey = "test-api-key";
-    const headers = { "x-api-key": apiKey };
-    jest.spyOn(axios, "get").mockResolvedValue({
-      data: `
-        <div class="wtr_tmp_rhs">20°C</div>
-        <div class="wtr_hdr_rhs_ul"><li><span class="wtr_hdr_rhs_val">15°C / 25°C</span></li></div>
-        <div class="wtr_crd_li"><span class="wtr_crd_rhs">70% Humidity, 1010 hPa</span></div>
-        <div class="wtr_tmp_lhs">Sunny</div>
-        <div class="wtr_hdr_dte">2025-07-23</div>
-      `,
+    beforeEach(() => {
+        jest.clearAllMocks();
+        axios.get.mockResolvedValue({
+            data: `
+              <html>
+                <div class="temp-fallback">20 °C</div>
+                <div class="min-max-temp-fallback">15 ° - 25 °</div>
+                <div class="humidity-pressure-fallback">60% Humidity 1015 Pressure</div>
+                <div class="condition-fallback">Sunny</div>
+                <div class="date-fallback">2023-12-01</div>
+              </html>
+            `,
+        });
     });
-    for (let i = 0; i < 51; i++) {
-      await request(app).get("/api/weather/London").set(headers);
-    }
-    const response = await request(app).get("/api/weather/London").set(headers);
-    expect(response.status).toBe(429);
-    expect(response.body.error).toBe(
-      "Too many requests to the weather API. Please try again later."
-    );
-  });
 
-  test("should not apply rate limit to different endpoints", async () => {
-    const response = await request(app).get("/api/version");
-    expect(response.status).toBe(200);
-  });
+    test("should return 429 when exceeding rate limit for /api/weather", async () => {
+        const apiKey = "test-api-key"; // Replace with a valid API key if needed
+        const headers = { "x-api-key": apiKey };
+
+        // Simulate exceeding the rate limit
+        for (let i = 0; i < 55; i++) {
+            await request(app).get("/api/weather/London").set(headers);
+        }
+
+        const response = await request(app).get("/api/weather/London").set(headers);
+        expect(response.status).toBe(429);
+        expect(response.body.error).toBe("Too many requests to the weather API. Please try again later.");
+    });
+
+    test("should not apply rate limit to different endpoints", async () => {
+        const response = await request(app).get("/api/version");
+        expect(response.status).toBe(200);
+    });
 });

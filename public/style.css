@@ -251,12 +251,29 @@ button:hover {
   align-items: center;
 }
 
+#clear-btn{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 .buttons {
   display: flex;
   gap: 0.7em;
 }
 
-.spinner {
+.spinner{
+  display: inline-block;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 3px solid var(--spinner-border);
+  border-radius: 50%;
+  border-top-color: var(--spinner-top-border);
+  animation: spin 1s ease-in-out infinite;
+  margin-left: 10px;
+}
+
+.clr-spinner{
   display: inline-block;
   width: 1.5rem;
   height: 1.5rem;
