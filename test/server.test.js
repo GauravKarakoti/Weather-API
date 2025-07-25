@@ -1,4 +1,3 @@
-
 jest.mock("axios");
 // jest.mock('../utils/weatherService');
 
@@ -118,5 +117,3 @@ describe("Rate Limiting", () => {
         expect(response.status).toBe(200);
     });
 });
-
-
