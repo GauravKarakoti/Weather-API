@@ -5,7 +5,9 @@
   "scripts": {
     "test": "jest",
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "lint": "eslint . --ext .js",
+    "lint:fix": "eslint . --ext .js --fix"
   },
   "keywords": [],
   "author": "",
@@ -14,17 +16,30 @@
   "description": "",
   "dependencies": {
     "axios": "^1.8.3",
-    "cheerio": "^1.0.0",
+    "cheerio": "^1.0.0-rc.10",
     "cors": "^2.8.5",
     "dotenv": "^17.0.0",
     "express": "^5.1.0",
     "express-rate-limit": "^8.0.1",
+
+    "nodemailer": "^7.0.5",
+
+    "node-fetch": "^3.3.2",
+
     "nodemon": "^3.1.9",
     "xss": "^1.0.15"
   },
   "devDependencies": {
+    "@babel/core": "^7.28.0",
+    "@babel/preset-env": "^7.28.0",
+    "babel-jest": "^30.0.5",
+    "eslint": "^9.31.0",
     "jest": "^30.0.3",
+    "jest-environment-jsdom": "^30.0.5",
     "jsdom": "^26.0.0",
     "supertest": "^7.0.0"
+  },
+  "jest": {
+    "testEnvironment": "jsdom"
   }
 }
