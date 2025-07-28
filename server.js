@@ -207,7 +207,7 @@ app.use((req, res, next) => {
 const sanitizeInput = (str) => xss(str.trim());
 
 const isValidCity = (city) => {
-  return /^[\p{L}\p{M}\s'’-]{2,50}$/u.test(city);
+  return /^[\p{L}\p{M}\s'’\-\d]{2,50}$/u.test(city);
 };
 
 const parseTemperature = (rawText) => {
