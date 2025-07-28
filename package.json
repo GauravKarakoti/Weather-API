@@ -6,8 +6,9 @@
     "test": "jest",
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "lint": "eslint . --ext .js",
-    "lint:fix": "eslint . --ext .js --fix"
+    "lint": "eslint . --ext .js,.jsx",
+    "lint:fix": "eslint . --ext .js,.jsx --fix",
+    "format:check": "prettier --check ."
   },
   "keywords": [],
   "author": "",
