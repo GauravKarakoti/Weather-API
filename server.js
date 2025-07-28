@@ -525,4 +525,4 @@ const server = app.listen(PORT, () => {
   scheduleSelectorValidation();
 });
 
-module.exports = { app, server, rateLimiters, stopServer, fetchWeatherData };
+module.exports = { app, server, rateLimiters, stopServer, fetchWeatherData, formatDate };

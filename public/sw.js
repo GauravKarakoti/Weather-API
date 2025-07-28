@@ -11,9 +11,12 @@ self.addEventListener("install", (event) => {
           CORE_ASSETS.map((url) =>
             fetch(url)
               .then((response) => {
-                if (response.ok) cache.put(url, response);
+                if (response.ok) {
+                  return cache.put(url, response);
+                }
+                console.error(`Failed to cache: ${url} - Status: ${response.status}`);
               })
-              .catch((error) => console.warn(`Failed to cache: ${url}`, error)),
+              .catch((error) => console.error(`Failed to cache: ${url}`, error)),
           ),
         ),
       )
