@@ -130,6 +130,41 @@ describe("Weather API Endpoint", () => {
   });
 });
 
+describe("fetchWeatherData", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    axios.get.mockResolvedValue({ data: '<html></html>' });
+  });
+
+  test("should properly encode city names with diacritics", async () => {
+    const city = "München";
+    await fetchWeatherData(city);
+    
+    // Check that axios.get was called with a properly encoded URL
+    expect(axios.get).toHaveBeenCalled();
+    const calledUrl = axios.get.mock.calls[0][0];
+    expect(calledUrl).toContain(encodeURIComponent(city).replace(/%20/g, '-'));
+  });
+
+  test("should handle city names with spaces", async () => {
+    const city = "New York";
+    await fetchWeatherData(city);
+    
+    expect(axios.get).toHaveBeenCalled();
+    const calledUrl = axios.get.mock.calls[0][0];
+    expect(calledUrl).toContain(encodeURIComponent(city).replace(/%20/g, '-'));
+  });
+
+  test("should handle city names with special characters", async () => {
+    const city = "São Paulo";
+    await fetchWeatherData(city);
+    
+    expect(axios.get).toHaveBeenCalled();
+    const calledUrl = axios.get.mock.calls[0][0];
+    expect(calledUrl).toContain(encodeURIComponent(city).replace(/%20/g, '-'));
+  });
+});
+
 describe("Rate Limiting", () => {
   beforeEach(() => {
     jest.clearAllMocks();
