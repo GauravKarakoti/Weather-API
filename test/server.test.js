@@ -3,7 +3,7 @@ jest.mock("axios");
 
 const axios = require("axios");
 const request = require("supertest");
-const { app, server, rateLimiters, stopServer, fetchWeatherData } = require("../server");
+const { app, server, rateLimiters, stopServer, fetchWeatherData, formatDate } = require("../server");
 
 process.env.TEMPERATURE_CLASS = "temp-fallback";
 process.env.MIN_MAX_TEMPERATURE_CLASS = "min-max-temp-fallback";
@@ -115,5 +115,19 @@ describe("Rate Limiting", () => {
     test("should not apply rate limit to different endpoints", async () => {
         const response = await request(app).get("/api/version");
         expect(response.status).toBe(200);
+    });
+});
+
+describe("formatDate", () => {
+    test("should format a valid date string", () => {
+        expect(formatDate("2023-12-01")).toBe("December 1, 2023");
+    });
+
+    test("should return the original string for an invalid date", () => {
+        expect(formatDate("invalid-date")).toBe("invalid-date");
+    });
+
+    test("should handle empty string", () => {
+        expect(formatDate("")).toBe("");
     });
 });
