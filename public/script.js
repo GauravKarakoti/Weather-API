@@ -1,4 +1,3 @@
-
 // Note: Ensure no duplicate 'clearBtn' declarations exist in this file or included scripts.
 // Check index.html for correct selector IDs (e.g., #clear-btn).
 
@@ -24,7 +23,7 @@ const form = getElement('#weather-form');
 const cityInput = getElement('#city');
 const weatherData = getElement('#weather-data');
 
-const weatherBtn = getElement('#weather-btn');
+const weatherBtn = getElement('#submit-btn'); // <-- FIX: Changed selector from #weather-btn to #submit-btn
 const searchBtn = getElement('#search-btn');
 const clearBtn = getElement('#clear-btn'); // Ensure no duplicate declaration
 const spinner = getElement('.spinner');
@@ -138,8 +137,8 @@ function toggleLoading(isLoading) {
 }
 
 function toggleClearLoading(isLoading){
-    clearBtn.disabled = isLoading;
-    clr_spinner.classList.toggle('hidden', !isLoading);
+    if(clearBtn) clearBtn.disabled = isLoading;
+    if(clr_spinner) clr_spinner.classList.toggle('hidden', !isLoading);
 }
 
 function displayWeather(data) {
@@ -392,7 +391,7 @@ function handleClear(e) {
     toggleClearLoading(true); // Show loading spinner
 
     setTimeout(() => {
-        cityInput.value = ''; // Clear the input field
+        if(cityInput) cityInput.value = ''; // Clear the input field
         clearError();         // Clear error messages
         toggleClearLoading(false); // Hide spinner
     }, 300); // Simulate a short delay for UI feedback
@@ -403,5 +402,3 @@ module.exports = {
     isValidInput,
     addToRecentSearches
 };
-
-
