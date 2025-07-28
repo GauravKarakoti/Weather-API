@@ -35,6 +35,7 @@
     "jest": "^30.0.5",
     "jest-environment-jsdom": "^30.0.5",
     "jsdom": "^26.0.0",
+    "prettier": "^3.6.2",
     "supertest": "^7.0.0"
   }
 }
