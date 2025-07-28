@@ -98,6 +98,61 @@ describe("Rate Limiting", () => {
         });
     });
 
+    test("should handle malformed HTML response", async () => {
+        axios.get.mockResolvedValueOnce({
+            data: "<html><body>Invalid HTML"
+        });
+
+        const response = await request(app).get("/api/weather/London");
+        expect(response.status).toBe(500);
+        expect(response.body.code).toBe("PARSING_ERROR");
+    });
+
+    test("should handle missing temperature data", async () => {
+        axios.get.mockResolvedValueOnce({
+            data: `
+              <html>
+                <div class="min-max-temp-fallback">15 ° - 25 °</div>
+                <div class="humidity-pressure-fallback">60% Humidity 1015 Pressure</div>
+                <div class="condition-fallback">Sunny</div>
+                <div class="date-fallback">2023-12-01</div>
+              </html>
+            `
+        });
+
+        const response = await request(app).get("/api/weather/London");
+        expect(response.status).toBe(200);
+        expect(response.body.temperature).toBe("N/A");
+    });
+
+    test("should handle different temperature formats", async () => {
+        const testCases = [
+            { temp: "20°C", expected: "20°C" },
+            { temp: "68°F", expected: "68°F" },
+            { temp: " 25 °C ", expected: "25°C" },
+            { temp: "+15°C", expected: "15°C" },
+            { temp: "N/A", expected: "N/A" }
+        ];
+
+        for (const { temp, expected } of testCases) {
+            axios.get.mockResolvedValueOnce({
+                data: `
+                  <html>
+                    <div class="temp-fallback">${temp}</div>
+                    <div class="min-max-temp-fallback">15 ° - 25 °</div>
+                    <div class="humidity-pressure-fallback">60% Humidity 1015 Pressure</div>
+                    <div class="condition-fallback">Sunny</div>
+                    <div class="date-fallback">2023-12-01</div>
+                  </html>
+                `
+            });
+
+            const response = await request(app).get("/api/weather/London");
+            expect(response.status).toBe(200);
+            expect(response.body.temperature).toBe(expected);
+        }
+    });
+
     test("should return 429 when exceeding rate limit for /api/weather", async () => {
         const apiKey = "test-api-key"; // Replace with a valid API key if needed
         const headers = { "x-api-key": apiKey };
