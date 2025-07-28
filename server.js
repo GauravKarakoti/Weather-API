@@ -303,12 +303,10 @@ const fetchWithRetry = async (url, options, retries = 3, backoff = 300) => {
 };
 
 const fetchWeatherData = async (city) => {
-  const encodedCity = city
-    .normalize("NFD")
-    .replace(/'/g, "")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\s+/g, "-")
-    .toLowerCase();
+  // Encode the city name for URL, preserving special characters
+  const encodedCity = encodeURIComponent(city.trim())
+    .replace(/%20/g, '-')  // Replace spaces with hyphens
+    .replace(/'/g, '');    // Remove single quotes
 
   const primaryUrl = `${process.env.SCRAPE_API_FIRST}${encodedCity}${process.env.SCRAPE_API_LAST}`;
   const fallbackUrl = `${process.env.SCRAPE_API_FALLBACK}${encodedCity}`;
