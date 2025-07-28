@@ -62,7 +62,7 @@ async function handleSubmit(e) {
 
 
     if (!isValidInput(city)) {
-      
+
         showError('Please enter a valid city name (e.g., São Paulo, O\'Fallon).');
         return;
     }
@@ -70,7 +70,7 @@ async function handleSubmit(e) {
     try {
         toggleLoading(true);
         const data = await fetchWeatherData(city);
-        
+
         displayWeather(data);
         addToRecentSearches(city);
     } catch (error) {
@@ -136,9 +136,9 @@ function toggleLoading(isLoading) {
     if (spinner) spinner.classList.toggle('hidden', !isLoading);
 }
 
-function toggleClearLoading(isLoading){
-    if(clearBtn) clearBtn.disabled = isLoading;
-    if(clr_spinner) clr_spinner.classList.toggle('hidden', !isLoading);
+function toggleClearLoading(isLoading) {
+    if (clearBtn) clearBtn.disabled = isLoading;
+    if (clr_spinner) clr_spinner.classList.toggle('hidden', !isLoading);
 }
 
 function displayWeather(data) {
@@ -182,7 +182,8 @@ function displayWeather(data) {
             </div>
         `;
 
-        weatherData.insertAdjacentHTML('beforeend', template);
+        // Sanitize the template before inserting it into the DOM
+        weatherData.insertAdjacentHTML('beforeend', DOMPurify.sanitize(template));
         weatherData.classList.remove('hidden');
     }
 }
@@ -391,7 +392,7 @@ function handleClear(e) {
     toggleClearLoading(true); // Show loading spinner
 
     setTimeout(() => {
-        if(cityInput) cityInput.value = ''; // Clear the input field
+        if (cityInput) cityInput.value = ''; // Clear the input field
         clearError();         // Clear error messages
         toggleClearLoading(false); // Hide spinner
     }, 300); // Simulate a short delay for UI feedback
