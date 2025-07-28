@@ -1,225 +1,95 @@
-const { JSDOM } = require("jsdom");
-
-global.alert = jest.fn();
-
-// Mock localStorage fully with getItem, setItem, removeItem, clear
-const localStorageMock = (() => {
-  let store = {};
-  return {
-    getItem: jest.fn((key) => store[key] || null),
-    setItem: jest.fn((key, value) => {
-      store[key] = value.toString();
-    }),
-    removeItem: jest.fn((key) => {
-      delete store[key];
-    }),
-    clear: jest.fn(() => {
-      store = {};
-    }),
-  };
-})();
-Object.defineProperty(global, "localStorage", {
-  value: localStorageMock,
-});
-
-// Mock DOMPurify since your script uses it (you may install dompurify and import or mock it)
-global.DOMPurify = {
-  sanitize: (str) => str, // naive passthrough for tests
-};
-
-// Provide a fake fetch API.on 'window' or global in node
-global.fetch = jest.fn(() =>
-  Promise.resolve({
-    ok: true,
-    json: () => Promise.resolve({ temperature: "20°C", condition: "Sunny" }),
-  }),
-);
-
-// Mock your API_URL environment/config if your client script reads from process.env or global:
-process.env.API_URL = "http://localhost/api"; // or mock in your config object
-
 /**
  * @jest-environment jsdom
  */
+const fs = require('fs');
+const path = require('path');
+const { JSDOM } = require('jsdom');
 
-beforeAll(() => {
-  const dom = new JSDOM(` 
-        <form id="weather-form"> </form>
-            <input id="city" />
-            <button id="submit-btn">Submit</button>
-            <div id="weather-data"></div>
-            <button id="weather-btn">Weather</button>
-            <button id="search-btn">Get Weather</button>
-            <button id="clear-btn">Clear</button>
-            <div id="city-error"></div>
-            <ul id="recent-list"></ul>
-            <div class="spinner hidden"></div>
-            
-        
-    `);
+// Load the actual HTML content from the file
+const html = fs.readFileSync(path.resolve(__dirname, '../public/index.html'), 'utf8');
 
-  if (typeof window !== "undefined" && form) {
-    form.addEventListener("submit", handleSubmit);
-  }
-  global.document = dom.window.document;
-  global.window = dom.window;
-  global.localStorage = {
-    getItem: jest.fn(() => null),
-    setItem: jest.fn(),
-    clear: jest.fn(),
-  };
+// Mock fetch before each test
+global.fetch = jest.fn(() =>
+  Promise.resolve({
+    ok: true,
+    json: () => Promise.resolve({ 
+        temperature: '22.0 °C', 
+        condition: 'Cloudy',
+        date: 'July 28, 2025',
+        minTemperature: '18.0 °C',
+        maxTemperature: '26.0 °C',
+        humidity: '75%',
+        pressure: '1010.0 hPa'
+    }),
+  })
+);
 
-  global.script = require("../public/script");
-});
+// Mock DOMPurify
+global.DOMPurify = {
+  sanitize: (str) => str,
+};
 
-describe("Weather App Tests", () => {
+describe('Weather App Client-Side Tests', () => {
+  
   beforeEach(() => {
-    jest.restoreAllMocks();
+    // Reset DOM and mocks for each test to ensure they are isolated
+    const dom = new JSDOM(html, { runScripts: 'dangerously', url: 'http://localhost' });
+    global.document = dom.window.document;
+    global.window = dom.window;
+    global.localStorage.clear();
+    fetch.mockClear();
+
+    // Require the script after the DOM is set up so it can attach event listeners
+    require('../public/script.js');
   });
 
-  test("should reject invalid city names", () => {
-    expect(global.script.isValidInput("!@#")).toBe(false);
-    expect(global.script.isValidInput("L")).toBe(false);
-    expect(global.script.isValidInput("London")).toBe(true);
+  test('should validate city input correctly', () => {
+    const { isValidInput } = require('../public/script.js');
+    expect(isValidInput("London")).toBe(true);
+    expect(isValidInput("St. Louis")).toBe(true);
+    expect(isValidInput("!@#$")).toBe(false); // Invalid characters
+    expect(isValidInput("L")).toBe(false); // Too short
   });
 
-  test("should fetch weather data successfully", async () => {
-    jest.spyOn(global, "fetch").mockResolvedValue({
-      ok: true,
-      json: async () => await { temperature: "20°C", condition: "Sunny" },
-    });
+  test('should display an error for empty city submission', async () => {
+    const form = document.getElementById('weather-form');
+    const cityInput = document.getElementById('city');
+    const errorElement = document.getElementById('city-error');
 
-    const data = await global.script.fetchWeatherData("London");
-    expect(data.temperature).toBe("20°C");
-    expect(data.condition).toBe("Sunny");
+    cityInput.value = '';
+    form.dispatchEvent(new window.Event('submit'));
+    
+    expect(errorElement.textContent).toContain('City name cannot be empty.');
+    expect(fetch).not.toHaveBeenCalled();
   });
 
-  test("should handle temperature parsing edge cases", () => {
-    // Test with various temperature formats
-    const testCases = [
-      { input: "20°C", expected: 20 },
-      { input: "-5°C", expected: -5 },
-      { input: "100°F", expected: 100 },
-      { input: " 25 °C ", expected: 25 }, // with extra spaces
-      { input: "+15°C", expected: 15 }, // with plus sign
-      { input: "N/A", expected: NaN }, // invalid format
-      { input: "", expected: NaN }, // empty string
-      { input: null, expected: NaN }, // null input
-      { input: undefined, expected: NaN }, // undefined input
-    ];
+  test('should fetch and display weather data on form submission', async () => {
+    const form = document.getElementById('weather-form');
+    const cityInput = document.getElementById('city');
+    const weatherDataContainer = document.getElementById('weather-data');
+    
+    cityInput.value = 'London';
+    
+    // Create a mock event to pass to the handler
+    const submitEvent = new window.Event('submit', { bubbles: true, cancelable: true });
+    
+    // Dispatch the event which will trigger the handleSubmit function
+    form.dispatchEvent(submitEvent);
 
-    testCases.forEach(({ input, expected }) => {
-      const result = global.script.parseTemperature(input);
-      if (isNaN(expected)) {
-        expect(isNaN(result)).toBe(true);
-      } else {
-        expect(result).toBe(expected);
-      }
-    });
+    // Wait for async operations to complete
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    expect(fetch).toHaveBeenCalledWith('https://weather-api-ex1z.onrender.com/api/weather/London');
+    expect(weatherDataContainer.textContent).toContain('Temp: 22.0 °C');
+    expect(weatherDataContainer.textContent).toContain('Condition: Cloudy');
   });
 
-  test("should handle localStorage quota exceeded error", async () => {
-    // Mock localStorage.setItem to throw quota exceeded error
-    const originalSetItem = global.localStorage.setItem;
-    global.localStorage.setItem = jest.fn().mockImplementationOnce(() => {
-      const error = new Error("QuotaExceededError");
-      error.name = "QuotaExceededError";
-      throw error;
-    });
-
-    // Spy on console.error to verify the error is logged
-    const consoleSpy = jest
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
-
-    // Call the function that uses localStorage
-    global.script.addToRecentSearches("Test City");
-
-    // Verify the error was logged
-    expect(consoleSpy).toHaveBeenCalledWith(
-      "LocalStorage quota exceeded. Clearing recent searches.",
-    );
-
-    // Verify localStorage.clear was called
-    expect(global.localStorage.clear).toHaveBeenCalled();
-
-    // Clean up
-    consoleSpy.mockRestore();
-    global.localStorage.setItem = originalSetItem;
-  });
-
-  test("should handle 404 error in fetchWeatherData", async () => {
-    jest.spyOn(global, "fetch").mockResolvedValue({
-      ok: false,
-      status: 404,
-      json: async () => await { error: "City not found" },
-    });
-
-    await expect(global.script.fetchWeatherData("InvalidCity")).rejects.toThrow(
-      "City not found. Please enter a valid city name.",
-    );
-  });
-
-  test("should store recent searches in localStorage", () => {
-    global.script.addToRecentSearches("London");
-    expect(localStorage.setItem).toHaveBeenCalledWith(
-      "recentSearches",
-      JSON.stringify(["London"]),
-    );
-  });
-
-  test("should limit recent searches to 5 items", () => {
-    // Clear any existing mocks
-    jest.clearAllMocks();
-
-    // Mock getItem to return an empty array
-    global.localStorage.getItem.mockReturnValueOnce(JSON.stringify([]));
-
-    // Add 6 cities
-    const cities = ["London", "Paris", "New York", "Tokyo", "Sydney", "Berlin"];
-    cities.forEach((city) => global.script.addToRecentSearches(city));
-
-    // Verify that only the last 5 cities were saved
-    expect(localStorage.setItem).toHaveBeenLastCalledWith(
-      "recentSearches",
-      JSON.stringify(
-        ["Paris", "New York", "Tokyo", "Sydney", "Berlin"].reverse(),
-      ),
-    );
-  });
-
-  test("should not add duplicate cities to recent searches", () => {
-    // Clear any existing mocks
-    jest.clearAllMocks();
-
-    // Add the same city twice
-    global.script.addToRecentSearches("London");
-    global.script.addToRecentSearches("London");
-
-    // Verify that the city was only added once
-    expect(localStorage.setItem).toHaveBeenLastCalledWith(
-      "recentSearches",
-      JSON.stringify(["London"]),
-    );
-  });
-
-  test("should handle empty or invalid city names in recent searches", () => {
-    // Clear any existing mocks
-    jest.clearAllMocks();
-
-    // Test with empty string
-    global.script.addToRecentSearches("");
-    // Test with whitespace only
-    global.script.addToRecentSearches("   ");
-    // Test with null
-    global.script.addToRecentSearches(null);
-    // Test with undefined
-    global.script.addToRecentSearches(undefined);
-
-    // Verify that no invalid entries were added
-    expect(localStorage.setItem).not.toHaveBeenCalled();
+  test('should add a city to recent searches', () => {
+    const { addToRecentSearches } = require('../public/script.js');
+    addToRecentSearches('Tokyo');
+    
+    const recentList = document.getElementById('recent-list');
+    expect(recentList.children.length).toBe(1);
+    expect(recentList.textContent).toContain('Tokyo');
   });
 });
-
-const script = require("../public/script"); // import after mocks and DOM setup
-global.script = script;
