@@ -69,19 +69,28 @@ body {
 .container {
   background: var(--weather-data-bg-color);
   backdrop-filter: blur(5px);
-  padding: 1.5em;
+  padding: 1rem;
   border-radius: 10px;
   box-shadow: 0 0 15px var(--highlight-glow);
+  width: 100%;
   max-width: 800px;
-  margin: 20px auto;
+  margin: 10px;
   transition: all ease-in-out 300ms;
   min-height: auto;
   max-height: 90vh;
   overflow-y: auto;
-  min-width: 400px;
   display: flex;
   flex-direction: column;
   justify-content: start;
+  box-sizing: border-box;
+}
+
+/* Responsive adjustments */
+@media screen and (min-width: 480px) {
+  .container {
+    padding: 1.5em;
+    margin: 20px auto;
+  }
 }
 
 /* .container:hover {
@@ -259,7 +268,49 @@ button:hover {
 
 .buttons {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.7em;
+  justify-content: center;
+}
+
+/* Make form elements stack nicely on mobile */
+.form-group {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Adjust button sizes for mobile */
+button {
+  flex: 1 1 auto;
+  min-width: 120px;
+}
+
+/* Responsive font sizes */
+@media screen and (max-width: 480px) {
+  .container h1 {
+    font-size: 1.5em;
+  }
+  
+  .container h2 {
+    font-size: 1.2em;
+  }
+  
+  body {
+    padding: 10px;
+  }
+  
+  input[type="text"] {
+    font-size: 0.9em;
+  }
+  
+  button {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.8em;
+  }
+  
+  .searching {
+    margin-bottom: 10px;
+  }
 }
 
 .spinner{
