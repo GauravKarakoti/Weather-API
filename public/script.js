@@ -391,8 +391,9 @@ function handleClear(e) {
     toggleClearLoading(true); // Show loading spinner
 
     setTimeout(() => {
-        if(cityInput) cityInput.value = ''; // Clear the input field
-        clearError();         // Clear error messages
+        if (cityInput) cityInput.value = ''; // Clear the input field
+        if (weatherData) weatherData.innerHTML = ''; // Clear the weather data display
+        clearError(); // Clear error messages
         toggleClearLoading(false); // Hide spinner
     }, 300); // Simulate a short delay for UI feedback
 }
