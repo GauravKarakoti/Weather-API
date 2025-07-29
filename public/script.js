@@ -85,7 +85,7 @@ async function fetchWeatherData(city) {
     if (!city) {
       throw new Error("City parameter is required");
     }
-
+    
     const configResponse = await fetch(
       "https://weather-api-ex1z.onrender.com/config"
     );
@@ -191,9 +191,10 @@ function displayWeather(data) {
             </div>
         `;
 
-    weatherData.insertAdjacentHTML("beforeend", template);
-    weatherData.classList.remove("hidden");
-  }
+        // Sanitize the template before inserting it into the DOM
+        weatherData.insertAdjacentHTML('beforeend', DOMPurify.sanitize(template));
+        weatherData.classList.remove('hidden');
+    }
 }
 
 function isValidInput(city) {
