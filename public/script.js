@@ -1,6 +1,77 @@
 // Note: Ensure no duplicate 'clearBtn' declarations exist in this file or included scripts.
 // Check index.html for correct selector IDs (e.g., #clear-btn).
 
+// Weather emoji configuration object
+const WEATHER_CONFIG = {
+  emojis: {
+    // Primary conditions (exact matches first)
+    sunny: "☀️",
+    clear: "☀️",
+    rain: "🌧️",
+    rainy: "🌧️",
+    drizzle: "🌦️",
+    shower: "🌦️",
+    cloud: "☁️",
+    cloudy: "☁️",
+    overcast: "☁️",
+    snow: "❄️",
+    snowy: "❄️",
+    storm: "⛈️",
+    thunderstorm: "⛈️",
+    thunder: "⛈️",
+    lightning: "⛈️",
+    fog: "🌫️",
+    foggy: "🌫️",
+    mist: "🌫️",
+    misty: "🌫️",
+    haze: "🌫️",
+    hazy: "🌫️",
+    wind: "💨",
+    windy: "💨",
+    hot: "🌡️",
+    cold: "🥶",
+    freezing: "🧊",
+    // Fallback
+    default: "🌈"
+  },
+  
+  // Priority order for checking conditions (higher priority first)
+  priority: [
+    "thunderstorm", "storm", "lightning", "thunder",
+    "snow", "snowy", "freezing",
+    "rain", "rainy", "drizzle", "shower",
+    "fog", "foggy", "mist", "misty", "haze", "hazy",
+    "cloud", "cloudy", "overcast",
+    "sunny", "clear",
+    "wind", "windy",
+    "hot", "cold"
+  ]
+};
+
+// Function to get weather emoji based on condition
+function getWeatherEmoji(condition) {
+  if (!condition || typeof condition !== 'string') {
+    return WEATHER_CONFIG.emojis.default;
+  }
+  
+  const normalizedCondition = condition.toLowerCase().trim();
+  
+  // Check for exact matches first
+  if (WEATHER_CONFIG.emojis[normalizedCondition]) {
+    return WEATHER_CONFIG.emojis[normalizedCondition];
+  }
+  
+  // Check for partial matches using priority order
+  for (const keyword of WEATHER_CONFIG.priority) {
+    if (normalizedCondition.includes(keyword)) {
+      return WEATHER_CONFIG.emojis[keyword];
+    }
+  }
+  
+  // Return default emoji if no match found
+  return WEATHER_CONFIG.emojis.default;
+}
+
 // Function to log selector failures
 function logSelectorFailure(selector) {
   console.error(`Selector failure: ${selector}`);
@@ -145,14 +216,8 @@ function displayWeather(data) {
     return;
   }
 
-  let emoji = "";
-  const condition = data.condition?.toLowerCase() || "";
-  if (condition.includes("sun")) emoji = "☀️";
-  else if (condition.includes("rain")) emoji = "🌧️";
-  else if (condition.includes("cloud")) emoji = "☁️";
-  else if (condition.includes("snow")) emoji = "❄️";
-  else if (condition.includes("storm")) emoji = "⛈️";
-  else emoji = "🌈";
+  // Use the new emoji configuration function
+  const emoji = getWeatherEmoji(data.condition);
 
   const weatherIcon = document.getElementById("weather-icon");
   if (weatherIcon) {
@@ -193,7 +258,7 @@ function displayWeather(data) {
 }
 
 function isValidInput(city) {
-  return /^[\p{L}\p{M}\s'’.-]{2,50}$/u.test(city);
+  return /^[\p{L}\p{M}\s''.-]{2,50}$/u.test(city);
 }
 
 function showError(message) {
@@ -333,6 +398,7 @@ function displayRecentSearches() {
 function loadRecentSearches() {
   displayRecentSearches();
 }
+
 function setupServiceWorker() {
   window.addEventListener("load", () => {
     navigator.serviceWorker
