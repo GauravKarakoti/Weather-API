@@ -229,65 +229,73 @@ function sanitizeHTML(str) {
   return DOMPurify.sanitize(str);
 }
 
-function isLocalStorageAvailable() {
-  try {
-    const testKey = "__test__";
-    localStorage.setItem(testKey, "1");
-    localStorage.removeItem(testKey);
-    return true;
-  } catch (error) {
-    console.warn("⚠️ localStorage not available. Using in-memory fallback.");
-    return false;
+class StorageManager {
+  constructor() {
+    this.isLocalStorageAvailable = this.checkLocalStorageAvailability();
+    this.memoryStorage = { recentSearches: [] };
+  }
+
+  checkLocalStorageAvailability() {
+    try {
+      const testKey = '__test__';
+      localStorage.setItem(testKey, '1');
+      localStorage.removeItem(testKey);
+      return true;
+    } catch (error) {
+      console.warn('⚠️ localStorage not available. Using in-memory fallback.');
+      return false;
+    }
+  }
+
+  getItem(key) {
+    if (this.isLocalStorageAvailable) {
+      const item = localStorage.getItem(key);
+      return item ? JSON.parse(item) : null;
+    } else {
+      return this.memoryStorage[key] || null;
+    }
+  }
+
+  setItem(key, value) {
+    if (this.isLocalStorageAvailable) {
+      localStorage.setItem(key, JSON.stringify(value));
+    } else {
+      this.memoryStorage[key] = value;
+    }
+  }
+
+  removeItem(key) {
+    if (this.isLocalStorageAvailable) {
+      localStorage.removeItem(key);
+    } else {
+      delete this.memoryStorage[key];
+    }
   }
 }
 
-async function loadConfig() {
-  try {
-    const response = await fetch(
-      "https://weather-api-ex1z.onrender.com/config"
-    );
-    if (!response.ok) throw new Error("Failed to load config");
-
-    const config = await response.json();
-
-    const limit = parseInt(config.RECENT_SEARCH_LIMIT, 10) || 5;
-    localStorage.setItem("recentSearchLimit", limit);
-    console.log(`Recent search limit: ${limit}`);
-
-    return limit;
-  } catch (error) {
-    console.error("Failed to load environment config:", error);
-    return 5;
-  }
-}
+const storageManager = new StorageManager();
 
 function addToRecentSearches(city) {
   const normalizedCity = city.trim().toLowerCase();
-  let limit = parseInt(localStorage.getItem("recentSearchLimit"), 10) || 5;
+  const limit = parseInt(storageManager.getItem('recentSearchLimit'), 10) || 5;
+
+  let recent = storageManager.getItem('recentSearches') || [];
+  recent = recent.filter(c => c.toLowerCase() !== normalizedCity);
+  recent = [city, ...recent].slice(0, limit);
+
   try {
-    if (isLocalStorageAvailable()) {
-      let recent = JSON.parse(localStorage.getItem("recentSearches")) || [];
-      recent = recent.filter((c) => c.toLowerCase() !== normalizedCity);
-      recent = [city, ...recent].slice(0, limit);
-      localStorage.setItem("recentSearches", JSON.stringify(recent));
-    } else {
-      recentSearches = recentSearches
-        .filter((c) => c.toLowerCase() !== normalizedCity)
-        .slice(0, limit - 1);
-      recentSearches.unshift(city);
-    }
+    storageManager.setItem('recentSearches', recent);
   } catch (error) {
-    if (error.name === "QuotaExceededError") {
-      console.warn("LocalStorage quota exceeded. Removing oldest search.");
-      let recent = JSON.parse(localStorage.getItem("recentSearches")) || [];
+    if (error.name === 'QuotaExceededError') {
+      console.warn('LocalStorage quota exceeded. Removing oldest search.');
       recent.pop();
       try {
-        localStorage.setItem("recentSearches", JSON.stringify(recent));
+        storageManager.setItem('recentSearches', recent);
       } catch (retryError) {
-        console.error("Still failing after removing oldest entry:", retryError);
+        console.error('Still failing after removing oldest entry:', retryError);
       }
     } else {
-      console.error("Error adding to recent searches:", error);
+      console.error('Error adding to recent searches:', error);
     }
   }
 
@@ -295,33 +303,27 @@ function addToRecentSearches(city) {
 }
 
 function displayRecentSearches() {
-  const recent = isLocalStorageAvailable()
-    ? JSON.parse(localStorage.getItem("recentSearches")) || []
-    : recentSearches;
-  const list = document.getElementById("recent-list");
+  const recent = storageManager.getItem('recentSearches') || [];
+  const list = document.getElementById('recent-list');
   if (list) {
     list.innerHTML = recent
-      .map(
-        (city) => `
-                <li role="listitem">
-                    <button class="recent-item" data-city="${sanitizeHTML(
-                      city
-                    )}">
-                        ${sanitizeHTML(city)}
-                    </button>
-                </li>`
-      )
-      .join("");
+      .map(city => `
+        <li role="listitem">
+          <button class="recent-item" data-city="${sanitizeHTML(city)}">
+            ${sanitizeHTML(city)}
+          </button>
+        </li>`)
+      .join('');
 
-    list.style.display = "flex";
-    list.style.flexWrap = "wrap";
-    list.style.listStyle = "none";
+    list.style.display = 'flex';
+    list.style.flexWrap = 'wrap';
+    list.style.listStyle = 'none';
 
-    document.querySelectorAll(".recent-item").forEach((button) => {
-      button.addEventListener("click", function () {
+    document.querySelectorAll('.recent-item').forEach(button => {
+      button.addEventListener('click', function () {
         if (cityInput) {
           cityInput.value = this.dataset.city;
-          handleSubmit(new Event("submit"));
+          handleSubmit(new Event('submit'));
         }
       });
     });
