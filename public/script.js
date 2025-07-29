@@ -413,9 +413,3 @@ function handleClear(e) {
   clearError(); // Clear error messages
   if (weatherData) weatherData.innerHTML = ""; // Clear weather data display
 }
-
-module.exports = {
-  fetchWeatherData,
-  isValidInput,
-  addToRecentSearches,
-};
