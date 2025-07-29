@@ -139,11 +139,6 @@ function toggleLoading(isLoading) {
   if (spinner) spinner.classList.toggle("hidden", !isLoading);
 }
 
-function toggleClearLoading(isLoading) {
-  if (clearBtn) clearBtn.disabled = isLoading;
-  if (clr_spinner) clr_spinner.classList.toggle("hidden", !isLoading);
-}
-
 function displayWeather(data) {
   if (!data || !data.temperature) {
     showError("Failed to retrieve weather data. Please try again.");

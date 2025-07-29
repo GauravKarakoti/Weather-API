@@ -213,7 +213,7 @@ button:disabled {
   margin-top: 1rem;
 }
 
-.spinner, .clr-spinner {
+.spinner {
   display: inline-block;
   width: 1.5rem;
   height: 1.5rem;
