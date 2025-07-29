@@ -467,10 +467,17 @@ app.get("/api/weather/:city", async (req, res) => {
     }
 });
 
-// Schedule daily selector validation
+// Schedule weekly selector validation with randomness
 let selectorValidationInterval;
 const scheduleSelectorValidation = () => {
-  const interval = 24 * 60 * 60 * 1000; // 24 hours
+  // Base interval: 7 days (weekly)
+  const baseInterval = 7 * 24 * 60 * 60 * 1000; 
+  
+  // Add randomness: ±12 hours to distribute load across instances
+  const randomOffset = Math.random() * 24 * 60 * 60 * 1000 - 12 * 60 * 60 * 1000; // ±12 hours
+  const interval = baseInterval + randomOffset;
+  
+  console.log(`Selector validation scheduled for ${Math.round(interval / (24 * 60 * 60 * 1000) * 10) / 10} days from now`);
   selectorValidationInterval = setInterval(validateSelectors, interval);
 };
 
