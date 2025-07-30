@@ -4,10 +4,6 @@
   --error-color: #e74c3c;
   --success-color: #2ecc71;
 
-  --background-gradient-start: #0f0c29;
-  --background-gradient-middle: #302b63;
-  --background-gradient-end: #0d0d24;
-
   --background-gradient-start: #2b2b2b;
   --background-gradient-middle: #1e1e1e;
   --background-gradient-end: #0f0f0f;
@@ -55,14 +51,13 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100vh;
   min-height: 100vh;
-  /* background: linear-gradient(135deg, var(--background-gradient-start), var(--background-gradient-middle), var(--background-gradient-end)); */
   background: url("./assets/WeatherBackground.png") no-repeat center
     center/cover;
   overflow-x: hidden;
   color: #ffffff;
   padding: 20px;
+  box-sizing: border-box; /* Added for better box model handling */
   font-family: "Arial", sans-serif;
 }
 
@@ -74,9 +69,9 @@ body {
   box-shadow: 0 0 15px var(--highlight-glow);
   width: 100%;
   max-width: 800px;
-  margin: 10px;
+  width: 100%; /* Make container responsive by default */
+  margin: 20px auto;
   transition: all ease-in-out 300ms;
-  min-height: auto;
   max-height: 90vh;
   overflow-y: auto;
   display: flex;
@@ -93,18 +88,12 @@ body {
   }
 }
 
-/* .container:hover {
-    transform: scale(1.02);
-} */
-
 .container h1 {
-  /* background: linear-gradient(to right, #808080, #d3d3d3); */
   background: linear-gradient(135deg, #4fc3f7, #7e57c2);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   color: transparent;
-  /* color: #4fc3f7; */
   font-size: 2em;
   text-align: left;
   font-weight: bold;
@@ -119,7 +108,6 @@ body {
   height: fit-content;
   margin-bottom: 0rem;
   color: var(--text-color);
-  /* position: relative; */
 }
 
 label {
@@ -139,7 +127,8 @@ label {
 }
 
 input {
-  width: 95%;
+  width: 100%; /* MODIFICATION: Changed to 100% for better alignment */
+  box-sizing: border-box; /* Added for consistent padding */
   padding: 0.6rem !important;
   background: none;
   color: var(--text-color);
@@ -152,19 +141,11 @@ input {
 input:focus {
   border-color: #4fc3f7;
   outline: none;
-  box-shadow: 0 0 4px rgba(79, 195, 247, 0.5);
-}
-
-input:focus {
-  outline: none;
   box-shadow: 0 0 8px #4fc3f7;
-  border-color: #4fc3f7;
 }
 
 .search {
-  background: var(--input-border-color);
   background: linear-gradient(135deg, #833092, #6691ff);
-  color: black;
   color: var(--text-color);
   font-size: 1em;
   padding: 0.6em;
@@ -173,7 +154,6 @@ input:focus {
 }
 
 .search:hover {
-  background: #b3b3b3;
   background: linear-gradient(135deg, #6691ff, #833092);
   box-shadow:
     0 0 10px rgba(186, 104, 200, 0.5),
@@ -193,21 +173,6 @@ button {
   padding: 0.8rem 1.2rem;
 }
 
-input[type="text"] {
-  width: 100%;
-  padding: 10px;
-  border: none;
-  border-radius: 5px;
-  background: rgba(171, 169, 169, 0.2);
-  color: #ffffff;
-  transition: background 0.3s;
-}
-
-input[type="text"]:focus {
-  background: rgba(255, 255, 255, 0.3);
-  outline: none;
-}
-
 button:hover,
 button:active {
   border: 1px solid var(--text-color);
@@ -220,8 +185,9 @@ button:active {
 
 .searchBtn {
   position: absolute;
-  top: 7.75%;
-  right: 0% !important;
+  top: 50%;
+  transform: translateY(-50%);
+  right: 5px;
   padding: 0 !important;
   box-shadow:
     0 0 6px var(--button-shadow-first),
@@ -244,23 +210,7 @@ button:disabled {
   cursor: not-allowed;
 }
 
-button:hover {
-  transform: scale(1.05);
-  border: 1px solid var(--text-color);
-  color: var(--text-color);
-  background: linear-gradient(135deg, #17172e, #833092);
-  box-shadow:
-    0 0 10px rgba(186, 104, 200, 0.5),
-    0 0 20px rgba(186, 104, 200, 0.3);
-}
-
-.get-weather {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-#clear-btn{
+.get-weather, #clear-btn {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -270,6 +220,7 @@ button:hover {
   display: flex;
   flex-wrap: wrap;
   gap: 0.7em;
+  margin-top: 1rem;
   justify-content: center;
 }
 
@@ -313,18 +264,7 @@ button {
   }
 }
 
-.spinner{
-  display: inline-block;
-  width: 1.5rem;
-  height: 1.5rem;
-  border: 3px solid var(--spinner-border);
-  border-radius: 50%;
-  border-top-color: var(--spinner-top-border);
-  animation: spin 1s ease-in-out infinite;
-  margin-left: 10px;
-}
-
-.clr-spinner{
+.spinner {
   display: inline-block;
   width: 1.5rem;
   height: 1.5rem;
@@ -347,8 +287,6 @@ button {
 #weather-data {
   background: var(--weather-data-bg-color);
   padding: 10px;
-  padding-top: 15px;
-  padding-bottom: 15px;
   border-radius: 10px;
   border: 1px solid #4fc3f7;
   text-align: left;
@@ -367,9 +305,7 @@ button {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  color: transparent;
   text-shadow: 0 0 5px var(--weather-text-glow);
-  margin-bottom: 10px;
   padding: 10px;
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 5px;
@@ -380,12 +316,10 @@ button {
 }
 
 .recent-searches h2 {
-  /* color: var(--text-color); */
   background: linear-gradient(to right, #ba68c8, #9575cd, purple);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  color: transparent;
   width: 100%;
   text-align: left;
   font-size: 1.4em;
@@ -438,20 +372,6 @@ button {
   margin: 1em 0em;
 }
 
-@media (max-width: 475px) {
-  body {
-    overflow-x: hidden;
-    min-height: 100vh;
-  }
-
-  .container {
-    width: 95vw !important;
-    min-width: none;
-    height: fit-content;
-    flex-wrap: wrap;
-  }
-}
-
 .sr-only {
   position: absolute;
   width: 1px;
@@ -466,5 +386,29 @@ button {
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* MODIFICATION: Improved styles for smaller devices */
+@media (max-width: 600px) {
+  .container {
+    padding: 1em;
+    max-height: none; /* Allow container to grow */
+  }
+  
+  .container h1 {
+      font-size: 1.6em;
+  }
+
+  .buttons {
+      flex-direction: column;
+  }
+  
+  button {
+      width: 100%;
+  }
+  
+  #weather-data p, label, #recent-list {
+      font-size: 1em;
   }
 }
