@@ -64,19 +64,28 @@ body {
 .container {
   background: var(--weather-data-bg-color);
   backdrop-filter: blur(5px);
-  padding: 1.5em;
+  padding: 1rem;
   border-radius: 10px;
   box-shadow: 0 0 15px var(--highlight-glow);
+  width: 100%;
   max-width: 800px;
   width: 100%; /* Make container responsive by default */
   margin: 20px auto;
   transition: all ease-in-out 300ms;
   max-height: 90vh;
   overflow-y: auto;
-  /* min-width: 400px; <-- MODIFICATION: This line was removed */
   display: flex;
   flex-direction: column;
   justify-content: start;
+  box-sizing: border-box;
+}
+
+/* Responsive adjustments */
+@media screen and (min-width: 480px) {
+  .container {
+    padding: 1.5em;
+    margin: 20px auto;
+  }
 }
 
 .container h1 {
@@ -209,8 +218,50 @@ button:disabled {
 
 .buttons {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.7em;
   margin-top: 1rem;
+  justify-content: center;
+}
+
+/* Make form elements stack nicely on mobile */
+.form-group {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Adjust button sizes for mobile */
+button {
+  flex: 1 1 auto;
+  min-width: 120px;
+}
+
+/* Responsive font sizes */
+@media screen and (max-width: 480px) {
+  .container h1 {
+    font-size: 1.5em;
+  }
+  
+  .container h2 {
+    font-size: 1.2em;
+  }
+  
+  body {
+    padding: 10px;
+  }
+  
+  input[type="text"] {
+    font-size: 0.9em;
+  }
+  
+  button {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.8em;
+  }
+  
+  .searching {
+    margin-bottom: 10px;
+  }
 }
 
 .spinner {

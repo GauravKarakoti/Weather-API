@@ -476,7 +476,7 @@ initialize();
 
 function handleClear(e) {
   e.preventDefault(); // Prevent form submission
-
+  
   if (cityInput) cityInput.value = ""; // Clear the input field
   clearError(); // Clear error messages
   if (weatherData) weatherData.innerHTML = ""; // Clear weather data display
