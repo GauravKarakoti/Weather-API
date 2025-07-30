@@ -8,6 +8,7 @@ const dotenv = require("dotenv");
 const fs = require("fs");
 const path = require("path");
 const nodemailer = require("nodemailer");
+const crypto = require("crypto");
 
 // Load environment variables
 const envResult = dotenv.config();
@@ -53,8 +54,8 @@ const sendAdminAlert = async (failedSelectors) => {
       from: `"Weather API Alert" <${process.env.MAIL_USER}>`,
       to: adminEmail,
       subject: "Weather API Selector Failure Alert",
-      text: `${alertMessage}\nPlease check the selectors at https://www.indiatoday.in/weather/delhi-weather-forecast-today or update fallback selectors.`,
-      html: `<p><strong>Selector Validation Failed</strong></p><p>${alertMessage}</p><p>Please check the selectors at <a href="https://www.indiatoday.in/weather/delhi-weather-forecast-today">India Today Weather</a> or update fallback selectors.</p>`,
+      text: `${alertMessage}\nPlease check the target website selectors or update fallback selectors.`,
+      html: `<p><strong>Selector Validation Failed</strong></p><p>${alertMessage}</p><p>Please check the target website selectors or update fallback selectors.</p>`,
     });
     console.log("Email alert sent successfully");
   } catch (error) {
@@ -474,10 +475,12 @@ const scheduleSelectorValidation = () => {
   const baseInterval = 7 * 24 * 60 * 60 * 1000; 
   
   // Add randomness: ±12 hours to distribute load across instances
-  const randomOffset = Math.random() * 24 * 60 * 60 * 1000 - 12 * 60 * 60 * 1000; // ±12 hours
+  const randomBytes = crypto.randomBytes(4);
+  const randomValue = randomBytes.readUInt32BE(0) / 0xFFFFFFFF; // Convert to 0-1 range
+  const randomOffset = randomValue * 24 * 60 * 60 * 1000 - 12 * 60 * 60 * 1000; // ±12 hours
   const interval = baseInterval + randomOffset;
   
-  console.log(`Selector validation scheduled for ${Math.round(interval / (24 * 60 * 60 * 1000) * 10) / 10} days from now`);
+  console.log("Selector validation scheduled successfully");
   selectorValidationInterval = setInterval(validateSelectors, interval);
 };
 
