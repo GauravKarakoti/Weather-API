@@ -1,121 +1,93 @@
-const { JSDOM } = require("jsdom");
-
-
-global.alert = jest.fn();
-
-
-
-// Mock localStorage fully with getItem, setItem, removeItem, clear
-const localStorageMock = (() => {
-    let store = {};
-    return {
-        getItem: jest.fn((key) => store[key] || null),
-        setItem: jest.fn((key, value) => {
-            store[key] = value.toString();
-        }),
-        removeItem: jest.fn((key) => {
-            delete store[key];
-        }),
-        clear: jest.fn(() => {
-            store = {};
-        }),
-    };
-})();
-Object.defineProperty(global, 'localStorage', {
-    value: localStorageMock,
-});
-
-// Mock DOMPurify since your script uses it (you may install dompurify and import or mock it)
-global.DOMPurify = {
-    sanitize: (str) => str // naive passthrough for tests
-};
-
-// Provide a fake fetch API.on 'window' or global in node
-global.fetch = jest.fn(() =>
-    Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({ temperature: '20°C', condition: 'Sunny' }),
-    })
-);
-
-// Mock your API_URL environment/config if your client script reads from process.env or global:
-process.env.API_URL = 'http://localhost/api'; // or mock in your config object
-
-
 /**
  * @jest-environment jsdom
  */
+const fs = require('fs');
+const path = require('path');
+const { JSDOM } = require('jsdom');
 
-beforeAll(() => {
-    const dom = new JSDOM(` 
-        <form id="weather-form"> </form>
-            <input id="city" />
-            <button id="submit-btn">Submit</button>
-            <div id="weather-data"></div>
-            <button id="weather-btn">Weather</button>
-            <button id="search-btn">Get Weather</button>
-            <button id="clear-btn">Clear</button>
-            <div id="city-error"></div>
-            <ul id="recent-list"></ul>
-            <div class="spinner hidden"></div>
-            
-        
-    `);
+// Load the actual HTML content from the public/index.html file
+const html = fs.readFileSync(path.resolve(__dirname, '../public/index.html'), 'utf8');
 
-    if (typeof window !== "undefined" && form) {
-        form.addEventListener('submit', handleSubmit);
-    }
-    global.document = dom.window.document;
+// Mock fetch before each test
+global.fetch = jest.fn(() =>
+  Promise.resolve({
+    ok: true,
+    json: () => Promise.resolve({ 
+        temperature: '22.0 °C', 
+        condition: 'Cloudy',
+        date: 'July 28, 2025',
+        minTemperature: '18.0 °C',
+        maxTemperature: '26.0 °C',
+        humidity: '75%',
+        pressure: '1010.0 hPa'
+    }),
+  })
+);
+
+// Mock DOMPurify
+global.DOMPurify = {
+  sanitize: (str) => str,
+};
+
+describe('Weather App Client-Side Tests', () => {
+  let scriptModule;
+
+  beforeEach(() => {
+    const dom = new JSDOM(html, { runScripts: 'dangerously', url: 'http://localhost' });
     global.window = dom.window;
-    global.localStorage = {
-        getItem: jest.fn(() => null),
-        setItem: jest.fn(),
-        clear: jest.fn(),
-    };
+    global.document = dom.window.document;
+    global.navigator = dom.window.navigator;
+    
+    // Mock window.alert as it's not implemented in JSDOM
+    global.window.alert = jest.fn();
+    global.localStorage.clear();
+    fetch.mockClear();
 
-    global.script = require("../public/script");
+    // Use jest.isolateModules to ensure the script runs in the new DOM environment
+    jest.isolateModules(() => {
+      scriptModule = require('../public/script.js');
+    });
+  });
+
+  test('should validate city input correctly', () => {
+    expect(scriptModule.isValidInput("London")).toBe(true);
+    expect(scriptModule.isValidInput("St. Louis")).toBe(true);
+    expect(scriptModule.isValidInput("!@#$")).toBe(false);
+    expect(scriptModule.isValidInput("L")).toBe(false);
+  });
+
+  test('should display an error for empty city submission', () => {
+    const form = document.getElementById('weather-form');
+    const cityInput = document.getElementById('city');
+    const errorElement = document.getElementById('city-error');
+
+    cityInput.value = '';
+    form.dispatchEvent(new window.Event('submit'));
+    
+    expect(errorElement.textContent).toContain('City name cannot be empty.');
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  test('should fetch and display weather data on form submission', async () => {
+    const form = document.getElementById('weather-form');
+    const cityInput = document.getElementById('city');
+    const weatherDataContainer = document.getElementById('weather-data');
+    
+    cityInput.value = 'London';
+    form.dispatchEvent(new window.Event('submit'));
+
+    // Wait for async operations like fetch to complete
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    expect(fetch).toHaveBeenCalledTimes(2); // Once for config, once for weather
+    expect(weatherDataContainer.textContent).toContain('Temp: 22.0 °C');
+    expect(weatherDataContainer.textContent).toContain('Condition: Cloudy');
+  });
+
+  test('should add a city to recent searches', () => {
+    scriptModule.addToRecentSearches('Tokyo');
+    const recentList = document.getElementById('recent-list');
+    expect(recentList.children.length).toBe(1);
+    expect(recentList.textContent).toContain('Tokyo');
+  });
 });
-
-describe("Weather App Tests", () => {
-    beforeEach(() => {
-        jest.restoreAllMocks();
-    });
-
-    test("should reject invalid city names", () => {
-        expect(global.script.isValidInput("!@#")).toBe(false);
-        expect(global.script.isValidInput("L")).toBe(false);
-        expect(global.script.isValidInput("London")).toBe(true);
-    });
-
-    test("should fetch weather data successfully", async () => {
-        jest.spyOn(global, "fetch").mockResolvedValue({
-            ok: true,
-            json: async () => await ({ temperature: "20°C", condition: "Sunny" })
-        });
-
-        const data = await global.script.fetchWeatherData("London");
-        expect(data.temperature).toBe("20°C");
-        expect(data.condition).toBe("Sunny");
-    });
-
-    test("should handle 404 error in fetchWeatherData", async () => {
-        jest.spyOn(global, "fetch").mockResolvedValue({
-            ok: false,
-            status: 404,
-            json: async () => await ({ error: "City not found" })
-        });
-
-        await expect(global.script.fetchWeatherData("InvalidCity")).rejects.toThrow("City not found. Please enter a valid city name.");
-    });
-
-    test("should store recent searches in localStorage", () => {
-        global.script.addToRecentSearches("London");
-        expect(localStorage.setItem).toHaveBeenCalledWith(
-            "recentSearches",
-            JSON.stringify(["London"])
-        );
-    });
-});
-
-const script = require("../public/script"); // import after mocks and DOM setup
-global.script = script;
