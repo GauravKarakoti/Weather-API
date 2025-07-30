@@ -8,6 +8,7 @@ const dotenv = require("dotenv");
 const fs = require("fs");
 const path = require("path");
 const nodemailer = require("nodemailer");
+const crypto = require("crypto");
 
 // Load environment variables
 const envResult = dotenv.config();
@@ -41,7 +42,7 @@ const sendAdminAlert = async (failedSelectors) => {
     return;
   }
   if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
-    console.warn("Email notifications disabled: Missing MAIL_USER or MAIL_PASS in environment variables.");
+    console.warn("Email notifications disabled: Missing required email configuration in environment variables.");
     return;
   }
 
@@ -53,10 +54,10 @@ const sendAdminAlert = async (failedSelectors) => {
       from: `"Weather API Alert" <${process.env.MAIL_USER}>`,
       to: adminEmail,
       subject: "Weather API Selector Failure Alert",
-      text: `${alertMessage}\nPlease check the selectors at https://www.indiatoday.in/weather/delhi-weather-forecast-today or update fallback selectors.`,
-      html: `<p><strong>Selector Validation Failed</strong></p><p>${alertMessage}</p><p>Please check the selectors at <a href="https://www.indiatoday.in/weather/delhi-weather-forecast-today">India Today Weather</a> or update fallback selectors.</p>`,
+      text: `${alertMessage}\nPlease check the target website selectors or update fallback selectors.`,
+      html: `<p><strong>Selector Validation Failed</strong></p><p>${alertMessage}</p><p>Please check the target website selectors or update fallback selectors.</p>`,
     });
-    console.log(`Email alert sent to ${adminEmail}`);
+    console.log("Email alert sent successfully");
   } catch (error) {
     console.error(`Failed to send email alert: ${error.message}`);
   }
@@ -107,7 +108,7 @@ const requiredEnvVars = [
 
 requiredEnvVars.forEach((varName) => {
   if (!process.env[varName]) {
-    console.error(`Error: Missing environment variable ${varName}`);
+    console.error("Error: Missing required environment variable for application configuration");
     process.exit(1);
   }
 });
@@ -467,10 +468,19 @@ app.get("/api/weather/:city", async (req, res) => {
     }
 });
 
-// Schedule daily selector validation
+// Schedule weekly selector validation with randomness
 let selectorValidationInterval;
 const scheduleSelectorValidation = () => {
-  const interval = 24 * 60 * 60 * 1000; // 24 hours
+  // Base interval: 7 days (weekly)
+  const baseInterval = 7 * 24 * 60 * 60 * 1000; 
+  
+  // Add randomness: ±12 hours to distribute load across instances
+  const randomBytes = crypto.randomBytes(4);
+  const randomValue = randomBytes.readUInt32BE(0) / 0xFFFFFFFF; // Convert to 0-1 range
+  const randomOffset = randomValue * 24 * 60 * 60 * 1000 - 12 * 60 * 60 * 1000; // ±12 hours
+  const interval = baseInterval + randomOffset;
+  
+  console.log("Selector validation scheduled successfully");
   selectorValidationInterval = setInterval(validateSelectors, interval);
 };
 
@@ -520,7 +530,7 @@ const stopServer = () => {
 // Start server
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log("Server started successfully");
   validateSelectors();
   scheduleSelectorValidation();
 });

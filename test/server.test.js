@@ -43,29 +43,6 @@ describe("City Validation", () => {
   });
 });
 
-describe("City Validation", () => {
-  const { isValidCity } = require('../server');
-
-  test("should accept city names with digits", () => {
-    expect(isValidCity("100 Mile House")).toBe(true);
-    expect(isValidCity("City 123")).toBe(true);
-    expect(isValidCity("1st City")).toBe(true);
-  });
-
-  test("should accept valid city names without digits", () => {
-    expect(isValidCity("New York")).toBe(true);
-    expect(isValidCity("São Paulo")).toBe(true);
-    expect(isValidCity("San Francisco")).toBe(true);
-  });
-
-  test("should reject invalid city names", () => {
-    expect(isValidCity("A")).toBe(false); // Too short
-    expect(isValidCity("")).toBe(false); // Empty string
-    expect(isValidCity(" ")).toBe(false); // Only whitespace
-    expect(isValidCity("City@123")).toBe(false); // Invalid character
-  });
-});
-
 describe("Weather API Endpoint", () => {
   beforeEach(() => {
     jest.clearAllMocks();

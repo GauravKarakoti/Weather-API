@@ -8,7 +8,6 @@ on:
 
 jobs:
   test:
-
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -16,52 +15,34 @@ jobs:
         node-version: [20.x]
 
     steps:
-    - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-
-    - name: Install dependencies
-      run: npm ci
-
-    - name: Run tests
-      run: npm test
-      env:
-        SCRAPE_API_FIRST: ${{ secrets.SCRAPE_API_FIRST }}
-        SCRAPE_API_LAST: ${{ secrets.SCRAPE_API_LAST }}
-        TEMPERATURE_CLASS: ${{ secrets.TEMPERATURE_CLASS }}
-        MIN_MAX_TEMPERATURE_CLASS: ${{ secrets.MIN_MAX_TEMPERATURE_CLASS }}
-        HUMIDITY_PRESSURE_CLASS: ${{ secrets.HUMIDITY_PRESSURE_CLASS }}
-        CONDITION_CLASS: ${{ secrets.CONDITION_CLASS }}
-        DATE_CLASS: ${{ secrets.DATE_CLASS }}
-        SCRAPE_API_FALLBACK: ${{ secrets.SCRAPE_API_FALLBACK }}
-        ALLOWED_ORIGIN: ${{ secrets.ALLOWED_ORIGIN }}
-        ALLOWED_ORIGIN2: ${{ secrets.ALLOWED_ORIGIN2 }}
-        ALLOWED_ORIGIN3: ${{ secrets.ALLOWED_ORIGIN3 }}
-        ALLOWED_ORIGIN4: ${{ secrets.ALLOWED_ORIGIN4 }}
-        ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
-        API_URL: ${{ secrets.API_URL }}
-        RECENT_SEARCH_LIMIT: ${{ secrets.RECENT_SEARCH_LIMIT }}
-        PORT: ${{ secrets.PORT }}
-
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "npm"
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Run tests
+      - name: Run all tests
         run: npm test
-        # Note: This assumes tests have been implemented and "npm test" is configured in package.json
-
+        env:
+          SCRAPE_API_FIRST: ${{ secrets.SCRAPE_API_FIRST }}
+          SCRAPE_API_LAST: ${{ secrets.SCRAPE_API_LAST }}
+          TEMPERATURE_CLASS: ${{ secrets.TEMPERATURE_CLASS }}
+          MIN_MAX_TEMPERATURE_CLASS: ${{ secrets.MIN_MAX_TEMPERATURE_CLASS }}
+          HUMIDITY_PRESSURE_CLASS: ${{ secrets.HUMIDITY_PRESSURE_CLASS }}
+          CONDITION_CLASS: ${{ secrets.CONDITION_CLASS }}
+          DATE_CLASS: ${{ secrets.DATE_CLASS }}
+          SCRAPE_API_FALLBACK: ${{ secrets.SCRAPE_API_FALLBACK }}
+          ALLOWED_ORIGIN: ${{ secrets.ALLOWED_ORIGIN }}
+          ALLOWED_ORIGIN2: ${{ secrets.ALLOWED_ORIGIN2 }}
+          ALLOWED_ORIGIN3: ${{ secrets.ALLOWED_ORIGIN3 }}
+          ALLOWED_ORIGIN4: ${{ secrets.ALLOWED_ORIGIN4 }}
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+          API_URL: ${{ secrets.API_URL }}
+          RECENT_SEARCH_LIMIT: ${{ secrets.RECENT_SEARCH_LIMIT }}
+          PORT: ${{ secrets.PORT }}

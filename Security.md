@@ -9,7 +9,12 @@ Reporting a Vulnerability
 If you discover a security vulnerability in Weather-API, we encourage you to report it as soon as possible. We will investigate all legitimate reports and do our best to quickly fix the issue.
 
 How to Report
-Please report vulnerabilities by emailing us at Weather-API@gmail.com. Include as much detail as possible to help us identify and fix the issue swiftly.
+Please report vulnerabilities through one of the following secure channels:
+- Create a private security advisory on GitHub
+- Use GitHub's private vulnerability reporting feature
+- Contact the maintainers through GitHub issues (for non-sensitive matters only)
+
+Include as much detail as possible to help us identify and fix the issue swiftly.
 Do not share the vulnerability publicly until it has been addressed and a patch is available.
 
 Security Updates
