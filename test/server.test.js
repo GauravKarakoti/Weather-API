@@ -1,5 +1,4 @@
 jest.mock("axios");
-// jest.mock('../utils/weatherService');
 
 const axios = require("axios");
 const request = require("supertest");
@@ -46,10 +45,7 @@ describe("City Validation", () => {
 describe("Weather API Endpoint", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    const store = rateLimiters.weather.store;
-    if (store && store.hits) {
-      store.hits = {}; // reset all stored hits
-    }
+    rateLimiters.weather.store?.hits &&= {};
 
     axios.get.mockResolvedValue({
       data: `
