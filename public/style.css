@@ -187,13 +187,8 @@ button:active {
   top: 50%;
   transform: translateY(-50%);
   right: 5px;
-  padding: 0 !important;
-  box-shadow:
-    0 0 6px var(--button-shadow-first),
-    0 0 8px var(--button-shadow-second);
   color: #ffffff;
-  border: none;
-  border-radius: 100%;
+  border-radius: 50%;
   cursor: pointer;
   font-size: 0.9em;
   transition:
@@ -202,6 +197,14 @@ button:active {
   background: none;
   font-weight: 300;
   border: none !important;
+}
+
+.searchBtn:hover,
+.searchBtn:active {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: none !important;
 }
 
 button:disabled {
