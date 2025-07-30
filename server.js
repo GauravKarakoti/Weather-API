@@ -41,7 +41,7 @@ const sendAdminAlert = async (failedSelectors) => {
     return;
   }
   if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
-    console.warn("Email notifications disabled: Missing MAIL_USER or MAIL_PASS in environment variables.");
+    console.warn("Email notifications disabled: Missing required email configuration in environment variables.");
     return;
   }
 
@@ -107,7 +107,7 @@ const requiredEnvVars = [
 
 requiredEnvVars.forEach((varName) => {
   if (!process.env[varName]) {
-    console.error(`Error: Missing environment variable ${varName}`);
+    console.error("Error: Missing required environment variable for application configuration");
     process.exit(1);
   }
 });
@@ -527,7 +527,7 @@ const stopServer = () => {
 // Start server
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log("Server started successfully");
   validateSelectors();
   scheduleSelectorValidation();
 });
