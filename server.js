@@ -56,7 +56,7 @@ const sendAdminAlert = async (failedSelectors) => {
       text: `${alertMessage}\nPlease check the selectors at https://www.indiatoday.in/weather/delhi-weather-forecast-today or update fallback selectors.`,
       html: `<p><strong>Selector Validation Failed</strong></p><p>${alertMessage}</p><p>Please check the selectors at <a href="https://www.indiatoday.in/weather/delhi-weather-forecast-today">India Today Weather</a> or update fallback selectors.</p>`,
     });
-    console.log(`Email alert sent to ${adminEmail}`);
+    console.log("Email alert sent successfully");
   } catch (error) {
     console.error(`Failed to send email alert: ${error.message}`);
   }
