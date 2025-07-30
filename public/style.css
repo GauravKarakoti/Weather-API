@@ -69,7 +69,6 @@ body {
   box-shadow: 0 0 15px var(--highlight-glow);
   width: 100%;
   max-width: 800px;
-  width: 100%; /* Make container responsive by default */
   margin: 20px auto;
   transition: all ease-in-out 300ms;
   max-height: 90vh;
