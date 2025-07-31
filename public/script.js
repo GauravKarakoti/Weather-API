@@ -100,7 +100,6 @@ const weatherBtn = getElement("#submit-btn"); // <-- FIX: Changed selector from 
 const searchBtn = getElement("#search-btn");
 const clearBtn = getElement("#clear-btn"); // Ensure no duplicate declaration
 const spinner = getElement(".spinner");
-const clr_spinner = getElement(".clr-spinner");
 const errorElement = getElement("#city-error");
 
 let recentSearches = [];
