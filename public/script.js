@@ -145,7 +145,13 @@ async function handleSubmit(e) {
     addToRecentSearches(city);
   } catch (error) {
     console.log(error);
-    showError(error.message);
+    if (error.message.includes("Unable to parse weather data")) {
+    showError("❌ City not found. Please check the spelling or try a different city.");
+    } 
+    else {
+      showError("⚠️ Something went wrong. Please try again later.");
+    }
+     
   } finally {
     toggleLoading(false);
   }
