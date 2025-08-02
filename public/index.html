@@ -73,6 +73,52 @@
           border-right-color: orange;
         }
       }
+
+      /* Music player styles */
+      .music-player {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        background-color: rgba(0, 0, 0, 0.7);
+        padding: 10px;
+        border-radius: 50px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        z-index: 1000;
+      }
+
+      .music-controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .music-player button {
+        background: none;
+        border: none;
+        color: white;
+        cursor: pointer;
+        font-size: 1.2rem;
+      }
+
+      .music-player button:hover {
+        color: orange;
+      }
+
+      .volume-control {
+        width: 80px;
+      }
+
+      .now-playing {
+        color: white;
+        font-size: 0.8rem;
+        margin-left: 10px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 200px;
+      }
     </style>
   </head>
 
@@ -143,6 +189,20 @@
       </section>
     </main>
 
+    <!-- Music Player -->
+    <div class="music-player">
+      <audio id="bg-music" loop>
+        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+      </audio>
+      <div class="music-controls">
+        <button id="play-btn"><i class="fas fa-play"></i></button>
+        <button id="pause-btn" style="display:none;"><i class="fas fa-pause"></i></button>
+        <input type="range" id="volume-control" class="volume-control" min="0" max="1" step="0.1" value="0.5">
+      </div>
+      <div class="now-playing">Now Playing: Ambient Weather Sounds</div>
+    </div>
+
     <script
       src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.4/purify.min.js"
       integrity="sha512-Y1p/STLW/B+l+MPJ5K5OdILMwJa2gMFXXmC/qsyDuGH9uc1MZMUo6/8YQUg9Ut4ns8KGCrCtt+58UwmNFFiVvA=="
@@ -150,5 +210,32 @@
       referrerpolicy="no-referrer"
     ></script>
     <script src="script.js" type="module"></script>
+    
+    <script>
+      // Music player functionality
+      const music = document.getElementById('bg-music');
+      const playBtn = document.getElementById('play-btn');
+      const pauseBtn = document.getElementById('pause-btn');
+      const volumeControl = document.getElementById('volume-control');
+
+      playBtn.addEventListener('click', () => {
+        music.play();
+        playBtn.style.display = 'none';
+        pauseBtn.style.display = 'block';
+      });
+
+      pauseBtn.addEventListener('click', () => {
+        music.pause();
+        pauseBtn.style.display = 'none';
+        playBtn.style.display = 'block';
+      });
+
+      volumeControl.addEventListener('input', () => {
+        music.volume = volumeControl.value;
+      });
+
+      // Set initial volume
+      music.volume = 0.5;
+    </script>
   </body>
 </html>
