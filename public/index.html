@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -14,12 +14,74 @@
       referrerpolicy="no-referrer"
     />
     <link rel="icon" href="Favicon/favicon.png" type="image/png" />
+    <style>
+      /* Typewriter effect styles */
+      .typewriter-container {
+        text-align: center;
+        margin-bottom: 20px;
+        height: 60px; /* Fixed height to prevent layout shift */
+      }
+      .typewriter {
+        display: inline-block;
+        position: relative;
+      }
+      .typewriter h1 {
+        color: #fff;
+        font-size: 3rem;
+        font-weight: bold;
+        overflow: hidden;
+        border-right: 0.15em solid orange;
+        white-space: nowrap;
+        margin: 0 auto;
+        letter-spacing: 0.15em;
+        animation: 
+          typing 1.5s steps(5, end),
+          blink-caret 0.75s step-end infinite,
+          delete 1.5s steps(5, end) 3.5s,
+          blink-caret-pause 0.75s step-end 3.5s infinite,
+          maintain 0s 5s infinite;
+      }
+
+      /* Typing animation */
+      @keyframes typing {
+        0% { width: 0 }
+        100% { width: 100% }
+      }
+
+      /* Deleting animation */
+      @keyframes delete {
+        0% { width: 100% }
+        100% { width: 0 }
+      }
+
+      /* Cursor blinking during typing */
+      @keyframes blink-caret {
+        from, to { border-color: transparent }
+        50% { border-color: orange }
+      }
+
+      /* Cursor blinking during pause */
+      @keyframes blink-caret-pause {
+        0%, 100% { border-color: orange }
+        50% { border-color: transparent }
+      }
+
+      /* Reset animation */
+      @keyframes maintain {
+        0% { 
+          width: 0;
+          border-right-color: orange;
+        }
+      }
+    </style>
   </head>
-  
+
   <body>
     <main class="container">
+ ui-fix
       <h1><i class="fas fa-cloud-sun"></i>Weather Information</h1>
       <form id="weather-form" class="weather-form">
+
         <div class="form-group">
           <label for="city">
             <i class="fas fa-location-dot"></i>Enter City Name:</label>
@@ -49,6 +111,7 @@
             tabindex="-1"
           ></div>
         </div>
+ ui-fix
       <div class="buttons">
         <button type="submit" id="submit-btn"  aria-label="Get Weather" class="get-weather">
            <i class="fas fa-cloud-bolt"></i>
@@ -62,13 +125,14 @@
         </button>
       </div>
 
-      <div id="weather-data" class="hidden" aria-live="polite">
-        <div
-          id="weather-icon"
-          style="font-size: 2rem; text-align: center; margin-top: 10px"
-        ></div>
-      </div>
-    </form>
+
+        <div id="weather-data" class="hidden" aria-live="polite">
+          <div
+            id="weather-icon"
+            style="font-size: 2rem; text-align: center; margin-top: 10px"
+          ></div>
+        </div>
+      </form>
       <section class="recent-searches" aria-label="Recent searches">
         <h2><i class="fas fa-clock-rotate-left"></i>Recent Searches</h2>
         <ul id="recent-list" tabindex="0" role="list"></ul>

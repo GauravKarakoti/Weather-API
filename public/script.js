@@ -100,7 +100,6 @@ const weatherBtn = getElement("#submit-btn"); // <-- FIX: Changed selector from 
 const searchBtn = getElement("#search-btn");
 const clearBtn = getElement("#clear-btn"); // Ensure no duplicate declaration
 const spinner = getElement(".spinner");
-const clr_spinner = getElement(".clr-spinner");
 const errorElement = getElement("#city-error");
 
 let recentSearches = [];
@@ -145,7 +144,13 @@ async function handleSubmit(e) {
     addToRecentSearches(city);
   } catch (error) {
     console.log(error);
-    showError(error.message);
+    if (error.message.includes("Unable to parse weather data")) {
+    showError("❌ City not found. Please check the spelling or try a different city.");
+    } 
+    else {
+      showError("⚠️ Something went wrong. Please try again later.");
+    }
+     
   } finally {
     toggleLoading(false);
   }
@@ -296,25 +301,115 @@ function sanitizeHTML(str) {
 
 class StorageManager {
   constructor() {
-    this.isLocalStorageAvailable = this.checkLocalStorageAvailability();
+    this.storageMethod = this.getAvailableStorage();
     this.memoryStorage = { recentSearches: [] };
+    this.hasWarnedUser = false;
+    
+    // Setup warning for in-memory storage
+    if (!this.storageMethod) {
+      this.setupInMemoryWarnings();
+    }
   }
 
-  checkLocalStorageAvailability() {
+  getAvailableStorage() {
+    // Try localStorage first
+    if (this.checkStorageAvailability(localStorage)) {
+      return localStorage;
+    }
+    
+    // Fallback to sessionStorage
+    if (this.checkStorageAvailability(sessionStorage)) {
+      console.warn('⚠️ localStorage not available. Using sessionStorage fallback.');
+      return sessionStorage;
+    }
+    
+    // Last resort: in-memory storage
+    console.warn('⚠️ No persistent storage available. Using in-memory fallback.');
+    return null;
+  }
+
+  checkStorageAvailability(storageType) {
     try {
       const testKey = '__test__';
-      localStorage.setItem(testKey, '1');
-      localStorage.removeItem(testKey);
+      storageType.setItem(testKey, '1');
+      storageType.removeItem(testKey);
       return true;
     } catch (error) {
-      console.warn('⚠️ localStorage not available. Using in-memory fallback.');
       return false;
     }
   }
 
+  setupInMemoryWarnings() {
+    // Show user notification about limited storage
+    this.showStorageWarning();
+    
+    // Setup beforeunload warning
+    window.addEventListener('beforeunload', (e) => {
+      if (this.memoryStorage.recentSearches && this.memoryStorage.recentSearches.length > 0) {
+        e.preventDefault();
+        e.returnValue = 'Your recent searches will be lost when you leave this page. Are you sure?';
+        return e.returnValue;
+      }
+    });
+  }
+
+  showStorageWarning() {
+    if (this.hasWarnedUser) return;
+    
+    // Wait for DOM to be ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => this.showStorageWarning());
+      return;
+    }
+    
+    // Create a subtle notification
+    const notification = document.createElement('div');
+    notification.className = 'storage-warning';
+    notification.innerHTML = `
+      <span>⚠️ Recent searches won't persist after page reload</span>
+      <button onclick="this.parentElement.remove()" aria-label="Close notification">×</button>
+    `;
+    
+    // Add styles
+    notification.style.cssText = `
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: #fff3cd;
+      border: 1px solid #ffeaa7;
+      color: #856404;
+      padding: 10px 15px;
+      border-radius: 5px;
+      font-size: 14px;
+      z-index: 1000;
+      max-width: 300px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    `;
+    
+    notification.querySelector('button').style.cssText = `
+      background: none;
+      border: none;
+      color: #856404;
+      font-size: 16px;
+      cursor: pointer;
+      margin-left: 10px;
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 10 seconds
+    setTimeout(() => {
+      if (notification.parentElement) {
+        notification.remove();
+      }
+    }, 10000);
+    
+    this.hasWarnedUser = true;
+  }
+
   getItem(key) {
-    if (this.isLocalStorageAvailable) {
-      const item = localStorage.getItem(key);
+    if (this.storageMethod) {
+      const item = this.storageMethod.getItem(key);
       return item ? JSON.parse(item) : null;
     } else {
       return this.memoryStorage[key] || null;
@@ -322,23 +417,35 @@ class StorageManager {
   }
 
   setItem(key, value) {
-    if (this.isLocalStorageAvailable) {
-      localStorage.setItem(key, JSON.stringify(value));
+    if (this.storageMethod) {
+      this.storageMethod.setItem(key, JSON.stringify(value));
     } else {
       this.memoryStorage[key] = value;
     }
   }
 
   removeItem(key) {
-    if (this.isLocalStorageAvailable) {
-      localStorage.removeItem(key);
+    if (this.storageMethod) {
+      this.storageMethod.removeItem(key);
     } else {
       delete this.memoryStorage[key];
     }
   }
+
+  getStorageType() {
+    if (this.storageMethod === localStorage) return 'localStorage';
+    if (this.storageMethod === sessionStorage) return 'sessionStorage';
+    return 'memory';
+  }
 }
 
 const storageManager = new StorageManager();
+
+// Debug: Log storage initialization
+console.log('🔧 Storage system initialized:', {
+  storageType: storageManager.getStorageType(),
+  available: !!storageManager.storageMethod
+});
 
 function addToRecentSearches(city) {
   const normalizedCity = city.trim().toLowerCase();
@@ -397,6 +504,24 @@ function displayRecentSearches() {
 
 function loadRecentSearches() {
   displayRecentSearches();
+}
+
+async function loadConfig() {
+  try {
+    const response = await fetch('https://weather-api-ex1z.onrender.com/config');
+    if (!response.ok) throw new Error('Failed to load config');
+
+    const config = await response.json();
+
+    const limit = parseInt(config.RECENT_SEARCH_LIMIT, 10) || 5;
+    storageManager.setItem('recentSearchLimit', limit);
+    console.log(`Recent search limit: ${limit}`);
+
+    return limit;
+  } catch (error) {
+    console.error('Failed to load environment config:', error);
+    return 5;
+  }
 }
 
 function setupServiceWorker() {
