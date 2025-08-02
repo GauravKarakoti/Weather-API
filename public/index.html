@@ -18,10 +18,11 @@
   
   <body>
     <main class="container">
-      <h1>Weather Information</h1>
-      <form id="weather-form">
+      <h1><i class="fas fa-cloud-sun"></i>Weather Information</h1>
+      <form id="weather-form" class="weather-form">
         <div class="form-group">
-          <label for="city">Enter City Name:</label>
+          <label for="city">
+            <i class="fas fa-location-dot"></i>Enter City Name:</label>
           <div class="searching">
             <input
               type="text"
@@ -50,10 +51,12 @@
         </div>
       <div class="buttons">
         <button type="submit" id="submit-btn"  aria-label="Get Weather" class="get-weather">
+           <i class="fas fa-cloud-bolt"></i>
           <span class="button-text">Get Weather</span>
           <div class="spinner hidden" aria-hidden="true"></div>
         </button>
         <button type="button" id="clear-btn" aria-label="Clear search">
+          <i class="fas fa-broom"></i>
           <span class="button-text">CLEAR</span>
           <div class="hidden" aria-hidden="true"></div>
         </button>
@@ -67,7 +70,7 @@
       </div>
     </form>
       <section class="recent-searches" aria-label="Recent searches">
-        <h2>Recent Searches</h2>
+        <h2><i class="fas fa-clock-rotate-left"></i>Recent Searches</h2>
         <ul id="recent-list" tabindex="0" role="list"></ul>
       </section>
     </main>

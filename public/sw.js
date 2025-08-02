@@ -11,6 +11,8 @@ self.addEventListener("install", (event) => {
           fetch(url)
             .then((response) => {
               if (response.ok) return cache.put(url, response);
+               // Clone response before caching
+              const responseClone = response.clone(); 
               console.warn(`Skipped caching: ${url} - ${response.status}`);
             })
             .catch((err) =>
@@ -43,6 +45,7 @@ self.addEventListener("fetch", (event) => {
       if (cached) return cached;
 
       return fetch(event.request).then((response) => {
+         const clonedResponse = response.clone();
         if (
           event.request.method === "GET" &&
           response.status === 200 &&
