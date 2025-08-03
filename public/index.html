@@ -124,16 +124,13 @@
 
   <body>
     <main class="container">
-      <div class="typewriter-container">
-        <div class="typewriter">
-          <h1>Windy</h1>
-        </div>
-      </div>
-      <h1>Weather Information</h1>
-      <form id="weather-form">
-        <!-- Rest of your form content remains the same -->
+ ui-fix
+      <h1><i class="fas fa-cloud-sun"></i>Weather Information</h1>
+      <form id="weather-form" class="weather-form">
+
         <div class="form-group">
-          <label for="city">Enter City Name:</label>
+          <label for="city">
+            <i class="fas fa-location-dot"></i>Enter City Name:</label>
           <div class="searching">
             <input
               type="text"
@@ -160,21 +157,20 @@
             tabindex="-1"
           ></div>
         </div>
-        <div class="buttons">
-          <button
-            type="submit"
-            id="submit-btn"
-            aria-label="Get Weather"
-            class="get-weather"
-          >
-            <span class="button-text">Get Weather</span>
-            <div class="spinner hidden" aria-hidden="true"></div>
-          </button>
-          <button type="button" id="clear-btn" aria-label="Clear search">
-            <span class="button-text">CLEAR</span>
-            <div class="hidden" aria-hidden="true"></div>
-          </button>
-        </div>
+ ui-fix
+      <div class="buttons">
+        <button type="submit" id="submit-btn"  aria-label="Get Weather" class="get-weather">
+           <i class="fas fa-cloud-bolt"></i>
+          <span class="button-text">Get Weather</span>
+          <div class="spinner hidden" aria-hidden="true"></div>
+        </button>
+        <button type="button" id="clear-btn" aria-label="Clear search">
+          <i class="fas fa-broom"></i>
+          <span class="button-text">CLEAR</span>
+          <div class="hidden" aria-hidden="true"></div>
+        </button>
+      </div>
+
 
         <div id="weather-data" class="hidden" aria-live="polite">
           <div
@@ -184,7 +180,7 @@
         </div>
       </form>
       <section class="recent-searches" aria-label="Recent searches">
-        <h2>Recent Searches</h2>
+        <h2><i class="fas fa-clock-rotate-left"></i>Recent Searches</h2>
         <ul id="recent-list" tabindex="0" role="list"></ul>
       </section>
     </main>

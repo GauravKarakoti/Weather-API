@@ -74,7 +74,7 @@ function getWeatherEmoji(condition) {
 
 // Function to log selector failures
 function logSelectorFailure(selector) {
-  console.error(`Selector failure: ${selector}`);
+  //console.error(`Selector failure: ${selector}`);
   if (typeof window !== "undefined" && typeof window.alert === "function") {
     window.alert(
       `Failed to find element with selector: ${selector}. Please check the selector or update it if the target website has changed.`
@@ -116,7 +116,7 @@ if (clearBtn) {
 function initialize() {
   loadRecentSearches();
   setupServiceWorker();
-  loadConfig();
+ // loadConfig();
   setupMessageListener();
 }
 
