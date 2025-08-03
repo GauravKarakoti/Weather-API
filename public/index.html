@@ -210,49 +210,5 @@
       referrerpolicy="no-referrer"
     ></script>
     <script src="script.js" type="module"></script>
-    
-    <script>
-     / Sound control functionality
-function setupSoundControl() {
-    const soundToggle = document.getElementById('soundToggle');
-    const bgSound = document.getElementById('bgSound');
-    
-    // Set initial state
-    bgSound.volume = 0.3; // Set volume to 30%
-    bgSound.muted = true; // Start muted
-    
-    // Add click event listener
-    soundToggle.addEventListener('click', function() {
-        // Toggle muted state
-        bgSound.muted = !bgSound.muted;
-        
-        // Toggle button class
-        soundToggle.classList.toggle('sound-on');
-        
-        // If unmuting, attempt to play (required by some browsers)
-        if (!bgSound.muted) {
-            bgSound.play().catch(e => {
-                console.log("Audio play failed:", e);
-                // If play fails, mute again
-                bgSound.muted = true;
-                soundToggle.classList.remove('sound-on');
-            });
-        }
-    });
-    
-    // Initialize sound on user interaction (required by many browsers)
-    document.body.addEventListener('click', function initSound() {
-        // This will only run once
-        document.body.removeEventListener('click', initSound);
-        
-        // Try to play (but keep muted if that was the previous state)
-        bgSound.play().then(() => {
-            if (bgSound.muted) {
-                bgSound.pause();
-            }
-        }).catch(e => console.log("Initial audio play failed:", e));
-    }, { once: true });
-}
-    </script>
   </body>
 </html>
