@@ -176,7 +176,20 @@ async function fetchWeatherData(city) {
       throw new Error("API URL not configured");
     }
 
-    const URL = config.API_URL || "https://weather-api-ex1z.onrender.com";
+    //const URL = config.API_URL || "https://weather-api-ex1z.onrender.com";
+    // Use environment variable, with fallback in case it's missing
+const fallbackUrl = process.env.FALLBACK_API_URL || 'https://default-weather-api.example.com/data';
+
+// Later when using it:
+fetch(fallbackUrl)
+  .then(res => res.json())
+  .then(data => {
+    // existing logic...
+  })
+  .catch(err => {
+    console.error('Weather fetch failed:', err);
+  });
+
 
     // Encode the city name for the URL
     const encodedCity = encodeURIComponent(city);
