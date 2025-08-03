@@ -117,6 +117,20 @@ function initialize() {
   loadRecentSearches();
   setupServiceWorker();
  // loadConfig();
+  setupMessageListener();
+}
+
+// Listen for messages from service worker
+function setupMessageListener() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'GET_RECENT_SEARCHES') {
+        // Send recent searches back to service worker
+        const recentSearches = storageManager.getItem('recentSearches') || [];
+        event.ports[0]?.postMessage({ recentSearches });
+      }
+    });
+  }
 }
 
 async function handleSubmit(e) {
@@ -533,6 +547,10 @@ function setupServiceWorker() {
           "Service Worker registered with scope:",
           registration.scope
         );
+        
+        // Register periodic sync if supported
+        setupPeriodicSync(registration);
+        
         registration.onupdatefound = () => {
           const newSW = registration.installing;
           newSW.onstatechange = () => {
@@ -550,6 +568,32 @@ function setupServiceWorker() {
         console.error("Service Worker registration failed:", error)
       );
   });
+}
+
+async function setupPeriodicSync(registration) {
+  try {
+    // Check if Periodic Background Sync is supported
+    if ('periodicSync' in registration) {
+      // Request permission for background sync
+      const status = await navigator.permissions.query({
+        name: 'periodic-background-sync',
+      });
+      
+      if (status.state === 'granted') {
+        // Register periodic sync
+        await registration.periodicSync.register('weather-sync', {
+          minInterval: 12 * 60 * 60 * 1000, // 12 hours
+        });
+        console.log('✅ Periodic sync registered successfully');
+      } else {
+        console.log('⚠️ Periodic sync permission not granted');
+      }
+    } else {
+      console.log('⚠️ Periodic Background Sync not supported');
+    }
+  } catch (error) {
+    console.error('Failed to register periodic sync:', error);
+  }
 }
 
 function showUpdateNotification() {
