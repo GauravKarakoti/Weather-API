@@ -287,6 +287,8 @@ button {
 }
 
 #weather-data {
+  display: flex;
+  flex-direction: row;
   background: var(--weather-data-bg-color);
   padding: 10px;
   border-radius: 10px;
@@ -300,7 +302,7 @@ button {
 }
 
 #weather-data p {
-  margin: 8px 0;
+  margin: 8px 5px;
   color: var(--text-color);
   font-size: 1.1em;
   background: linear-gradient(135deg, #ba68c8, #9575cd);
