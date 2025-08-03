@@ -45,7 +45,10 @@ describe("City Validation", () => {
 describe("Weather API Endpoint", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    rateLimiters.weather.store?.hits &&= {};
+    if (rateLimiters.weather?.store?.hits) {
+  rateLimiters.weather.store.hits = {};
+}
+
 
     axios.get.mockResolvedValue({
       data: `

@@ -107,7 +107,11 @@ body {
   height: fit-content;
   margin-bottom: 0rem;
   color: var(--text-color);
+ 
+  width: 100%;
+  box-sizing: border-box;
 }
+
 
 label {
   background: linear-gradient(to right, #90caf9, #42a5f5);
@@ -227,10 +231,7 @@ button:disabled {
 }
 
 /* Make form elements stack nicely on mobile */
-.form-group {
-  width: 100%;
-  box-sizing: border-box;
-}
+
 
 /* Adjust button sizes for mobile */
 button {

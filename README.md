@@ -52,6 +52,10 @@ npm install
 cp .env.example .env
 ```
 
+4. ** Setup:**
+   1. Create a '.env' file in the project root.
+   2. Add your OpenWeatherMap API key like this :   VITE_API_KEY=your_key_here
+
 _(Update `.env` with required API endpoint, CSS selectors, and server port.)_
 
 ---
@@ -85,9 +89,9 @@ _(Server runs on the port specified in `.env`, default: `3003`)_
 
 ### 🔗 Backend API (Deployed)
 
-🌍 **[Weather API Backend](https://weather-api-ex1z.onrender.com)** – Fetch weather details via endpoints.
+🌍 **[Weather API Backend](https://openweathermap.org)** – Fetch weather details via endpoints.
 
-Example: **[Delhi Weather](https://weather-api-ex1z.onrender.com/delhi)**
+Example: **[Delhi Weather](https://openweathermap.org/delhi)**
 
 ---
 
