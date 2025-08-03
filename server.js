@@ -9,6 +9,7 @@ const fs = require("fs");
 const path = require("path");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
+// const sendAdminAlert = require("./sendAdminAlert");
 
 // Load environment variables
 const envResult = dotenv.config();
@@ -59,7 +60,8 @@ const sendAdminAlert = async (failedSelectors) => {
     });
     console.log("Email alert sent successfully");
   } catch (error) {
-    console.error(`Failed to send email alert: ${error.message}`);
+    console.error("Email alert failed to send. Check your mail configuration.");
+
   }
 };
 
@@ -376,6 +378,7 @@ const validateSelectors = async () => {
 };
 
 app.get("/api/weather/:city", async (req, res) => {
+   throw new Error("Simulated scraping failure for testing");
     try {
         const city = sanitizeInput(req.params.city);
 
@@ -452,17 +455,20 @@ app.get("/api/weather/:city", async (req, res) => {
         res.json(weatherData);
 
     } catch (scrapingError) {
-        console.error("Scraping error:", scrapingError);
+        console.error("Scraping error:", scrapingError.message); // Don't log full error object
 
-        if (scrapingError.code === "ECONNABORTED") {
-            return handleError(res, 504, "The weather service is taking too long. Try again later.", "TIMEOUT");
-        }
-        if (scrapingError.response?.status === 404) {
-            return handleError(res, 404, "City not found. Please check the spelling.", "CITY_NOT_FOUND");
-        }
-        
-        // Generic fallback for other scraping errors
-        return handleError(res, 502, "Failed to retrieve data from the weather service.", "BAD_GATEWAY");
+    // Send safe admin alert (do not include full error stack or request headers)
+    await sendAdminAlert(`Weather scrape failed for city: ${req.params.city}\nReason: ${scrapingError.message}`);
+
+    if (scrapingError.code === "ECONNABORTED") {
+        return handleError(res, 504, "The weather service is taking too long. Try again later.", "TIMEOUT");
+    }
+    if (scrapingError.response?.status === 404) {
+        return handleError(res, 404, "City not found. Please check the spelling.", "CITY_NOT_FOUND");
+    }
+
+    // Generic fallback
+    return handleError(res, 502, "Failed to retrieve data from the weather service.", "BAD_GATEWAY");
     }
 });
 
@@ -511,8 +517,13 @@ app.use((req, res, next) => {
 
 // Final unhandled error handler (500)
 app.use((err, req, res, next) => {
-  console.error("Unhandled error:", err);
-  handleError(res, 500, "Internal server error.", "UNHANDLED_EXCEPTION", err.message || null);
+  if (process.env.NODE_ENV !== 'production') {
+        console.error("Unhandled error:", err);
+    } else {
+        console.error("Error occurred:", err.message); // No stack trace in production
+    }
+
+    return handleError(res, 500, "Internal server error.", "UNHANDLED_EXCEPTION", err.message);
 });
 
 const stopServer = () => {
