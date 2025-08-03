@@ -378,7 +378,6 @@ const validateSelectors = async () => {
 };
 
 app.get("/api/weather/:city", async (req, res) => {
-   throw new Error("Simulated scraping failure for testing");
     try {
         const city = sanitizeInput(req.params.city);
 
