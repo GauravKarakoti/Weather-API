@@ -375,6 +375,46 @@ const validateSelectors = async () => {
   }
 };
 
+app.get("/api/weather-forecast/:city", async (req, res) => {
+  const city = req.params.city;
+  const apiKey = process.env.SPECIAL_API_KEY;
+
+  if (!apiKey) {
+    return res.status(500).json({ error: "API key not set." });
+  }
+
+  try {
+    const encodedCity = encodeURIComponent(city);
+    const response = await fetch(
+      `https://api.openweathermap.org/data/2.5/forecast?q=${encodedCity}&appid=${apiKey}&units=metric`
+    );
+    if (!response.ok) {
+      return res.status(response.status).json({ error: "City not found or failed to fetch data." });
+    }
+
+    const data = await response.json();
+
+    const forecast = data.list
+      .filter((_, i) => i % 8 === 0)
+      .slice(0, 4) 
+      .map(entry => ({
+        date: entry.dt_txt,
+        temperature: entry.main.temp,
+        min: entry.main.temp_min,
+        max: entry.main.temp_max,
+        humidity: entry.main.humidity,
+        pressure: entry.main.pressure,
+        condition: entry.weather[0].main,
+      }));
+
+    res.json({ forecast });
+  } catch (err) {
+    console.error("Error fetching forecast:", err);
+    res.status(500).json({ error: "Failed to fetch weather forecast." });
+  }
+});
+
+
 app.get("/api/weather/:city", async (req, res) => {
     try {
         const city = sanitizeInput(req.params.city);
