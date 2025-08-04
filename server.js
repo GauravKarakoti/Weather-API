@@ -66,10 +66,10 @@ const sendAdminAlert = async (failedSelectors) => {
 const app = express();
 
 const allowedOrigins = [
-    process.env.ALLOWED_ORIGIN,
-    process.env.ALLOWED_ORIGIN2,
-    process.env.ALLOWED_ORIGIN3,
-    process.env.ALLOWED_ORIGIN4,
+  process.env.ALLOWED_ORIGIN,
+  process.env.ALLOWED_ORIGIN2,
+  process.env.ALLOWED_ORIGIN3,
+  process.env.ALLOWED_ORIGIN4,
 ];
 
 // Security and middleware configurations
@@ -214,7 +214,7 @@ const isValidCity = (city) => {
 const parseTemperature = (rawText) => {
   try {
     if (typeof rawText !== 'string' || rawText.length > 200) {
-        return "N/A";
+      return "N/A";
     }
     const match = rawText.match(/-?\d+(\.\d+)?/);
     if (match) {
@@ -375,109 +375,154 @@ const validateSelectors = async () => {
   }
 };
 
-app.get("/api/weather/:city", async (req, res) => {
-    try {
-        const city = sanitizeInput(req.params.city);
+app.get("/api/weather-forecast/:city", async (req, res) => {
+  const city = req.params.city;
+  const apiKey = process.env.SPECIAL_API_KEY;
 
-        if (!city || !isValidCity(city)) {
-            return handleError(
-                res,
-                400,
-                "Invalid city name. Use letters, spaces, apostrophes (') and hyphens (-)",
-                "INVALID_CITY",
-            );
-        }
+  if (!apiKey) {
+    return res.status(500).json({ error: "API key not set." });
+  }
 
-        const response = await fetchWeatherData(city);
-        const $ = cheerio.load(response.data);
+  try {
+    const encodedCity = encodeURIComponent(city);
 
-        const getElementText = (selector, fallbackSelector) => {
-            const element = $(selector);
-            if (element.length) return element.text()?.trim() || null;
+    const url = new URL("https://api.openweathermap.org/data/2.5/forecast");
+    url.searchParams.set("q", encodedCity);
+    url.searchParams.set("appid", apiKey);
+    url.searchParams.set("units", "metric");
 
-            const fallbackElement = $(fallbackSelector);
-            if (fallbackElement.length) return fallbackElement.text()?.trim() || null;
-            
-            // It's better to return null and handle it later than to throw here
-            console.error(`Required element not found for primary selector: ${selector} or fallback: ${fallbackSelector}`);
-            return null;
-        };
-        
-        const temperature = parseTemperature(
-            getElementText(
-                process.env.TEMPERATURE_CLASS,
-                fallbackSelectors.TEMPERATURE_CLASS,
-            ),
-        );
-        const { minTemperature, maxTemperature } = parseMinMaxTemperature(
-            getElementText(
-                process.env.MIN_MAX_TEMPERATURE_CLASS,
-                fallbackSelectors.MIN_MAX_TEMPERATURE_CLASS,
-            ),
-        );
-        const { humidity, pressure } = parseHumidityPressure(
-            getElementText(
-                process.env.HUMIDITY_PRESSURE_CLASS,
-                fallbackSelectors.HUMIDITY_PRESSURE_CLASS,
-            ),
-        );
-        const condition = getElementText(
-            process.env.CONDITION_CLASS,
-            fallbackSelectors.CONDITION_CLASS,
-        );
-        const date = getElementText(
-            process.env.DATE_CLASS,
-            fallbackSelectors.DATE_CLASS,
-        );
+    const response = await fetch(url.toString());
 
-        if (!temperature || !condition) {
-            return handleError(
-                res,
-                503, // Use 503 as it indicates a server-side parsing/scraping issue
-                "Unable to parse weather data. The source website structure might have changed.",
-                "PARSING_ERROR"
-            );
-        }
-
-        const weatherData = {
-            date: formatDate(date),
-            temperature,
-            condition,
-            minTemperature,
-            maxTemperature,
-            humidity,
-            pressure,
-        };
-
-        res.json(weatherData);
-
-    } catch (scrapingError) {
-        console.error("Scraping error:", scrapingError);
-
-        if (scrapingError.code === "ECONNABORTED") {
-            return handleError(res, 504, "The weather service is taking too long. Try again later.", "TIMEOUT");
-        }
-        if (scrapingError.response?.status === 404) {
-            return handleError(res, 404, "City not found. Please check the spelling.", "CITY_NOT_FOUND");
-        }
-        
-        // Generic fallback for other scraping errors
-        return handleError(res, 502, "Failed to retrieve data from the weather service.", "BAD_GATEWAY");
+    if (!response.ok) {
+      return res.status(response.status).json({ error: "City not found or failed to fetch data." });
     }
+
+    const data = await response.json();
+
+    const forecast = data.list
+      .filter((_, i) => i % 8 === 0)
+      .slice(0, 4)
+      .map(entry => ({
+        date: entry.dt_txt,
+        temperature: entry.main.temp,
+        min: entry.main.temp_min,
+        max: entry.main.temp_max,
+        humidity: entry.main.humidity,
+        pressure: entry.main.pressure,
+        condition: entry.weather[0].main,
+      }));
+
+    res.json({ forecast });
+  } catch (err) {
+    console.error("Error fetching forecast:", err);
+    res.status(500).json({ error: "Failed to fetch weather forecast." });
+  }
+});
+
+
+app.get("/api/weather/:city", async (req, res) => {
+  try {
+    const city = sanitizeInput(req.params.city);
+
+    if (!city || !isValidCity(city)) {
+      return handleError(
+        res,
+        400,
+        "Invalid city name. Use letters, spaces, apostrophes (') and hyphens (-)",
+        "INVALID_CITY",
+      );
+    }
+
+    const response = await fetchWeatherData(city);
+    const $ = cheerio.load(response.data);
+
+    const getElementText = (selector, fallbackSelector) => {
+      const element = $(selector);
+      if (element.length) return element.text()?.trim() || null;
+
+      const fallbackElement = $(fallbackSelector);
+      if (fallbackElement.length) return fallbackElement.text()?.trim() || null;
+
+      // It's better to return null and handle it later than to throw here
+      console.error(`Required element not found for primary selector: ${selector} or fallback: ${fallbackSelector}`);
+      return null;
+    };
+
+    const temperature = parseTemperature(
+      getElementText(
+        process.env.TEMPERATURE_CLASS,
+        fallbackSelectors.TEMPERATURE_CLASS,
+      ),
+    );
+    const { minTemperature, maxTemperature } = parseMinMaxTemperature(
+      getElementText(
+        process.env.MIN_MAX_TEMPERATURE_CLASS,
+        fallbackSelectors.MIN_MAX_TEMPERATURE_CLASS,
+      ),
+    );
+    const { humidity, pressure } = parseHumidityPressure(
+      getElementText(
+        process.env.HUMIDITY_PRESSURE_CLASS,
+        fallbackSelectors.HUMIDITY_PRESSURE_CLASS,
+      ),
+    );
+    const condition = getElementText(
+      process.env.CONDITION_CLASS,
+      fallbackSelectors.CONDITION_CLASS,
+    );
+    const date = getElementText(
+      process.env.DATE_CLASS,
+      fallbackSelectors.DATE_CLASS,
+    );
+
+    if (!temperature || !condition) {
+      return handleError(
+        res,
+        503, // Use 503 as it indicates a server-side parsing/scraping issue
+        "Unable to parse weather data. The source website structure might have changed.",
+        "PARSING_ERROR"
+      );
+    }
+
+    const weatherData = {
+      date: formatDate(date),
+      temperature,
+      condition,
+      minTemperature,
+      maxTemperature,
+      humidity,
+      pressure,
+    };
+
+    res.json(weatherData);
+
+  } catch (scrapingError) {
+    console.error("Scraping error:", scrapingError);
+
+    if (scrapingError.code === "ECONNABORTED") {
+      return handleError(res, 504, "The weather service is taking too long. Try again later.", "TIMEOUT");
+    }
+    if (scrapingError.response?.status === 404) {
+      return handleError(res, 404, "City not found. Please check the spelling.", "CITY_NOT_FOUND");
+    }
+
+    // Generic fallback for other scraping errors
+    return handleError(res, 502, "Failed to retrieve data from the weather service.", "BAD_GATEWAY");
+  }
 });
 
 // Schedule weekly selector validation with randomness
 let selectorValidationInterval;
 const scheduleSelectorValidation = () => {
   // Base interval: 7 days (weekly)
-  const baseInterval = 7 * 24 * 60 * 60 * 1000; 
-  
+  const baseInterval = 7 * 24 * 60 * 60 * 1000;
+
   // Add randomness: ±12 hours to distribute load across instances
   const randomBytes = crypto.randomBytes(4);
   const randomValue = randomBytes.readUInt32BE(0) / 0xFFFFFFFF; // Convert to 0-1 range
   const randomOffset = randomValue * 24 * 60 * 60 * 1000 - 12 * 60 * 60 * 1000; // ±12 hours
   const interval = baseInterval + randomOffset;
-  
+
   console.log("Selector validation scheduled successfully");
   selectorValidationInterval = setInterval(validateSelectors, interval);
 };
