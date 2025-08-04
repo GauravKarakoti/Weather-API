@@ -176,10 +176,10 @@ async function fetchWeatherData(city) {
       throw new Error("City parameter is required");
     }
 
-    
+
     const encodedCity = encodeURIComponent(city);
- 
-      const url = `http://localhost:3003/api/weather-forecast/${encodedCity}`;
+
+    const url = `http://localhost:3003/api/weather-forecast/${encodedCity}`;
 
 
     const response = await fetch(url);
@@ -187,16 +187,27 @@ async function fetchWeatherData(city) {
     try {
       data = await response.json();
     } catch (e) {
-      data = {};
+      console.error("Failed to parse JSON response:", e);
+      throw new Error("Invalid response format from weather API.");
     }
     if (!response.ok) {
-   
-      const errorMsg = (data && data.error) ? data.error : (response.status === 404 ? "City not found. Please check the city name." : "Failed to fetch weather data");
+      let errorMsg;
+
+      if (data?.error) {
+        errorMsg = data.error;
+      } else if (response.status === 404) {
+        errorMsg = "City not found. Please check the city name.";
+      } else {
+        errorMsg = "Failed to fetch weather data";
+      }
+
       throw new Error(errorMsg);
     }
 
 
-    if (data && data.forecast) {
+
+    if (data?.forecast) {
+
 
       return {
         list: data.forecast.map(entry => ({
@@ -228,7 +239,7 @@ function toggleLoading(isLoading) {
 }
 
 function displayWeather(data) {
-  if (!data || !data.list) {
+  if (!data?.list) {
     showError("Failed to retrieve weather data. Please try again.");
     return;
   }
