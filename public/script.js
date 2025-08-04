@@ -179,7 +179,7 @@ async function fetchWeatherData(city) {
 
     const encodedCity = encodeURIComponent(city);
 
-    const url = `http://localhost:3003/api/weather-forecast/${encodedCity}`;
+    const url = `https://weather-api-ex1z.onrender.com/api/weather-forecast/${encodedCity}`;
 
 
     const response = await fetch(url);
