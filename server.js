@@ -3,6 +3,15 @@ const cors = require("cors");
 const path = require("path");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
+const dotenv=require("dotenv");
+const fs=require("fs");
+const {configureEnv}=require("./src/config/env.js")
+const corsOptions=require("./src/config/cors.js")
+const {applySecurityHeaders}=require("./src/middlewares/headers.middleware.js")
+const {dynamicRateLimiter}=require("./src/middlewares/rateLimiter.middleware.js")
+const stopValidationJob=require("./src/services/selectorValidation.service.js")
+const axios=require("axios")
+const cheerio=require("cheerio")
 
 // Load environment variables
 const envResult = dotenv.config();
@@ -314,9 +323,9 @@ app.get("/api/weather/:city", async (req, res) => {
     const getElementText = (selector, fallbackSelector) => {
       const element = $(selector);
       if (element.length) return element.text()?.trim() || null;
-
-    } catch (scrapingError) {
-        console.error("Scraping error:", scrapingError.message); // Don't log full error object
+    }
+  } catch (scrapingError) {
+    console.error("Scraping error:", scrapingError.message); // Don't log full error object
 
     // Send safe admin alert (do not include full error stack or request headers)
     await sendAdminAlert(`Weather scrape failed for city: ${req.params.city}\nReason: ${scrapingError.message}`);
@@ -343,20 +352,6 @@ app.get("/api/weather/:city", async (req, res) => {
     };
 
     res.json(weatherData);
-
-  } catch (scrapingError) {
-    console.error("Scraping error:", scrapingError);
-
-    if (scrapingError.code === "ECONNABORTED") {
-      return handleError(res, 504, "The weather service is taking too long. Try again later.", "TIMEOUT");
-    }
-    if (scrapingError.response?.status === 404) {
-      return handleError(res, 404, "City not found. Please check the spelling.", "CITY_NOT_FOUND");
-    }
-
-    // Generic fallback for other scraping errors
-    return handleError(res, 502, "Failed to retrieve data from the weather service.", "BAD_GATEWAY");
-  }
 });
 
 // Schedule weekly selector validation with randomness
