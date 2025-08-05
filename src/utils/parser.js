@@ -15,12 +15,38 @@ const parseMinMaxTemperature = (text) => {
   };
 };
 
+const extractIntegerBeforeKeyword = (text, keyword) => {
+  if (typeof text !== 'string') return null;
+  
+  const lowerText = text.toLowerCase();
+  const lowerKeyword = keyword.toLowerCase();
+  const keywordLength = lowerKeyword.length;
+  
+  for (let i = 0; i < lowerText.length; i++) {
+    if (/\d/.test(lowerText[i])) {
+      let j = i;
+      while (j < lowerText.length && /[0-9]/.test(lowerText[j])) j++;
+      
+      let k = j;
+      while (k < lowerText.length && /\s/.test(lowerText[k])) k++;
+      
+      if (lowerText.startsWith(lowerKeyword, k)) {
+        const num = parseInt(text.substring(i, j), 10);
+        return isNaN(num) ? null : num;
+      }
+      i = j - 1;
+    }
+  }
+  return null;
+};
+
 const parseHumidityPressure = (text) => {
-  const humidity = parseInt(text?.match(/(\d+)\s*Humidity/i)?.[1]);
-  const pressure = parseFloat(text?.match(/(\d+)\s*Pressure/i)?.[1]);
+  const humidity = extractIntegerBeforeKeyword(text, 'Humidity');
+  const pressure = extractIntegerBeforeKeyword(text, 'Pressure');
+  
   return {
-    humidity: humidity >= 0 && humidity <= 100 ? `${humidity}%` : "N/A",
-    pressure: pressure >= 300 && pressure <= 1100 ? `${pressure} hPa` : "N/A",
+    humidity: humidity !== null && humidity >= 0 && humidity <= 100 ? `${humidity}%` : "N/A",
+    pressure: pressure !== null && pressure >= 300 && pressure <= 1100 ? `${pressure} hPa` : "N/A",
   };
 };
 
