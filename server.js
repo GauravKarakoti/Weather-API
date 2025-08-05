@@ -1,25 +1,61 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const nodemailer = require("nodemailer");
+const crypto = require("crypto");
 
-const { configureEnv } = require("./src/config/env");
-const { corsOptions } = require("./src/config/cors");
-const {
-  errorHandler,
-  routeNotFoundHandler,
-  corsErrorHandler,
-} = require("./src/middleware/error.middleware");
-const { applySecurityHeaders } = require("./src/middleware/headers.middleware");
-const {
-  dynamicRateLimiter,
-} = require("./src/middleware/rateLimiter.middleware");
+// Load environment variables
+const envResult = dotenv.config();
+if (envResult.error) {
+  const envExamplePath = path.join(__dirname, ".env.example");
+  if (fs.existsSync(envExamplePath)) {
+    dotenv.config({ path: envExamplePath });
+    console.warn(
+      "Using .env.example for environment variables. Please create a .env file for production.",
+    );
+  } else {
+    console.error("No .env or .env.example file found!");
+    process.exit(1);
+  }
+}
 
-const weatherRoutes = require("./src/routes/weather.routes");
-const {
-  validateSelectors,
-  scheduleSelectorValidation,
-  stopValidationJob,
-} = require("./src/services/selectorValidation.service");
+// Nodemailer transporter configuration
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.MAIL_USER,
+    pass: process.env.MAIL_PASS,
+  },
+});
+
+// Function to send admin alert via email
+const sendAdminAlert = async (failedSelectors) => {
+  const adminEmail = process.env.ADMIN_EMAIL;
+  if (!adminEmail) {
+    console.error("Admin email not configured. Cannot send alert.");
+    return;
+  }
+  if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
+    console.warn("Email notifications disabled: Missing required email configuration in environment variables.");
+    return;
+  }
+
+  const alertMessage = `The following selectors failed validation: ${failedSelectors.join(", ")}. Please update the environment variables or fallback selectors.`;
+  console.error(`Admin Alert: ${alertMessage}`);
+
+  try {
+    await transporter.sendMail({
+      from: `"Weather API Alert" <${process.env.MAIL_USER}>`,
+      to: adminEmail,
+      subject: "Weather API Selector Failure Alert",
+      text: `${alertMessage}\nPlease check the target website selectors or update fallback selectors.`,
+      html: `<p><strong>Selector Validation Failed</strong></p><p>${alertMessage}</p><p>Please check the target website selectors or update fallback selectors.</p>`,
+    });
+    console.log("Email alert sent successfully");
+  } catch (error) {
+    console.error("Email alert failed to send. Check your mail configuration.", error);
+  }
+};
 
 const app = express();
 configureEnv(); // Load env or fallback
@@ -279,48 +315,21 @@ app.get("/api/weather/:city", async (req, res) => {
       const element = $(selector);
       if (element.length) return element.text()?.trim() || null;
 
-      const fallbackElement = $(fallbackSelector);
-      if (fallbackElement.length) return fallbackElement.text()?.trim() || null;
+    } catch (scrapingError) {
+        console.error("Scraping error:", scrapingError.message); // Don't log full error object
 
-      // It's better to return null and handle it later than to throw here
-      console.error(`Required element not found for primary selector: ${selector} or fallback: ${fallbackSelector}`);
-      return null;
-    };
+    // Send safe admin alert (do not include full error stack or request headers)
+    await sendAdminAlert(`Weather scrape failed for city: ${req.params.city}\nReason: ${scrapingError.message}`);
 
-    const temperature = parseTemperature(
-      getElementText(
-        process.env.TEMPERATURE_CLASS,
-        fallbackSelectors.TEMPERATURE_CLASS,
-      ),
-    );
-    const { minTemperature, maxTemperature } = parseMinMaxTemperature(
-      getElementText(
-        process.env.MIN_MAX_TEMPERATURE_CLASS,
-        fallbackSelectors.MIN_MAX_TEMPERATURE_CLASS,
-      ),
-    );
-    const { humidity, pressure } = parseHumidityPressure(
-      getElementText(
-        process.env.HUMIDITY_PRESSURE_CLASS,
-        fallbackSelectors.HUMIDITY_PRESSURE_CLASS,
-      ),
-    );
-    const condition = getElementText(
-      process.env.CONDITION_CLASS,
-      fallbackSelectors.CONDITION_CLASS,
-    );
-    const date = getElementText(
-      process.env.DATE_CLASS,
-      fallbackSelectors.DATE_CLASS,
-    );
+    if (scrapingError.code === "ECONNABORTED") {
+        return handleError(res, 504, "The weather service is taking too long. Try again later.", "TIMEOUT");
+    }
+    if (scrapingError.response?.status === 404) {
+        return handleError(res, 404, "City not found. Please check the spelling.", "CITY_NOT_FOUND");
+    }
 
-    if (!temperature || !condition) {
-      return handleError(
-        res,
-        503, // Use 503 as it indicates a server-side parsing/scraping issue
-        "Unable to parse weather data. The source website structure might have changed.",
-        "PARSING_ERROR"
-      );
+    // Generic fallback
+    return handleError(res, 502, "Failed to retrieve data from the weather service.", "BAD_GATEWAY");
     }
 
     const weatherData = {
@@ -377,10 +386,39 @@ app.get("/api/version", (req, res) => {
   res.json({ version: "1.0.0", lastUpdated: "2023-10-01" });
 });
 
-// Error Handling
-app.use(corsErrorHandler);
-app.use(routeNotFoundHandler);
-app.use(errorHandler);
+// CORS error handler
+app.use((err, req, res, next) => {
+  if (err.message === "Not allowed by CORS") {
+    return handleError(res, 403, "CORS policy disallows access from this origin.", "CORS_DENIED");
+  }
+  next(err);
+});
+
+// Route not found handler (404)
+app.use((req, res, next) => {
+  handleError(res, 404, "Route not found.", "ROUTE_NOT_FOUND");
+});
+
+// Final unhandled error handler (500)
+app.use((err, req, res, next) => {
+  if (process.env.NODE_ENV !== 'production') {
+        console.error("Unhandled error:", err);
+    } else {
+        console.error("Error occurred:", err.message); // No stack trace in production
+    }
+
+    return handleError(res, 500, "Internal server error.", "UNHANDLED_EXCEPTION", err.message);
+});
+
+const stopServer = () => {
+  if (selectorValidationInterval) clearInterval(selectorValidationInterval);
+  return new Promise((resolve, reject) => {
+    server.close((err) => {
+      if (err) reject(err);
+      else resolve();
+    });
+  });
+};
 
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, async () => {
