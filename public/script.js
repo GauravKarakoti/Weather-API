@@ -34,7 +34,7 @@ const WEATHER_CONFIG = {
     // Fallback
     default: "🌈"
   },
-  
+
   // Priority order for checking conditions (higher priority first)
   priority: [
     "thunderstorm", "storm", "lightning", "thunder",
@@ -53,21 +53,21 @@ function getWeatherEmoji(condition) {
   if (!condition || typeof condition !== 'string') {
     return WEATHER_CONFIG.emojis.default;
   }
-  
+
   const normalizedCondition = condition.toLowerCase().trim();
-  
+
   // Check for exact matches first
   if (WEATHER_CONFIG.emojis[normalizedCondition]) {
     return WEATHER_CONFIG.emojis[normalizedCondition];
   }
-  
+
   // Check for partial matches using priority order
   for (const keyword of WEATHER_CONFIG.priority) {
     if (normalizedCondition.includes(keyword)) {
       return WEATHER_CONFIG.emojis[keyword];
     }
   }
-  
+
   // Return default emoji if no match found
   return WEATHER_CONFIG.emojis.default;
 }
@@ -116,7 +116,7 @@ if (clearBtn) {
 function initialize() {
   loadRecentSearches();
   setupServiceWorker();
- // loadConfig();
+  // loadConfig();
   setupMessageListener();
 }
 
@@ -159,12 +159,12 @@ async function handleSubmit(e) {
   } catch (error) {
     console.log(error);
     if (error.message.includes("Unable to parse weather data")) {
-    showError("❌ City not found. Please check the spelling or try a different city.");
-    } 
+      showError("❌ City not found. Please check the spelling or try a different city.");
+    }
     else {
       showError("⚠️ Something went wrong. Please try again later.");
     }
-     
+
   } finally {
     toggleLoading(false);
   }
@@ -175,53 +175,62 @@ async function fetchWeatherData(city) {
     if (!city) {
       throw new Error("City parameter is required");
     }
-    
-    const configResponse = await fetch(
-      "https://weather-api-ex1z.onrender.com/config"
-    );
-    if (!configResponse.ok) {
-      throw new Error("Failed to load configuration");
-    }
 
-    const config = await configResponse.json();
 
-    // Check if URL exists in config
-    if (!config.API_URL) {
-      throw new Error("API URL not configured");
-    }
-
-    const URL = config.API_URL || "https://weather-api-ex1z.onrender.com";
-
-    // Encode the city name for the URL
     const encodedCity = encodeURIComponent(city);
 
-    const response = await fetch(`${URL}/api/weather/${encodedCity}`);
-    console.log("response status", response.status);
+    const url = `https://weather-api-ex1z.onrender.com/api/weather-forecast/${encodedCity}`;
+
+
+    const response = await fetch(url);
+    let data;
+    try {
+      data = await response.json();
+    } catch (e) {
+      console.error("Failed to parse JSON response:", e);
+      throw new Error("Invalid response format from weather API.");
+    }
     if (!response.ok) {
-      const contentType = response.headers.get("Content-Type");
+      let errorMsg;
 
-      if (contentType && contentType.includes("application/json")) {
-        const errorData = await response.json();
-        const errorMessage = errorData.error || "Failed to fetch weather data";
-
-        if (response.status === 404) {
-          throw new Error("City not found. Please check the city name.");
-        }
-
-        throw new Error(errorMessage);
+      if (data?.error) {
+        errorMsg = data.error;
+      } else if (response.status === 404) {
+        errorMsg = "City not found. Please check the city name.";
       } else {
-        throw new Error(
-          `Unexpected error: ${response.status} ${response.statusText}`
-        );
+        errorMsg = "Failed to fetch weather data";
       }
+
+      throw new Error(errorMsg);
     }
 
-    return await response.json();
+
+
+    if (data?.forecast) {
+
+
+      return {
+        list: data.forecast.map(entry => ({
+          dt_txt: entry.date,
+          main: {
+            temp: entry.temperature,
+            temp_min: entry.min,
+            temp_max: entry.max,
+            humidity: entry.humidity,
+            pressure: entry.pressure
+          },
+          weather: [{ main: entry.condition }]
+        }))
+      };
+    } else {
+      throw new Error("Unable to parse weather data");
+    }
   } catch (error) {
     console.error("Fetch error:", error);
     throw new Error(error.message || "An unexpected error occurred");
   }
 }
+
 
 function toggleLoading(isLoading) {
   if (weatherBtn) weatherBtn.disabled = isLoading;
@@ -230,50 +239,49 @@ function toggleLoading(isLoading) {
 }
 
 function displayWeather(data) {
-  if (!data || !data.temperature) {
+  if (!data?.list) {
     showError("Failed to retrieve weather data. Please try again.");
     return;
   }
 
-  // Use the new emoji configuration function
-  const emoji = getWeatherEmoji(data.condition);
+  const weatherData = document.getElementById("weather-data");
+  if (!weatherData) return;
 
-  const weatherIcon = document.getElementById("weather-icon");
-  if (weatherIcon) {
-    weatherIcon.textContent = emoji;
-    weatherIcon.style.display = "block";
-    weatherIcon.classList.remove("hidden");
+  weatherData.innerHTML = "";  // Clear previous data
+
+  const dates = new Set();
+  let cnt = 0;
+
+  for (let item of data.list) {
+    const date = item.dt_txt.split(" ")[0];
+    const dateObj = new Date(item.dt_txt);
+    const day = dateObj.toLocaleDateString("en-US", { weekday: 'long' });
+
+    if (!dates.has(date)) {
+      dates.add(date);
+      cnt++;
+
+      const template = `
+        <div class="weather-card">
+          <div class="weather-details">
+            <p><strong>Day:</strong> ${day}</p>
+            <p><strong>Temp:</strong> ${item.main.temp.toFixed(1)}°C</p>
+            <p><strong>Date:</strong> ${date}</p>
+            <p><strong>Condition:</strong> ${item.weather[0].main}</p>
+            <p><strong>Min Temp:</strong> ${item.main.temp_min.toFixed(1)}°C</p>
+            <p><strong>Max Temp:</strong> ${item.main.temp_max.toFixed(1)}°C</p>
+            <p><strong>Humidity:</strong> ${item.main.humidity}%</p>
+            <p><strong>Pressure:</strong> ${item.main.pressure}</p>
+          </div>
+        </div>
+      `;
+
+      weatherData.insertAdjacentHTML('beforeend', DOMPurify.sanitize(template));
+      if (cnt === 4) break;
+    }
   }
 
-  if (weatherData) {
-    Array.from(weatherData.children).forEach((child) => {
-      if (child.id !== "weather-icon") child.remove();
-    });
-
-    const template = `
-            <div class="weather-card">
-                <div class="weather-details">
-                    <p><strong>Temp:</strong> ${data.temperature || "N/A"}°C</p>
-                    <p><strong>Date:</strong> ${data.date || "N/A"}</p>
-                    <p><strong>Condition:</strong> ${
-                      data.condition || "N/A"
-                    }</p>
-                    <p><strong>Min Temp:</strong> ${
-                      data.minTemperature || "N/A"
-                    }°C</p>
-                    <p><strong>Max Temp:</strong> ${
-                      data.maxTemperature || "N/A"
-                    }°C</p>
-                    <p><strong>Humidity:</strong> ${data.humidity || "N/A"}%</p>
-                    <p><strong>Pressure:</strong> ${data.pressure || "N/A"}</p>
-                </div>
-            </div>
-        `;
-
-        // Sanitize the template before inserting it into the DOM
-        weatherData.insertAdjacentHTML('beforeend', DOMPurify.sanitize(template));
-        weatherData.classList.remove('hidden');
-    }
+  weatherData.classList.remove('hidden');
 }
 
 function isValidInput(city) {
@@ -318,7 +326,7 @@ class StorageManager {
     this.storageMethod = this.getAvailableStorage();
     this.memoryStorage = { recentSearches: [] };
     this.hasWarnedUser = false;
-    
+
     // Setup warning for in-memory storage
     if (!this.storageMethod) {
       this.setupInMemoryWarnings();
@@ -330,13 +338,13 @@ class StorageManager {
     if (this.checkStorageAvailability(localStorage)) {
       return localStorage;
     }
-    
+
     // Fallback to sessionStorage
     if (this.checkStorageAvailability(sessionStorage)) {
       console.warn('⚠️ localStorage not available. Using sessionStorage fallback.');
       return sessionStorage;
     }
-    
+
     // Last resort: in-memory storage
     console.warn('⚠️ No persistent storage available. Using in-memory fallback.');
     return null;
@@ -356,7 +364,7 @@ class StorageManager {
   setupInMemoryWarnings() {
     // Show user notification about limited storage
     this.showStorageWarning();
-    
+
     // Setup beforeunload warning
     window.addEventListener('beforeunload', (e) => {
       if (this.memoryStorage.recentSearches && this.memoryStorage.recentSearches.length > 0) {
@@ -369,13 +377,13 @@ class StorageManager {
 
   showStorageWarning() {
     if (this.hasWarnedUser) return;
-    
+
     // Wait for DOM to be ready
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => this.showStorageWarning());
       return;
     }
-    
+
     // Create a subtle notification
     const notification = document.createElement('div');
     notification.className = 'storage-warning';
@@ -383,7 +391,7 @@ class StorageManager {
       <span>⚠️ Recent searches won't persist after page reload</span>
       <button onclick="this.parentElement.remove()" aria-label="Close notification">×</button>
     `;
-    
+
     // Add styles
     notification.style.cssText = `
       position: fixed;
@@ -399,7 +407,7 @@ class StorageManager {
       max-width: 300px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     `;
-    
+
     notification.querySelector('button').style.cssText = `
       background: none;
       border: none;
@@ -408,16 +416,16 @@ class StorageManager {
       cursor: pointer;
       margin-left: 10px;
     `;
-    
+
     document.body.appendChild(notification);
-    
+
     // Auto-remove after 10 seconds
     setTimeout(() => {
       if (notification.parentElement) {
         notification.remove();
       }
     }, 10000);
-    
+
     this.hasWarnedUser = true;
   }
 
@@ -547,10 +555,10 @@ function setupServiceWorker() {
           "Service Worker registered with scope:",
           registration.scope
         );
-        
+
         // Register periodic sync if supported
         setupPeriodicSync(registration);
-        
+
         registration.onupdatefound = () => {
           const newSW = registration.installing;
           newSW.onstatechange = () => {
@@ -578,7 +586,7 @@ async function setupPeriodicSync(registration) {
       const status = await navigator.permissions.query({
         name: 'periodic-background-sync',
       });
-      
+
       if (status.state === 'granted') {
         // Register periodic sync
         await registration.periodicSync.register('weather-sync', {
@@ -645,7 +653,7 @@ initialize();
 
 function handleClear(e) {
   e.preventDefault(); // Prevent form submission
-  
+
   if (cityInput) cityInput.value = ""; // Clear the input field
   clearError(); // Clear error messages
   if (weatherData) weatherData.innerHTML = ""; // Clear weather data display
