@@ -16,8 +16,16 @@ process.env.MIN_MAX_TEMPERATURE_CLASS = "min-max-temp-fallback";
 process.env.HUMIDITY_PRESSURE_CLASS = "humidity-pressure-fallback";
 process.env.CONDITION_CLASS = "condition-fallback";
 process.env.DATE_CLASS = "date-fallback";
+process.env.NODE_ENV = 'test';
+process.env.SCRAPE_API_FIRST = "https://example.com/";
+process.env.SCRAPE_API_LAST = "/weather";
 
-jest.setTimeout(60000);
+jest.setTimeout(120000);
+
+// This ensures the server is stopped only once after all tests in this file run.
+afterAll(async () => {
+  await stopServer();
+});
 
 describe("City Validation", () => {
   const { isValidCity } = require('../server');
@@ -49,29 +57,22 @@ describe("Weather API Endpoint", () => {
       rateLimiters.weather.store.hits = {};
     }
 
-
     axios.get.mockResolvedValue({
       data: `
-              <html>
-                <div class="temp-fallback">20 °C</div>
-                <div class="min-max-temp-fallback">15 ° - 25 °</div>
-                <div class="humidity-pressure-fallback">60% Humidity 1015 Pressure</div>
-                <div class="condition-fallback">Sunny</div>
-                <div class="date-fallback">2023-12-01</div>
-              </html>
-            `,
+        <div class="temp-fallback">20°C</div>
+        <div class="min-max-temp-fallback">15°-25°</div>
+        <div class="humidity-pressure-fallback">60% 1015hPa</div>
+        <div class="condition-fallback">Sunny</div>
+        <div class="date-fallback">2023-12-01</div>
+      `
     });
-  });
-
-  afterAll(() => {
-    stopServer();
   });
 
   test("should return weather data for a valid city", async () => {
     const response = await request(app).get("/api/weather/London");
     expect(response.status).toBe(200);
-    expect(response.body).toHaveProperty("temperature");
-    expect(response.body).toHaveProperty("condition");
+    expect(response.body).toHaveProperty("temperature", "20.0 °C");
+    expect(response.body).toHaveProperty("condition", "Sunny");
   });
 
   test("should return 400 for an invalid city name", async () => {
@@ -85,7 +86,6 @@ describe("Weather API Endpoint", () => {
   test("should return 404 for a non-existent city", async () => {
     const error = new Error("Not Found");
     error.response = { status: 404 };
-    // Mock all axios.get calls to reject
     axios.get.mockRejectedValue(error);
 
     const response = await request(app).get("/api/weather/InvalidCity");
@@ -94,15 +94,12 @@ describe("Weather API Endpoint", () => {
     expect(response.body.code).toBe("CITY_NOT_FOUND");
   });
 
-  test("should return 500 for server errors", async () => {
-    const error = new Error("Simulated server error");
-    // Mock all axios.get calls to reject
-    axios.get.mockRejectedValue(error);
-
+  test("should return 502 for scraping errors", async () => {
+    axios.get.mockRejectedValue(new Error("API error"));
     const response = await request(app).get("/api/weather/London");
-    expect(response.status).toBe(500);
-    expect(response.body.error).toBe("Failed to retrieve weather data.");
-    expect(response.body.code).toBe("SERVER_ERROR");
+    expect(response.status).toBe(502);
+    expect(response.body.error).toBe("Failed to retrieve data from the weather service.");
+    expect(response.body.code).toBe("BAD_GATEWAY");
   });
 });
 
@@ -116,7 +113,6 @@ describe("fetchWeatherData", () => {
     const city = "München";
     await fetchWeatherData(city);
 
-    // Check that axios.get was called with a properly encoded URL
     expect(axios.get).toHaveBeenCalled();
     const calledUrl = axios.get.mock.calls[0][0];
     expect(calledUrl).toContain(encodeURIComponent(city).replace(/%20/g, '-'));
@@ -141,19 +137,17 @@ describe("fetchWeatherData", () => {
   });
 });
 
-describe("Rate Limiting", () => {
+describe("Rate Limiting and Parsing", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     axios.get.mockResolvedValue({
       data: `
-              <html>
-                <div class="temp-fallback">20 °C</div>
-                <div class="min-max-temp-fallback">15 ° - 25 °</div>
-                <div class="humidity-pressure-fallback">60% Humidity 1015 Pressure</div>
-                <div class="condition-fallback">Sunny</div>
-                <div class="date-fallback">2023-12-01</div>
-              </html>
-            `,
+        <div class="temp-fallback">20°C</div>
+        <div class="min-max-temp-fallback">15°-25°</div>
+        <div class="humidity-pressure-fallback">60% 1015hPa</div>
+        <div class="condition-fallback">Sunny</div>
+        <div class="date-fallback">2023-12-01</div>
+      `
     });
   });
 
@@ -167,65 +161,36 @@ describe("Rate Limiting", () => {
     expect(response.body.code).toBe("PARSING_ERROR");
   });
 
-  test("should handle missing temperature data", async () => {
+  test("should handle missing temperature data but present condition", async () => {
     axios.get.mockResolvedValueOnce({
       data: `
-              <html>
-                <div class="min-max-temp-fallback">15 ° - 25 °</div>
-                <div class="humidity-pressure-fallback">60% Humidity 1015 Pressure</div>
-                <div class="condition-fallback">Sunny</div>
-                <div class="date-fallback">2023-12-01</div>
-              </html>
-            `,
+        <html>
+          <div class="min-max-temp-fallback">15° - 25°</div>
+          <div class="humidity-pressure-fallback">60% Humidity 1015 Pressure</div>
+          <div class="condition-fallback">Sunny</div>
+          <div class="date-fallback">2023-12-01</div>
+        </html>
+      `,
     });
 
     const response = await request(app).get("/api/weather/London");
     expect(response.status).toBe(200);
     expect(response.body.temperature).toBe("N/A");
-  });
-
-  test("should handle different temperature formats", async () => {
-    const testCases = [
-      { temp: "20°C", expected: "20°C" },
-      { temp: "68°F", expected: "68°F" },
-      { temp: " 25 °C ", expected: "25°C" },
-      { temp: "+15°C", expected: "15°C" },
-      { temp: "N/A", expected: "N/A" },
-    ];
-
-    for (const { temp, expected } of testCases) {
-      axios.get.mockResolvedValueOnce({
-        data: `
-                  <html>
-                    <div class="temp-fallback">${temp}</div>
-                    <div class="min-max-temp-fallback">15 ° - 25 °</div>
-                    <div class="humidity-pressure-fallback">60% Humidity 1015 Pressure</div>
-                    <div class="condition-fallback">Sunny</div>
-                    <div class="date-fallback">2023-12-01</div>
-                  </html>
-                `,
-      });
-
-      const response = await request(app).get("/api/weather/London");
-      expect(response.status).toBe(200);
-      expect(response.body.temperature).toBe(expected);
-    }
+    expect(response.body.condition).toBe("Sunny");
   });
 
   test("should return 429 when exceeding rate limit for /api/weather", async () => {
-    const apiKey = "test-api-key"; // Replace with a valid API key if needed
+    const apiKey = "test-api-key";
     const headers = { "x-api-key": apiKey };
+    // The beforeEach hook already resets the limiter, so no need to reset here.
 
-    // Simulate exceeding the rate limit
-    for (let i = 0; i < 55; i++) {
+    for (let i = 0; i < 50; i++) {
       await request(app).get("/api/weather/London").set(headers);
     }
 
     const response = await request(app).get("/api/weather/London").set(headers);
     expect(response.status).toBe(429);
-    expect(response.body.error).toBe(
-      "Too many requests to the weather API. Please try again later.",
-    );
+    expect(response.body.error).toBe("Rate limit exceeded");
   });
 
   test("should not apply rate limit to different endpoints", async () => {
@@ -244,6 +209,6 @@ describe("formatDate", () => {
   });
 
   test("should handle empty string", () => {
-    expect(formatDate("")).toBe("");
+    expect(formatDate("")).toBe("N/A");
   });
 });

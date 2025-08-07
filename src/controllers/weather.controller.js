@@ -24,29 +24,15 @@ const getWeather = async (req, res) => {
       return el.length ? el.text().trim() : $(fallback).text()?.trim() || null;
     };
 
-    const temperature = parseTemperature(
-      getText(
-        process.env.TEMPERATURE_CLASS,
-        fallbackSelectors.TEMPERATURE_CLASS
-      )
-    );
-    const { minTemperature, maxTemperature } = parseMinMaxTemperature(
-      getText(
-        process.env.MIN_MAX_TEMPERATURE_CLASS,
-        fallbackSelectors.MIN_MAX_TEMPERATURE_CLASS
-      )
-    );
-    const { humidity, pressure } = parseHumidityPressure(
-      getText(
-        process.env.HUMIDITY_PRESSURE_CLASS,
-        fallbackSelectors.HUMIDITY_PRESSURE_CLASS
-      )
-    );
-    const condition = getText(
-      process.env.CONDITION_CLASS,
-      fallbackSelectors.CONDITION_CLASS
-    );
-    const date = getText(process.env.DATE_CLASS, fallbackSelectors.DATE_CLASS);
+    const temperatureText = getElementText(process.env.TEMPERATURE_CLASS, fallbackSelectors.TEMPERATURE_CLASS);
+    const temperature = parseTemperature(temperatureText);
+    const minMaxText = getElementText(process.env.MIN_MAX_TEMPERATURE_CLASS, fallbackSelectors.MIN_MAX_TEMPERATURE_CLASS);
+    const { minTemperature, maxTemperature } = parseMinMaxTemperature(minMaxText);
+    const humidityPressureText = getElementText(process.env.HUMIDITY_PRESSURE_CLASS, fallbackSelectors.HUMIDITY_PRESSURE_CLASS);
+    const { humidity, pressure } = parseHumidityPressure(humidityPressureText);
+    const condition = getElementText(process.env.CONDITION_CLASS, fallbackSelectors.CONDITION_CLASS);
+    const dateText = getElementText(process.env.DATE_CLASS, fallbackSelectors.DATE_CLASS);
+    const date = formatDate(dateText); // Declare date variable here
 
     if (!temperature || !condition) {
       return handleError(

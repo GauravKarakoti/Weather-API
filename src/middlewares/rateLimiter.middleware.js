@@ -27,4 +27,4 @@ const dynamicRateLimiter = (req, res, next) => {
   return rateLimiters.default(req, res, next);
 };
 
-module.exports = { dynamicRateLimiter };
+module.exports = { dynamicRateLimiter, rateLimiters };

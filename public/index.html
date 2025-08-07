@@ -1,210 +1,206 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Weather Scraper</title>
-    <link rel="stylesheet" href="style.css" />
-    <!-- Font Awesome CDN -->
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
-      integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-    />
-    <link rel="icon" href="Favicon/favicon.png" type="image/png" />
-    <style>
-      /* Typewriter effect styles */
-      .typewriter-container {
-        text-align: center;
-        margin-bottom: 20px;
-        height: 60px; /* Fixed height to prevent layout shift */
-      }
-      .typewriter {
-        display: inline-block;
-        position: relative;
-      }
-      .typewriter h1 {
-        color: #fff;
-        font-size: 3rem;
-        font-weight: bold;
-        overflow: hidden;
-        border-right: 0.15em solid orange;
-        white-space: nowrap;
-        margin: 0 auto;
-        letter-spacing: 0.15em;
-        animation: 
-          typing 1.5s steps(5, end),
-          blink-caret 0.75s step-end infinite,
-          delete 1.5s steps(5, end) 3.5s,
-          blink-caret-pause 0.75s step-end 3.5s infinite,
-          maintain 0s 5s infinite;
-      }
+<!doctype html> 
+ <html lang="en"> 
+   <head> 
+     <meta charset="UTF-8" /> 
+     <meta name="viewport" content="width=device-width, initial-scale=1.0" /> 
+     <title>Weather Scraper</title> 
+     <link rel="stylesheet" href="style.css" /> 
+         <link 
+       rel="stylesheet" 
+       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" 
+       integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" 
+       crossorigin="anonymous" 
+       referrerpolicy="no-referrer" 
+     /> 
+     <link rel="icon" href="Favicon/favicon.png" type="image/png" /> 
+     <style> 
+       /* Typewriter effect styles */ 
+       .typewriter-container { 
+         text-align: center; 
+         margin-bottom: 20px; 
+         height: 60px; /* Fixed height to prevent layout shift */ 
+       } 
+       .typewriter { 
+         display: inline-block; 
+         position: relative; 
+       } 
+       .typewriter h1 { 
+         color: #fff; 
+         font-size: 3rem; 
+         font-weight: bold; 
+         overflow: hidden; 
+         border-right: 0.15em solid orange; 
+         white-space: nowrap; 
+         margin: 0 auto; 
+         letter-spacing: 0.15em; 
+         animation:  
+           typing 1.5s steps(5, end), 
+           blink-caret 0.75s step-end infinite, 
+           delete 1.5s steps(5, end) 3.5s, 
+           blink-caret-pause 0.75s step-end 3.5s infinite, 
+           maintain 0s 5s infinite; 
+       } 
 
-      /* Typing animation */
-      @keyframes typing {
-        0% { width: 0 }
-        100% { width: 100% }
-      }
+       /* Typing animation */ 
+       @keyframes typing { 
+         0% { width: 0 } 
+         100% { width: 100% } 
+       } 
 
-      /* Deleting animation */
-      @keyframes delete {
-        0% { width: 100% }
-        100% { width: 0 }
-      }
+       /* Deleting animation */ 
+       @keyframes delete { 
+         0% { width: 100% } 
+         100% { width: 0 } 
+       } 
 
-      /* Cursor blinking during typing */
-      @keyframes blink-caret {
-        from, to { border-color: transparent }
-        50% { border-color: orange }
-      }
+       /* Cursor blinking during typing */ 
+       @keyframes blink-caret { 
+         from, to { border-color: transparent } 
+         50% { border-color: orange } 
+       } 
 
-      /* Cursor blinking during pause */
-      @keyframes blink-caret-pause {
-        0%, 100% { border-color: orange }
-        50% { border-color: transparent }
-      }
+       /* Cursor blinking during pause */ 
+       @keyframes blink-caret-pause { 
+         0%, 100% { border-color: orange } 
+         50% { border-color: transparent } 
+       } 
 
-      /* Reset animation */
-      @keyframes maintain {
-        0% { 
-          width: 0;
-          border-right-color: orange;
-        }
-      }
+       /* Reset animation */ 
+       @keyframes maintain { 
+         0% {  
+           width: 0; 
+           border-right-color: orange; 
+         } 
+       } 
 
-      /* Music player styles */
-      .music-player {
-        position: fixed;
-        bottom: 20px;
-        left: 20px;
-        background-color: rgba(0, 0, 0, 0.7);
-        padding: 10px;
-        border-radius: 50px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        z-index: 1000;
-      }
+       /* Music player styles */ 
+       .music-player { 
+         position: fixed; 
+         bottom: 20px; 
+         left: 20px; 
+         background-color: rgba(0, 0, 0, 0.7); 
+         padding: 10px; 
+         border-radius: 50px; 
+         display: flex; 
+         align-items: center; 
+         gap: 10px; 
+         z-index: 1000; 
+       } 
 
-      .music-controls {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
+       .music-controls { 
+         display: flex; 
+         align-items: center; 
+         gap: 10px; 
+       } 
 
-      .music-player button {
-        background: none;
-        border: none;
-        color: white;
-        cursor: pointer;
-        font-size: 1.2rem;
-      }
+       .music-player button { 
+         background: none; 
+         border: none; 
+         color: white; 
+         cursor: pointer; 
+         font-size: 1.2rem; 
+       } 
 
-      .music-player button:hover {
-        color: orange;
-      }
+       .music-player button:hover { 
+         color: orange; 
+       } 
 
-      .volume-control {
-        width: 80px;
-      }
+       .volume-control { 
+         width: 80px; 
+       } 
 
-      .now-playing {
-        color: white;
-        font-size: 0.8rem;
-        margin-left: 10px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 200px;
-      }
-    </style>
-  </head>
+       .now-playing { 
+         color: white; 
+         font-size: 0.8rem; 
+         margin-left: 10px; 
+         white-space: nowrap; 
+         overflow: hidden; 
+         text-overflow: ellipsis; 
+         max-width: 200px; 
+       } 
+     </style> 
+   </head> 
 
-  <body>
-    <main class="container">
- ui-fix
-      <h1><i class="fas fa-cloud-sun"></i>Weather Information</h1>
-      <form id="weather-form" class="weather-form">
+   <body> 
+     <main class="container"> 
+       <h1><i class="fas fa-cloud-sun"></i>Weather Information</h1> 
+       <form id="weather-form" class="weather-form"> 
 
-        <div class="form-group">
-          <label for="city">
-            <i class="fas fa-location-dot"></i>Enter City Name:</label>
-          <div class="searching">
-            <input
-              type="text"
-              id="city"
-              name="city"
-              placeholder="Search"
-              required
-              aria-describedby="city-error"
-              aria-label="City Name"
-            />
-            <button
-              type="submit"
-              id="search-btn"
-              aria-label="Get Weather"
-              class="searchBtn"
-            >
-              <i class="fa-solid fa-magnifying-glass search"></i>
-            </button>
-          </div>
-          <div
-            id="city-error"
-            class="error-message"
-            aria-live="assertive"
-            tabindex="-1"
-          ></div>
-        </div>
- ui-fix
-      <div class="buttons">
-        <button type="submit" id="submit-btn"  aria-label="Get Weather" class="get-weather">
-           <i class="fas fa-cloud-bolt"></i>
-          <span class="button-text">Get Weather</span>
-          <div class="spinner hidden" aria-hidden="true"></div>
-        </button>
-        <button type="button" id="clear-btn" aria-label="Clear search">
-          <i class="fas fa-broom"></i>
-          <span class="button-text">CLEAR</span>
-          <div class="hidden" aria-hidden="true"></div>
-        </button>
-      </div>
+         <div class="form-group"> 
+           <label for="city"> 
+             <i class="fas fa-location-dot"></i>Enter City Name:</label> 
+           <div class="searching"> 
+             <input 
+               type="text" 
+               id="city" 
+               name="city" 
+               placeholder="Search" 
+               required 
+               aria-describedby="city-error" 
+               aria-label="City Name" 
+             /> 
+             <button 
+               type="submit" 
+               id="search-btn" 
+               aria-label="Get Weather" 
+               class="searchBtn" 
+             > 
+               <i class="fa-solid fa-magnifying-glass search"></i> 
+             </button> 
+           </div> 
+           <div 
+             id="city-error" 
+             class="error-message" 
+             aria-live="assertive" 
+             tabindex="-1" 
+           ></div> 
+         </div> 
+       <div class="buttons"> 
+         <button type="submit" id="submit-btn"  aria-label="Get Weather" class="get-weather"> 
+            <i class="fas fa-cloud-bolt"></i> 
+           <span class="button-text">Get Weather</span> 
+           <div class="spinner hidden" aria-hidden="true"></div> 
+         </button> 
+         <button type="button" id="clear-btn" aria-label="Clear search"> 
+           <i class="fas fa-broom"></i> 
+           <span class="button-text">CLEAR</span> 
+           <div class="hidden" aria-hidden="true"></div> 
+         </button> 
+       </div> 
 
 
-        <div id="weather-data" class="hidden" aria-live="polite">
-          <div
-            id="weather-icon"
-            style="font-size: 2rem; text-align: center; margin-top: 10px"
-          ></div>
-        </div>
-      </form>
-      <section class="recent-searches" aria-label="Recent searches">
-        <h2><i class="fas fa-clock-rotate-left"></i>Recent Searches</h2>
-        <ul id="recent-list" tabindex="0" role="list"></ul>
-      </section>
-    </main>
+         <div id="weather-data" class="hidden" aria-live="polite"> 
+           <div 
+             id="weather-icon" 
+             style="font-size: 2rem; text-align: center; margin-top: 10px" 
+           ></div> 
+         </div> 
+       </form> 
+       <section class="recent-searches" aria-label="Recent searches"> 
+         <h2><i class="fas fa-clock-rotate-left"></i>Recent Searches</h2> 
+         <ul id="recent-list" tabindex="0" role="list"></ul> 
+       </section> 
+     </main> 
 
-    <!-- Music Player -->
-    <div class="music-player">
-      <audio id="bg-music" loop>
-        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
-        Your browser does not support the audio element.
-      </audio>
-      <div class="music-controls">
-        <button id="play-btn"><i class="fas fa-play"></i></button>
-        <button id="pause-btn" style="display:none;"><i class="fas fa-pause"></i></button>
-        <input type="range" id="volume-control" class="volume-control" min="0" max="1" step="0.1" value="0.5">
-      </div>
-      <div class="now-playing">Now Playing: Ambient Weather Sounds</div>
-    </div>
+         <div class="music-player"> 
+       <audio id="bg-music" loop> 
+         <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg"> 
+         Your browser does not support the audio element. 
+       </audio> 
+       <div class="music-controls"> 
+         <button id="play-btn"><i class="fas fa-play"></i></button> 
+         <button id="pause-btn" style="display:none;"><i class="fas fa-pause"></i></button> 
+         <input type="range" id="volume-control" class="volume-control" min="0" max="1" step="0.1" value="0.5"> 
+       </div> 
+       <div class="now-playing">Now Playing: Ambient Weather Sounds</div> 
+     </div> 
 
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.4/purify.min.js"
-      integrity="sha512-Y1p/STLW/B+l+MPJ5K5OdILMwJa2gMFXXmC/qsyDuGH9uc1MZMUo6/8YQUg9Ut4ns8KGCrCtt+58UwmNFFiVvA=="
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-    ></script>
-    <script src="script.js" type="module"></script>
-  </body>
-</html>
+     <script 
+       src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.4/purify.min.js" 
+       integrity="sha512-Y1p/STLW/B+l+MPJ5K5OdILMwJa2gMFXXmC/qsyDuGH9uc1MZMUo6/8YQUg9Ut4ns8KGCrCtt+58UwmNFFiVvA==" 
+       crossorigin="anonymous" 
+       referrerpolicy="no-referrer" 
+     ></script> 
+     <script src="script.js" type="module"></script> 
+   </body> 
+ </html>

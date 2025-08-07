@@ -4,6 +4,7 @@ const path = require("path");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
 const dotenv=require("dotenv");
+const xss = require('xss');
 const fs=require("fs");
 const {configureEnv}=require("./src/config/env.js")
 const corsOptions=require("./src/config/cors.js")
@@ -12,6 +13,17 @@ const {dynamicRateLimiter}=require("./src/middlewares/rateLimiter.middleware.js"
 const stopValidationJob=require("./src/services/selectorValidation.service.js")
 const axios=require("axios")
 const cheerio=require("cheerio")
+
+function handleError(res, statusCode, message, code, details = null) {
+  const errRes = {
+    statusCode,
+    error: message,
+    code,
+    timestamp: new Date().toISOString(),
+  };
+  if (details) errRes.details = details;
+  res.status(statusCode).json(errRes);
+}
 
 // Load environment variables
 const envResult = dotenv.config();
@@ -39,6 +51,7 @@ const transporter = nodemailer.createTransport({
 
 // Function to send admin alert via email
 const sendAdminAlert = async (failedSelectors) => {
+  if (process.env.NODE_ENV === 'test') return;
   const adminEmail = process.env.ADMIN_EMAIL;
   if (!adminEmail) {
     console.error("Admin email not configured. Cannot send alert.");
@@ -49,7 +62,11 @@ const sendAdminAlert = async (failedSelectors) => {
     return;
   }
 
-  const alertMessage = `The following selectors failed validation: ${failedSelectors.join(", ")}. Please update the environment variables or fallback selectors.`;
+  // FIX: Handle both string and array inputs
+  const alertMessage = Array.isArray(failedSelectors)
+    ? `The following selectors failed validation: ${failedSelectors.join(", ")}. Please update the environment variables or fallback selectors.`
+    : failedSelectors; // If it's a string, use it directly
+
   console.error(`Admin Alert: ${alertMessage}`);
 
   try {
@@ -114,6 +131,7 @@ const parseTemperature = (rawText) => {
 
 const parseMinMaxTemperature = (rawText) => {
   try {
+    if (!rawText) return { minTemperature: "N/A", maxTemperature: "N/A" };
     const matches = rawText.match(/-?\d+(\.\d+)?/gi) || [];
     const minTemp = matches?.[0] ? parseFloat(matches[0]) : null;
     const maxTemp = matches?.[1] ? parseFloat(matches[1]) : null;
@@ -139,8 +157,9 @@ const parseMinMaxTemperature = (rawText) => {
 
 const parseHumidityPressure = (rawText) => {
   try {
-    const humidityMatch = rawText.match(/(\d+\.?\d*)\s*Humidity/i);
-    const pressureMatch = rawText.match(/(\d+\.?\d*)\s*Pressure/i);
+    if (!rawText) return { humidity: "N/A", pressure: "N/A" };
+    const humidityMatch = rawText.match(/(\d+\.?\d*)\s*%/i) || rawText.match(/(\d+\.?\d*)\s*Humidity/i);
+    const pressureMatch = rawText.match(/(\d+\.?\d*)\s*hPa/i) || rawText.match(/(\d+\.?\d*)\s*Pressure/i);
 
     const humidity = humidityMatch ? parseInt(humidityMatch[1], 10) : null;
     const pressure = pressureMatch ? parseFloat(pressureMatch[1]) : null;
@@ -166,6 +185,7 @@ const parseHumidityPressure = (rawText) => {
 
 const formatDate = (dateString) => {
   try {
+    if (!dateString) return "N/A";
     return new Intl.DateTimeFormat("en-US", {
       year: "numeric",
       month: "long",
@@ -228,9 +248,12 @@ const fallbackSelectors = {
 };
 
 const validateSelectors = async () => {
+  if (process.env.NODE_ENV === 'test') {
+    console.log("Skipping selector validation in test mode");
+    return;
+  }
   const testCity = "delhi";
   const testUrl = `${process.env.SCRAPE_API_FIRST}${testCity}${process.env.SCRAPE_API_LAST}`;
-
   try {
     const response = await axios.get(testUrl, {
       timeout: 5000,
@@ -278,7 +301,8 @@ app.get("/api/weather-forecast/:city", async (req, res) => {
     const response = await fetch(url.toString());
 
     if (!response.ok) {
-      return res.status(response.status).json({ error: "City not found or failed to fetch data." });
+      const errorData = await response.json();
+      return res.status(response.status).json({ error: errorData.message || "City not found or failed to fetch data." });
     }
 
     const data = await response.json();
@@ -320,29 +344,40 @@ app.get("/api/weather/:city", async (req, res) => {
     const response = await fetchWeatherData(city);
     const $ = cheerio.load(response.data);
 
-    const getElementText = (selector, fallbackSelector) => {
-      const element = $(selector);
-      if (element.length) return element.text()?.trim() || null;
-    }
-  } catch (scrapingError) {
-    console.error("Scraping error:", scrapingError.message); // Don't log full error object
+    const getElementText = (selectorKey) => {
+      const primarySelector = process.env[selectorKey];
+      const fallbackSelector = fallbackSelectors[selectorKey];
+      let text = null;
 
-    // Send safe admin alert (do not include full error stack or request headers)
-    await sendAdminAlert(`Weather scrape failed for city: ${req.params.city}\nReason: ${scrapingError.message}`);
+      if (primarySelector && $(primarySelector).length) {
+        text = $(primarySelector).text()?.trim();
+      }
+      
+      if (!text && fallbackSelector && $(fallbackSelector).length) {
+        text = $(fallbackSelector).text()?.trim();
+      }
+      
+      return text || null;
+    };
 
-    if (scrapingError.code === "ECONNABORTED") {
-        return handleError(res, 504, "The weather service is taking too long. Try again later.", "TIMEOUT");
-    }
-    if (scrapingError.response?.status === 404) {
-        return handleError(res, 404, "City not found. Please check the spelling.", "CITY_NOT_FOUND");
-    }
+    const temperatureText = getElementText("TEMPERATURE_CLASS");
+    const minMaxText = getElementText("MIN_MAX_TEMPERATURE_CLASS");
+    const humidityPressureText = getElementText("HUMIDITY_PRESSURE_CLASS");
+    const conditionText = getElementText("CONDITION_CLASS");
+    const dateText = getElementText("DATE_CLASS");
 
-    // Generic fallback
-    return handleError(res, 502, "Failed to retrieve data from the weather service.", "BAD_GATEWAY");
+    const temperature = parseTemperature(temperatureText);
+    const { minTemperature, maxTemperature } = parseMinMaxTemperature(minMaxText);
+    const { humidity, pressure } = parseHumidityPressure(humidityPressureText);
+    const condition = conditionText || "N/A";
+    const date = formatDate(dateText);
+
+    if (temperature === "N/A" && condition === "N/A") {
+      return handleError(res, 500, "Failed to parse weather data.", "PARSING_ERROR");
     }
 
     const weatherData = {
-      date: formatDate(date),
+      date,
       temperature,
       condition,
       minTemperature,
@@ -352,6 +387,21 @@ app.get("/api/weather/:city", async (req, res) => {
     };
 
     res.json(weatherData);
+
+  } catch (scrapingError) {
+    console.error("Scraping error:", scrapingError.message);
+
+    await sendAdminAlert(`Weather scrape failed for city: ${req.params.city}\nReason: ${scrapingError.message}`);
+
+    if (scrapingError.code === "ECONNABORTED") {
+        return handleError(res, 504, "The weather service is taking too long. Try again later.", "TIMEOUT");
+    }
+    if (scrapingError.response?.status === 404) {
+        return handleError(res, 404, "City not found. Please check the spelling.", "CITY_NOT_FOUND");
+    }
+
+    return handleError(res, 502, "Failed to retrieve data from the weather service.", "BAD_GATEWAY");
+    }
 });
 
 // Schedule weekly selector validation with randomness
@@ -397,29 +447,44 @@ app.use((req, res, next) => {
 // Final unhandled error handler (500)
 app.use((err, req, res, next) => {
   if (process.env.NODE_ENV !== 'production') {
-        console.error("Unhandled error:", err);
-    } else {
-        console.error("Error occurred:", err.message); // No stack trace in production
-    }
-
-    return handleError(res, 500, "Internal server error.", "UNHANDLED_EXCEPTION", err.message);
+    console.error("Unhandled error:", err);
+  }
+  handleError(res, 500, "Internal server error", "SERVER_ERROR");
 });
 
 const stopServer = () => {
   if (selectorValidationInterval) clearInterval(selectorValidationInterval);
   return new Promise((resolve, reject) => {
-    server.close((err) => {
-      if (err) reject(err);
-      else resolve();
-    });
+    if (server && server.close) {
+      server.close((err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    } else {
+      resolve();
+    }
   });
 };
 
 const PORT = process.env.PORT || 5000;
-const server = app.listen(PORT, async () => {
-  console.log("Server started successfully");
-  await validateSelectors();
-  scheduleSelectorValidation();
-});
+let server;
 
-module.exports = { app, server, stopValidationJob };
+if (process.env.NODE_ENV !== 'test') {
+  server = app.listen(PORT, async () => {
+    console.log("Server started successfully");
+    await validateSelectors();
+    scheduleSelectorValidation();
+  });
+} else {
+  server = require('http').createServer(app);
+}
+
+module.exports = {
+  app,
+  server,
+  stopServer,
+  rateLimiters: require("./src/middlewares/rateLimiter.middleware").rateLimiters,
+  isValidCity,
+  fetchWeatherData,
+  formatDate
+};

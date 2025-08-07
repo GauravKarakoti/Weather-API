@@ -75,7 +75,9 @@ function getWeatherEmoji(condition) {
 // Function to log selector failures
 function logSelectorFailure(selector) {
   //console.error(`Selector failure: ${selector}`);
-  if (typeof window !== "undefined" && typeof window.alert === "function") {
+  if (typeof window !== "undefined" && 
+      typeof window.alert === "function" && 
+      process.env.NODE_ENV !== 'test') {
     window.alert(
       `Failed to find element with selector: ${selector}. Please check the selector or update it if the target website has changed.`
     );
@@ -547,35 +549,37 @@ async function loadConfig() {
 }
 
 function setupServiceWorker() {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("/sw.js")
-      .then((registration) => {
-        console.log(
-          "Service Worker registered with scope:",
-          registration.scope
-        );
+  if ('serviceWorker' in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker
+        .register("/sw.js")
+        .then((registration) => {
+          console.log(
+            "Service Worker registered with scope:",
+            registration.scope
+          );
 
-        // Register periodic sync if supported
-        setupPeriodicSync(registration);
+          // Register periodic sync if supported
+          setupPeriodicSync(registration);
 
-        registration.onupdatefound = () => {
-          const newSW = registration.installing;
-          newSW.onstatechange = () => {
-            if (
-              newSW.state === "installed" &&
-              navigator.serviceWorker.controller
-            ) {
-              console.log("New content is available, please refresh.");
-              showUpdateNotification();
-            }
+          registration.onupdatefound = () => {
+            const newSW = registration.installing;
+            newSW.onstatechange = () => {
+              if (
+                newSW.state === "installed" &&
+                navigator.serviceWorker.controller
+              ) {
+                console.log("New content is available, please refresh.");
+                showUpdateNotification();
+              }
+            };
           };
-        };
-      })
-      .catch((error) =>
-        console.error("Service Worker registration failed:", error)
-      );
-  });
+        })
+        .catch((error) =>
+          console.error("Service Worker registration failed:", error)
+        );
+    });
+  }
 }
 
 async function setupPeriodicSync(registration) {
@@ -657,4 +661,13 @@ function handleClear(e) {
   if (cityInput) cityInput.value = ""; // Clear the input field
   clearError(); // Clear error messages
   if (weatherData) weatherData.innerHTML = ""; // Clear weather data display
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    isValidInput,
+    addToRecentSearches,
+    handleSubmit,
+    handleClear
+  };
 }

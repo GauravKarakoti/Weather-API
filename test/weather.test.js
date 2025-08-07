@@ -9,20 +9,28 @@ const { JSDOM } = require('jsdom');
 const html = fs.readFileSync(path.resolve(__dirname, '../public/index.html'), 'utf8');
 
 // Mock fetch before each test
-global.fetch = jest.fn(() =>
-  Promise.resolve({
-    ok: true,
-    json: () => Promise.resolve({ 
-        temperature: '22.0 °C', 
-        condition: 'Cloudy',
-        date: 'July 28, 2025',
-        minTemperature: '18.0 °C',
-        maxTemperature: '26.0 °C',
-        humidity: '75%',
-        pressure: '1010.0 hPa'
-    }),
-  })
-);
+global.fetch = jest.fn((url) => {
+  if (url.toString().includes('/api/weather-forecast/')) {
+    return Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({
+        forecast: [{
+          dt_txt: '2025-07-28 12:00:00',
+          main: { temp: 22.0, temp_min: 18.0, temp_max: 26.0, humidity: 75, pressure: 1010.0 },
+          weather: [{ main: 'Cloudy' }]
+        }]
+      }),
+    });
+  }
+  if (url.toString().includes('/config')) {
+    return Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({ RECENT_SEARCH_LIMIT: 5 }),
+    });
+  }
+  return Promise.resolve({ ok: false, statusText: 'Not Found' });
+});
+
 
 // Mock DOMPurify
 global.DOMPurify = {
@@ -31,22 +39,22 @@ global.DOMPurify = {
 
 describe('Weather App Client-Side Tests', () => {
   let scriptModule;
+  let dom;
 
   beforeEach(() => {
-    const dom = new JSDOM(html, { runScripts: 'dangerously', url: 'http://localhost' });
+    dom = new JSDOM(html, { url: 'http://localhost' });
     global.window = dom.window;
     global.document = dom.window.document;
-    global.navigator = dom.window.navigator;
     
-    // Mock window.alert as it's not implemented in JSDOM
     global.window.alert = jest.fn();
-    global.localStorage.clear();
+    
+    // Clear mocks and storage
+    jest.resetModules();
     fetch.mockClear();
-
-    // Use jest.isolateModules to ensure the script runs in the new DOM environment
-    jest.isolateModules(() => {
-      scriptModule = require('../public/script.js');
-    });
+    global.localStorage.clear();
+    
+    // Require the script module, which runs its initialization code
+    scriptModule = require('../public/script.js');
   });
 
   test('should validate city input correctly', () => {
@@ -56,32 +64,34 @@ describe('Weather App Client-Side Tests', () => {
     expect(scriptModule.isValidInput("L")).toBe(false);
   });
 
-  test('should display an error for empty city submission', () => {
-    const form = document.getElementById('weather-form');
+  test('should display an error for empty city submission', async () => {
     const cityInput = document.getElementById('city');
     const errorElement = document.getElementById('city-error');
 
     cityInput.value = '';
-    form.dispatchEvent(new window.Event('submit'));
+    const mockEvent = { preventDefault: jest.fn() };
+    await scriptModule.handleSubmit(mockEvent);
     
     expect(errorElement.textContent).toContain('City name cannot be empty.');
-    expect(fetch).not.toHaveBeenCalled();
+    // Ensure fetch was not called for the weather API
+    const weatherCalls = fetch.mock.calls.filter(call => call[0].includes('api/weather-forecast'));
+    expect(weatherCalls.length).toBe(0);
   });
 
   test('should fetch and display weather data on form submission', async () => {
-    const form = document.getElementById('weather-form');
     const cityInput = document.getElementById('city');
     const weatherDataContainer = document.getElementById('weather-data');
     
     cityInput.value = 'London';
-    form.dispatchEvent(new window.Event('submit'));
+    const mockEvent = { preventDefault: jest.fn() };
+    await scriptModule.handleSubmit(mockEvent);
 
-    // Wait for async operations like fetch to complete
-    await new Promise(resolve => setTimeout(resolve, 0));
+    // handleSubmit should make one call to the weather forecast API
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/api/weather-forecast/London'));
 
-    expect(fetch).toHaveBeenCalledTimes(2); // Once for config, once for weather
-    expect(weatherDataContainer.textContent).toContain('Temp: 22.0 °C');
-    expect(weatherDataContainer.textContent).toContain('Condition: Cloudy');
+    expect(weatherDataContainer.innerHTML).toContain('Temp: 22.0°C');
+    expect(weatherDataContainer.innerHTML).toContain('Condition: Cloudy');
   });
 
   test('should add a city to recent searches', () => {
