@@ -16,6 +16,7 @@
   "type": "commonjs",
   "description": "",
   "dependencies": {
+    "@testing-library/dom": "^10.4.1",
     "axios": "^1.8.3",
     "cheerio": "^1.0.0-rc.10",
     "cors": "^2.8.5",

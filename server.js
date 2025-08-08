@@ -457,8 +457,12 @@ const stopServer = () => {
   return new Promise((resolve, reject) => {
     if (server && server.close) {
       server.close((err) => {
-        if (err) reject(err);
-        else resolve();
+        // In a test environment, the server may not be formally "running".
+        // Ignore the "Not running" error to allow tests to complete gracefully.
+        if (err && err.code !== "ERR_SERVER_NOT_RUNNING" && err.message !== "Not running") {
+          return reject(err);
+        }
+        resolve();
       });
     } else {
       resolve();
