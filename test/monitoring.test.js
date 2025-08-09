@@ -387,9 +387,17 @@ describe('Logging and Monitoring System', () => {
 describe('Monitoring Service Standalone Tests', () => {
     test('should handle cache performance recording', () => {
         expect(() => {
+            // Test new preferred methods
             monitoringService.recordCacheHit('weather');
             monitoringService.recordCacheMiss('weather');
-            // Test deprecated method still works
+            monitoringService.recordCacheHit('config');
+            monitoringService.recordCacheMiss('config');
+        }).not.toThrow();
+    });
+
+    test('should support deprecated cache performance method', () => {
+        expect(() => {
+            // Test deprecated method still works for backward compatibility
             monitoringService.recordCachePerformance('weather', true);
             monitoringService.recordCachePerformance('weather', false);
         }).not.toThrow();
