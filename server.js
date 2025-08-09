@@ -33,6 +33,13 @@ const adminRoutes = require("./src/routes/admin.routes");
 // Import enhanced error handling
 const { handleError } = require("./src/middlewares/error.middleware");
 
+// Database initialization
+const {
+  initializeApp,
+  shutdownDatabase,
+  getDatabaseHealth,
+} = require("./src/database/init");
+
 // Load environment variables
 const envResult = dotenv.config();
 if (envResult.error) {
@@ -684,8 +691,16 @@ app.use(routeNotFoundHandler);
 // Final unhandled error handler (500)
 app.use(errorHandler);
 
-const stopServer = () => {
+const stopServer = async () => {
   if (selectorValidationInterval) clearInterval(selectorValidationInterval);
+
+  // Close database connections
+  try {
+    await shutdownDatabase();
+  } catch (error) {
+    logger.error("Error during database shutdown", { error: error.message });
+  }
+
   return new Promise((resolve, reject) => {
     if (server && server.close) {
       server.close((err) => {
@@ -718,24 +733,92 @@ if (process.env.NODE_ENV !== "test") {
       enableMetrics: process.env.ENABLE_METRICS,
     });
 
-    // Initialize monitoring and validation
+    // Initialize database and system components
     try {
+      // Initialize database first
+      logger.info("Initializing database...");
+      await initializeApp();
+
+      // Initialize monitoring and validation
       await validateSelectors();
       scheduleSelectorValidation();
 
+      // Get database health status
+      const dbHealth = await getDatabaseHealth();
+
       logger.info("System initialization completed", {
+        database: dbHealth.status,
         selectorValidation: "enabled",
         monitoring: "enabled",
         adminDashboard: `/admin/dashboard`,
+        adminLogin: `/admin/login`,
+        defaultCredentials:
+          process.env.NODE_ENV !== "production"
+            ? "admin/admin123 (change in production)"
+            : "configured via database",
       });
     } catch (error) {
       logError(error, { context: "server-startup" });
+
+      // For database errors, log additional context
+      if (error.message.includes("DATABASE_URL")) {
+        logger.error(
+          "Database connection failed. Please ensure DATABASE_URL is set in your .env file",
+          {
+            hint: "Example: DATABASE_URL=postgresql://username:password@host:port/database?ssl=true",
+          },
+        );
+      }
+
+      // Don't exit on database errors in development, but warn
+      if (process.env.NODE_ENV === "production") {
+        logger.error("Critical error during startup in production. Exiting...");
+        process.exit(1);
+      } else {
+        logger.warn("Continuing without database in development mode");
+      }
     }
   });
 } else {
   server = require("http").createServer(app);
   logger.info("Test server created", { environment: "test" });
 }
+
+// Graceful shutdown handling
+const gracefulShutdown = async (signal) => {
+  logger.info(`Received ${signal}. Starting graceful shutdown...`);
+
+  try {
+    await stopServer();
+    logger.info("Graceful shutdown completed");
+    process.exit(0);
+  } catch (error) {
+    logger.error("Error during graceful shutdown", { error: error.message });
+    process.exit(1);
+  }
+};
+
+// Register shutdown handlers
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+
+// Handle uncaught exceptions
+process.on("uncaughtException", (error) => {
+  logger.error("Uncaught Exception", {
+    error: error.message,
+    stack: error.stack,
+  });
+  gracefulShutdown("uncaughtException");
+});
+
+// Handle unhandled promise rejections
+process.on("unhandledRejection", (reason, promise) => {
+  logger.error("Unhandled Rejection", {
+    reason: reason,
+    promise: promise,
+  });
+  gracefulShutdown("unhandledRejection");
+});
 
 module.exports = {
   app,

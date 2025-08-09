@@ -16,44 +16,78 @@ const path = require("path");
 const fs = require("fs").promises;
 const { monitoringService } = require("../services/monitoring.service");
 const { logger } = require("../utils/logger");
+const { authenticateUser } = require("../services/user.service");
 
 const router = express.Router();
 
 /**
- * Basic authentication middleware for admin routes
- * Checks credentials and redirects to login page if not authenticated
+ * Database-based authentication middleware for admin routes
+ * Checks credentials against PostgreSQL database
  */
-const adminAuth = (req, res, next) => {
+const adminAuth = async (req, res, next) => {
   // Skip auth in test environment
   if (process.env.NODE_ENV === "test") {
     return next();
   }
 
-  // Check for basic auth header
-  const auth = req.headers?.authorization;
-  if (!auth?.startsWith("Basic ")) {
-    // For HTML pages, we redirect (handled only for /admin/login)
-    if (req.path === "/login") {
-      return res.redirect("/admin/login");
+  try {
+    // Check for basic auth header
+    const auth = req.headers?.authorization;
+    if (!auth?.startsWith("Basic ")) {
+      // For HTML pages, we redirect (handled only for /admin/login)
+      if (req.path === "/login") {
+        return res.redirect("/admin/login");
+      }
+      // For API endpoints, return 401 so client JS can handle
+      res.setHeader("WWW-Authenticate", 'Basic realm="Admin Dashboard"');
+      return res.status(401).json({ error: "Authentication required" });
     }
-    // For API endpoints, return 401 so client JS can handle
-    res.setHeader("WWW-Authenticate", 'Basic realm="Admin Dashboard"');
-    return res.status(401).json({ error: "Authentication required" });
-  }
 
-  // Validate credentials
-  const credentials = Buffer.from(auth.split(" ")[1], "base64").toString();
-  const [username, password] = credentials.split(":");
+    // Extract credentials
+    const credentials = Buffer.from(auth.split(" ")[1], "base64").toString();
+    const [username, password] = credentials.split(":");
 
-  const expectedUsername = process.env.ADMIN_USERNAME || "admin";
-  const expectedPassword = process.env.ADMIN_PASSWORD || "admin123";
+    if (!username || !password) {
+      return res.status(401).json({ error: "Invalid credentials format" });
+    }
 
-  if (username === expectedUsername && password === expectedPassword) {
+    // Authenticate against database
+    const authResult = await authenticateUser(username, password);
+
+    if (!authResult.success) {
+      logger.warn("Admin authentication failed", {
+        username,
+        reason: authResult.message,
+        ip: req.ip,
+        userAgent: req.get("User-Agent"),
+      });
+
+      return res.status(403).json({
+        error: authResult.message || "Invalid credentials",
+      });
+    }
+
+    // Store user info in request for potential use in routes
+    req.user = authResult.user;
+
+    logger.info("Admin authentication successful", {
+      username: authResult.user.username,
+      userId: authResult.user.id,
+      ip: req.ip,
+    });
+
     return next();
-  }
+  } catch (error) {
+    logger.error("Admin authentication error", {
+      error: error.message,
+      ip: req.ip,
+      userAgent: req.get("User-Agent"),
+    });
 
-  // Invalid credentials -> API JSON response
-  return res.status(403).json({ error: "Invalid credentials" });
+    return res.status(500).json({
+      error: "Authentication service unavailable",
+    });
+  }
 };
 
 /**
@@ -367,6 +401,176 @@ router.post("/test-alert", adminAuth, async (req, res) => {
   } catch (error) {
     logger.error("Failed to send test alert:", error);
     res.status(500).json({ error: "Failed to send test alert" });
+  }
+});
+
+/**
+ * Database Management Routes
+ */
+
+/**
+ * Get database status and connection info
+ */
+router.get("/database/status", adminAuth, async (req, res) => {
+  try {
+    const { testConnection, getPoolStatus } = require("../config/database");
+
+    const isConnected = await testConnection();
+    const poolStatus = getPoolStatus();
+
+    res.json({
+      connected: isConnected,
+      pool: poolStatus,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error("Failed to get database status:", error);
+    res.status(500).json({ error: "Failed to retrieve database status" });
+  }
+});
+
+/**
+ * Run database migrations
+ */
+router.post("/database/migrate", adminAuth, async (req, res) => {
+  try {
+    const { runMigrations } = require("../database/migrations");
+
+    await runMigrations();
+
+    logger.info("Admin action: Database migrations executed", {
+      userId: req.user?.id,
+      username: req.user?.username,
+    });
+
+    res.json({ message: "Database migrations completed successfully" });
+  } catch (error) {
+    logger.error("Failed to run migrations:", error);
+    res.status(500).json({ error: "Failed to run database migrations" });
+  }
+});
+
+/**
+ * Get migration status
+ */
+router.get("/database/migrations", adminAuth, async (req, res) => {
+  try {
+    const { getMigrationStatus } = require("../database/migrations");
+
+    const status = await getMigrationStatus();
+    res.json(status);
+  } catch (error) {
+    logger.error("Failed to get migration status:", error);
+    res.status(500).json({ error: "Failed to retrieve migration status" });
+  }
+});
+
+/**
+ * User Management Routes
+ */
+
+/**
+ * Get all admin users
+ */
+router.get("/users", adminAuth, async (req, res) => {
+  try {
+    const { getAllUsers } = require("../services/user.service");
+
+    const users = await getAllUsers();
+    res.json(users);
+  } catch (error) {
+    logger.error("Failed to get users:", error);
+    res.status(500).json({ error: "Failed to retrieve users" });
+  }
+});
+
+/**
+ * Create new admin user
+ */
+router.post("/users", adminAuth, async (req, res) => {
+  try {
+    const { createUser } = require("../services/user.service");
+    const { username, password, email, role = "admin" } = req.body;
+
+    if (!username || !password) {
+      return res
+        .status(400)
+        .json({ error: "Username and password are required" });
+    }
+
+    const user = await createUser({ username, password, email, role });
+
+    logger.info("Admin action: New user created", {
+      createdUserId: user.id,
+      createdUsername: user.username,
+      createdBy: req.user?.username,
+    });
+
+    res.status(201).json(user);
+  } catch (error) {
+    logger.error("Failed to create user:", error);
+
+    if (error.message === "Username already exists") {
+      return res.status(409).json({ error: error.message });
+    }
+
+    res.status(500).json({ error: "Failed to create user" });
+  }
+});
+
+/**
+ * Update user password
+ */
+router.put("/users/:userId/password", adminAuth, async (req, res) => {
+  try {
+    const { updatePassword } = require("../services/user.service");
+    const { userId } = req.params;
+    const { password } = req.body;
+
+    if (!password) {
+      return res.status(400).json({ error: "Password is required" });
+    }
+
+    await updatePassword(parseInt(userId), password);
+
+    logger.info("Admin action: User password updated", {
+      targetUserId: userId,
+      updatedBy: req.user?.username,
+    });
+
+    res.json({ message: "Password updated successfully" });
+  } catch (error) {
+    logger.error("Failed to update password:", error);
+    res.status(500).json({ error: "Failed to update password" });
+  }
+});
+
+/**
+ * Deactivate user account
+ */
+router.delete("/users/:userId", adminAuth, async (req, res) => {
+  try {
+    const { deactivateUser } = require("../services/user.service");
+    const { userId } = req.params;
+
+    // Prevent users from deactivating themselves
+    if (req.user?.id === parseInt(userId)) {
+      return res
+        .status(400)
+        .json({ error: "Cannot deactivate your own account" });
+    }
+
+    await deactivateUser(parseInt(userId));
+
+    logger.info("Admin action: User deactivated", {
+      targetUserId: userId,
+      deactivatedBy: req.user?.username,
+    });
+
+    res.json({ message: "User deactivated successfully" });
+  } catch (error) {
+    logger.error("Failed to deactivate user:", error);
+    res.status(500).json({ error: "Failed to deactivate user" });
   }
 });
 

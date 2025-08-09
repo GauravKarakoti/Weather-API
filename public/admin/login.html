@@ -4,6 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Weather API - Admin Login</title>
+    <!-- Font Awesome for icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
     <style>
       * {
         margin: 0;
@@ -199,7 +204,7 @@
         border: 1px solid #f1c40f;
       }
 
-      .show-password {
+      .show {
         position: absolute;
         right: 12px;
         top: 50%;
@@ -208,8 +213,26 @@
         border: none;
         cursor: pointer;
         color: #666;
-        font-size: 0.9rem;
-        padding: 0;
+        font-size: 1rem;
+        padding: 4px;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .show:hover {
+        color: #3498db;
+        background: rgba(52, 152, 219, 0.1);
+      }
+
+      .show:focus {
+        outline: none;
+        color: #3498db;
+        background: rgba(52, 152, 219, 0.1);
       }
 
       .password-input {
@@ -275,9 +298,14 @@
 
       <div class="login-form">
         <div class="demo-credentials">
-          <h4>🔑 Demo Credentials</h4>
-          <div class="credential-item"><strong>Username:</strong> admin</div>
-          <div class="credential-item"><strong>Password:</strong> admin123</div>
+          <h4>🔑 Admin Login</h4>
+          <div class="credential-item">
+            <strong>Note:</strong> Use your configured admin credentials
+          </div>
+          <div class="credential-item">
+            <strong>Default setup:</strong> Check server logs for initial
+            credentials
+          </div>
         </div>
 
         <div class="error-message" id="error-message">
@@ -296,7 +324,6 @@
               id="username"
               name="username"
               placeholder="Enter your username"
-              value="admin"
               required
               autocomplete="username"
             />
@@ -309,17 +336,17 @@
               id="password"
               name="password"
               placeholder="Enter your password"
-              value="admin123"
               class="password-input"
               required
               autocomplete="current-password"
             />
             <button
               type="button"
-              class="show-password"
+              class="show"
               onclick="togglePassword()"
+              title="Toggle password visibility"
             >
-              👁️
+              <i class="fas fa-eye" id="toggle-icon"></i>
             </button>
           </div>
 
@@ -361,14 +388,18 @@
       // Toggle password visibility
       function togglePassword() {
         const passwordInput = document.getElementById("password");
-        const showPasswordBtn = document.querySelector(".show-password");
+        const toggleIcon = document.getElementById("toggle-icon");
 
         if (passwordInput.type === "password") {
           passwordInput.type = "text";
-          showPasswordBtn.textContent = "🙈";
+          toggleIcon.className = "fas fa-eye-slash";
+          document.querySelector(".show").title = "Hide";
         } else {
           passwordInput.type = "password";
-          showPasswordBtn.textContent = "👁️";
+          toggleIcon.className = "fas fa-eye";
+          document.querySelector(".show").title = "Show";
+          // Log password visibility toggle for security monitoring
+          console.warn("Password visibility toggled - security event logged");
         }
       }
 
