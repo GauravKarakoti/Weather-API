@@ -1,12 +1,13 @@
 const Redis = require("ioredis");
+require("dotenv").config();
 
 // Upstash Redis configuration
 const redis = new Redis({
-  host: "winning-crab-19100.upstash.io",
-  port: 6379,
-  password: "", //PLACE YOUR PASSWORD
-  db: 0,
-  tls: {},
+  host: process.env.REDIS_HOST,
+  port: process.env.REDIS_PORT,
+  password: process.env.REDIS_PASSWORD, //PLACE YOUR PASSWORD
+  db: process.env.REDIS_DB,
+  tls: process.env.REDIS_TLS,
   retryDelayOnFailover: 100,
   enableReadyCheck: true,
   maxRetriesPerRequest: 3,
