@@ -17,6 +17,7 @@ const fs = require("fs").promises;
 const { monitoringService } = require("../services/monitoring.service");
 const { logger } = require("../utils/logger");
 const { authenticateUser } = require("../services/user.service");
+const CacheMiddleware = require("../middlewares/cache.middleware");
 
 const router = express.Router();
 
@@ -572,6 +573,41 @@ router.delete("/users/:userId", adminAuth, async (req, res) => {
     logger.error("Failed to deactivate user:", error);
     res.status(500).json({ error: "Failed to deactivate user" });
   }
+});
+
+// ===== CACHE MANAGEMENT ENDPOINTS =====
+
+/**
+ * Cache Analytics - Get cache performance metrics
+ */
+router.get("/cache/analytics", adminAuth, CacheMiddleware.getCacheAnalytics);
+
+/**
+ * Cache Health Check - Check Redis connection and cache status
+ */
+router.get("/cache/health", adminAuth, CacheMiddleware.healthCheck);
+
+/**
+ * Cache Info for specific city
+ */
+router.get("/cache/info/:city", adminAuth, CacheMiddleware.getCacheInfo);
+
+/**
+ * Cache Warming - Trigger cache warming for popular cities
+ */
+router.post("/cache/warm", adminAuth, CacheMiddleware.warmCache);
+
+/**
+ * Cache Invalidation - Invalidate cache for specific city or pattern
+ * Body: { city?: string, pattern?: string }
+ */
+router.post("/cache/invalidate", adminAuth, CacheMiddleware.invalidateCache);
+
+/**
+ * Cache Dashboard - Serve cache management HTML page
+ */
+router.get("/cache", adminAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, "../../public/admin/cache.html"));
 });
 
 module.exports = router;

@@ -33,6 +33,11 @@ const adminRoutes = require("./src/routes/admin.routes");
 // Import enhanced error handling
 const { handleError } = require("./src/middlewares/error.middleware");
 
+// Import cache middleware and services
+const CacheMiddleware = require("./src/middlewares/cache.middleware");
+const redisService = require("./src/services/redis.service");
+const cacheWarmingService = require("./src/services/cacheWarming.service");
+
 // Database initialization
 const {
   initializeApp,
@@ -366,7 +371,7 @@ const validateSelectors = async () => {
   }
 };
 
-app.get("/api/weather-forecast/:city", async (req, res) => {
+app.get("/api/weather-forecast/:city", CacheMiddleware.forecastCache, async (req, res) => {
   const city = req.params.city;
   const apiKey = process.env.SPECIAL_API_KEY;
   const startTime = Date.now();
@@ -488,7 +493,7 @@ app.get("/api/weather-forecast/:city", async (req, res) => {
   }
 });
 
-app.get("/api/weather/:city", async (req, res) => {
+app.get("/api/weather/:city", CacheMiddleware.weatherCache, async (req, res) => {
   const startTime = Date.now();
 
   try {
@@ -694,6 +699,22 @@ app.use(errorHandler);
 const stopServer = async () => {
   if (selectorValidationInterval) clearInterval(selectorValidationInterval);
 
+  // Stop cache warming service
+  try {
+    cacheWarmingService.stop();
+    logger.info("Cache warming service stopped");
+  } catch (error) {
+    logger.error("Error stopping cache warming service", { error: error.message });
+  }
+
+  // Close Redis connections
+  try {
+    await redisService.disconnect();
+    logger.info("Redis connections closed");
+  } catch (error) {
+    logger.error("Error during Redis shutdown", { error: error.message });
+  }
+
   // Close database connections
   try {
     await shutdownDatabase();
@@ -743,6 +764,12 @@ if (process.env.NODE_ENV !== "test") {
       await validateSelectors();
       scheduleSelectorValidation();
 
+      // Initialize cache warming service
+      if (process.env.CACHE_WARMING_ENABLED !== 'false') {
+        logger.info("Starting cache warming service...");
+        cacheWarmingService.start();
+      }
+
       // Get database health status
       const dbHealth = await getDatabaseHealth();
 
@@ -750,6 +777,8 @@ if (process.env.NODE_ENV !== "test") {
         database: dbHealth.status,
         selectorValidation: "enabled",
         monitoring: "enabled",
+        cacheWarming: process.env.CACHE_WARMING_ENABLED !== 'false' ? "enabled" : "disabled",
+        redis: redisService.isConnected ? "connected" : "disconnected",
         adminDashboard: `/admin/dashboard`,
         adminLogin: `/admin/login`,
         defaultCredentials:
