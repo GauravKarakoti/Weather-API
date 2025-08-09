@@ -52,13 +52,11 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  min-height: 100vh;
   background:
     linear-gradient(rgba(10, 10, 10, 0.8), rgba(10, 10, 10, 0.8)),
     url("./assets/WeatherBackground.png") no-repeat center center/cover;
 
   overflow-x: hidden;
-  color: #ffffff;
   padding: 20px;
   box-sizing: border-box;
   /* Added for better box model handling */
@@ -117,7 +115,6 @@ body {
   padding: 5px;
   width: 100%;
   min-width: 400px;
-  padding: 10px 14px;
   font-size: 1rem;
   border: none;
   border-radius: 8px;
@@ -287,7 +284,6 @@ button:focus-visible {
   border: none !important;
   outline: none !important;
   box-shadow: none !important;
-  background: none !important;
 }
 
 .searchBtn:focus-visible {
@@ -548,7 +544,6 @@ button {
 .error-message {
   color: var(--error-color);
   font-size: 0.9em;
-  margin-top: 0.5rem;
   display: flex;
   gap: 0.8em;
   justify-content: left;

@@ -184,8 +184,8 @@ const parseTemperature = (rawText) => {
     if (typeof rawText !== "string" || rawText.length > 200) {
       return "N/A";
     }
-    // Fixed ReDoS vulnerability: Use atomic grouping to prevent backtracking
-    const match = rawText.match(/-?\d+(?:\.\d+)?/);
+    // Atomic grouping to prevent backtracking
+    const match = rawText.match(/-?\d+(\.\d+)?/);
     if (match) {
       const temp = parseFloat(match[0]);
       return temp >= -100 && temp <= 100 ? `${temp.toFixed(1)} °C` : "N/A";
@@ -199,9 +199,11 @@ const parseTemperature = (rawText) => {
 
 const parseMinMaxTemperature = (rawText) => {
   try {
-    if (!rawText) return { minTemperature: "N/A", maxTemperature: "N/A" };
-    // Fixed ReDoS vulnerability: Use atomic grouping to prevent backtracking
-    const matches = rawText.match(/-?\d+(?:\.\d+)?/gi) || [];
+    if (typeof rawText !== "string" || rawText.length > 200) {
+      return { minTemperature: "N/A", maxTemperature: "N/A" };
+    }
+    // Atomic grouping to prevent backtracking
+    const matches = rawText.match(/-?\d+(\.\d+)?/g) || [];
     const minTemp = matches?.[0] ? parseFloat(matches[0]) : null;
     const maxTemp = matches?.[1] ? parseFloat(matches[1]) : null;
 
@@ -226,15 +228,12 @@ const parseMinMaxTemperature = (rawText) => {
 
 const parseHumidityPressure = (rawText) => {
   try {
-    if (!rawText) return { humidity: "N/A", pressure: "N/A" };
-    // Fixed ReDoS vulnerability: Use atomic grouping pattern to prevent backtracking
-    // Changed from (\d+\.?\d*) to (\d+(?:\.\d+)?) to eliminate overlapping quantifiers
-    const humidityMatch =
-      rawText.match(/(\d+(?:\.\d+)?)\s*%/i) ||
-      rawText.match(/(\d+(?:\.\d+)?)\s*Humidity/i);
-    const pressureMatch =
-      rawText.match(/(\d+(?:\.\d+)?)\s*hPa/i) ||
-      rawText.match(/(\d+(?:\.\d+)?)\s*Pressure/i);
+    if (typeof rawText !== "string" || rawText.length > 200) {
+      return { humidity: "N/A", pressure: "N/A" };
+    }
+    // Optimized regex patterns
+    const humidityMatch = rawText.match(/(\d+)\s*%/i);
+    const pressureMatch = rawText.match(/(\d+(\.\d+)?)\s*hPa/i);
 
     const humidity = humidityMatch ? parseInt(humidityMatch[1], 10) : null;
     const pressure = pressureMatch ? parseFloat(pressureMatch[1]) : null;
