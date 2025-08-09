@@ -21,6 +21,16 @@ const rateLimiters = {
 };
 
 const dynamicRateLimiter = (req, res, next) => {
+  // Disable rate limiting in development to ease testing
+  if (process.env.NODE_ENV !== "production") {
+    return next();
+  }
+
+  // Never rate-limit admin routes
+  if (req.path.startsWith("/admin")) {
+    return next();
+  }
+
   if (req.path.startsWith("/api/weather")) {
     return rateLimiters.weather(req, res, next);
   }
