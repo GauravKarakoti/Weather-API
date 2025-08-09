@@ -4,11 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Weather API - Admin Login</title>
-    <!-- Font Awesome for icons -->
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    />
+    <link rel="stylesheet" href="../themes.css" />
     <style>
       * {
         margin: 0;
@@ -19,18 +15,19 @@
       body {
         font-family:
           -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: var(--bg-primary);
         min-height: 100vh;
         display: flex;
         align-items: center;
         justify-content: center;
-        color: #333;
+        color: var(--text-primary);
+        transition: background-color var(--transition-speed), color var(--transition-speed);
       }
 
       .login-container {
-        background: white;
+        background: var(--bg-secondary);
         border-radius: 16px;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 20px 60px var(--shadow-color);
         overflow: hidden;
         width: 100%;
         max-width: 400px;
@@ -38,8 +35,8 @@
       }
 
       .login-header {
-        background: #2c3e50;
-        color: white;
+        background: var(--header-bg);
+        color: var(--header-text);
         padding: 2rem;
         text-align: center;
       }
@@ -74,7 +71,7 @@
         display: block;
         margin-bottom: 0.5rem;
         font-weight: 500;
-        color: #555;
+        color: var(--text-secondary);
       }
 
       .form-group input {
@@ -374,6 +371,7 @@
       </div>
     </div>
 
+    <script src="../theme-manager.js"></script>
     <script>
       // Update current time
       function updateTime() {

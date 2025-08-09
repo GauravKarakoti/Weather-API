@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Weather Scraper</title>
     <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="themes.css" />
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
@@ -19,13 +20,16 @@
         position: fixed;
         bottom: 20px;
         left: 20px;
-        background-color: rgba(0, 0, 0, 0.7);
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
         padding: 10px;
         border-radius: 50px;
         display: flex;
         align-items: center;
         gap: 10px;
         z-index: 1000;
+        box-shadow: 0 4px 12px var(--shadow-light);
+        transition: all var(--transition-speed) var(--transition-easing);
       }
 
       .music-controls {
@@ -37,21 +41,24 @@
       .music-player button {
         background: none;
         border: none;
-        color: white;
+        color: var(--text-primary);
         cursor: pointer;
         font-size: 1.2rem;
+        transition: color var(--transition-speed) var(--transition-easing);
       }
 
       .music-player button:hover {
-        color: orange;
+        color: var(--accent-primary);
       }
 
       .volume-control {
         width: 80px;
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-color);
       }
 
       .now-playing {
-        color: white;
+        color: var(--text-secondary);
         font-size: 0.8rem;
         margin-left: 10px;
         white-space: nowrap;
@@ -59,12 +66,83 @@
         text-overflow: ellipsis;
         max-width: 200px;
       }
+
+      /* Enhanced Theme Toggle Styles */
+      .theme-toggle {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: var(--bg-secondary);
+        border: 2px solid var(--border-color);
+        color: var(--text-primary);
+        padding: 0.5rem;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 1.4rem;
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all var(--transition-speed) var(--transition-easing);
+        box-shadow: 0 4px 16px var(--shadow-light);
+        z-index: 1001;
+        backdrop-filter: blur(10px);
+        overflow: hidden;
+      }
+
+      .theme-toggle:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 20px var(--shadow-medium);
+        border-color: var(--accent-primary);
+      }
+
+      .theme-toggle:active {
+        transform: scale(0.95);
+      }
+
+      .theme-toggle:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px var(--accent-primary-alpha), 0 4px 16px var(--shadow-light);
+      }
+
+      .theme-toggle .toggle-icon {
+        position: absolute;
+        transition: all var(--transition-speed) var(--transition-easing);
+        font-size: 1.3rem;
+      }
+
+      .theme-toggle .moon-icon {
+        opacity: 1;
+        transform: rotate(0deg) scale(1);
+      }
+
+      .theme-toggle .sun-icon {
+        opacity: 0;
+        transform: rotate(180deg) scale(0.5);
+      }
+
+      [data-theme="dark"] .theme-toggle .moon-icon {
+        opacity: 0;
+        transform: rotate(-180deg) scale(0.5);
+      }
+
+      [data-theme="dark"] .theme-toggle .sun-icon {
+        opacity: 1;
+        transform: rotate(0deg) scale(1);
+      }
     </style>
   </head>
 
   <body>
     <main class="container">
-      <h1><i class="fas fa-cloud-sun"></i>Weather Information</h1>
+      <div class="header-section">
+        <h1><i class="fas fa-cloud-sun"></i>Weather Information</h1>
+        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+          <span class="toggle-icon moon-icon">🌙</span>
+          <span class="toggle-icon sun-icon">☀️</span>
+        </button>
+      </div>
       <form id="weather-form" class="weather-form">
         <div class="form-group">
           <label for="city">
@@ -159,6 +237,7 @@
       crossorigin="anonymous"
       referrerpolicy="no-referrer"
     ></script>
+    <script src="theme-manager.js"></script>
     <script src="script.js" type="module"></script>
   </body>
 </html>
