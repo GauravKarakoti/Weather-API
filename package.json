@@ -21,11 +21,15 @@
     "cheerio": "^1.0.0-rc.10",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
-    "express": "^5.1.0",
-    "express-rate-limit": "^8.0.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "express-winston": "^4.2.0",
     "node-fetch": "^3.3.2",
     "nodemailer": "^7.0.5",
     "nodemon": "^3.1.9",
+    "prom-client": "^15.0.0",
+    "winston": "^3.11.0",
+    "winston-daily-rotate-file": "^4.7.1",
     "xss": "^1.0.15"
   },
   "devDependencies": {

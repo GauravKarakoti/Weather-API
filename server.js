@@ -3,27 +3,31 @@ const cors = require("cors");
 const path = require("path");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
-const dotenv=require("dotenv");
+const dotenv = require("dotenv");
 const xss = require('xss');
-const fs=require("fs");
-const {configureEnv}=require("./src/config/env.js")
-const corsOptions=require("./src/config/cors.js")
-const {applySecurityHeaders}=require("./src/middlewares/headers.middleware.js")
-const {dynamicRateLimiter}=require("./src/middlewares/rateLimiter.middleware.js")
-const stopValidationJob=require("./src/services/selectorValidation.service.js")
-const axios=require("axios")
-const cheerio=require("cheerio")
+const fs = require("fs");
+const { configureEnv } = require("./src/config/env.js")
+const corsOptions = require("./src/config/cors.js")
+const { applySecurityHeaders } = require("./src/middlewares/headers.middleware.js")
+const { dynamicRateLimiter } = require("./src/middlewares/rateLimiter.middleware.js")
+const stopValidationJob = require("./src/services/selectorValidation.service.js")
+const axios = require("axios")
+const cheerio = require("cheerio")
 
-function handleError(res, statusCode, message, code, details = null) {
-  const errRes = {
-    statusCode,
-    error: message,
-    code,
-    timestamp: new Date().toISOString(),
-  };
-  if (details) errRes.details = details;
-  res.status(statusCode).json(errRes);
-}
+// Enhanced Logging and Monitoring
+const { logger, logError, logPerformance } = require("./src/utils/logger");
+const {
+  requestLoggingMiddleware,
+  errorLoggingMiddleware,
+  rateLimitLoggingMiddleware,
+  healthCheckLoggingMiddleware,
+  securityLoggingMiddleware
+} = require("./src/middlewares/logging.middleware");
+const { monitoringService } = require("./src/services/monitoring.service");
+const adminRoutes = require("./src/routes/admin.routes");
+
+// Import enhanced error handling
+const { handleError } = require("./src/middlewares/error.middleware");
 
 // Load environment variables
 const envResult = dotenv.config();
@@ -86,13 +90,43 @@ const sendAdminAlert = async (failedSelectors) => {
 const app = express();
 configureEnv(); // Load env or fallback
 
+// Initialize logger
+logger.info('Weather API starting up', {
+  environment: process.env.NODE_ENV,
+  nodeVersion: process.version,
+  timestamp: new Date().toISOString()
+});
+
+// Trust proxy for proper IP detection
+app.set("trust proxy", true);
+
+// Apply logging middleware first (for health checks)
+app.use(healthCheckLoggingMiddleware);
+
+// Basic Express middleware
 app.use(cors(corsOptions));
 app.use(express.static("public"));
 app.use(express.json());
-app.set("trust proxy", true);
 
+// Security middleware
 applySecurityHeaders(app);
-app.use(dynamicRateLimiter);
+app.use(securityLoggingMiddleware);
+
+// Rate limiting with logging
+app.use((req, res, next) => {
+  const originalRateLimit = dynamicRateLimiter;
+  originalRateLimit(req, res, (err) => {
+    if (err) return next(err);
+
+    // Record rate limit metrics
+    if (req.rateLimit) {
+      const limitType = req.path.startsWith("/api/weather") ? 'weather' : 'default';
+      monitoringService.recordRateLimitHit(limitType, req.ip);
+    }
+
+    rateLimitLoggingMiddleware(req, res, next);
+  });
+});
 
 app.use((req, res, next) => {
   if (req.rateLimit) {
@@ -105,6 +139,28 @@ app.use((req, res, next) => {
   }
   next();
 });
+
+// Enhanced request/response logging and monitoring
+app.use((req, res, next) => {
+  const startTime = Date.now();
+
+  // Override res.end to capture metrics
+  const originalEnd = res.end;
+  res.end = function (chunk, encoding) {
+    const duration = Date.now() - startTime;
+
+    // Record HTTP request metrics
+    monitoringService.recordHttpRequest(req, res, duration);
+
+    // Call original end method
+    originalEnd.call(this, chunk, encoding);
+  };
+
+  next();
+});
+
+// Admin routes for monitoring dashboard
+app.use('/admin', adminRoutes);
 
 const sanitizeInput = (str) => xss(str.trim());
 
@@ -285,9 +341,18 @@ const validateSelectors = async () => {
 app.get("/api/weather-forecast/:city", async (req, res) => {
   const city = req.params.city;
   const apiKey = process.env.SPECIAL_API_KEY;
+  const startTime = Date.now();
+
+  // Log request
+  logger.info(`Weather forecast request for ${city}`, {
+    correlationId: req.correlationId,
+    ip: req.ip,
+    userAgent: req.get('User-Agent')
+  });
 
   if (!apiKey) {
-    return res.status(500).json({ error: "API key not set." });
+    monitoringService.recordError('configuration', '/api/weather-forecast/:city');
+    return handleError(res, 500, "API key not set", "MISSING_API_KEY", null, req);
   }
 
   try {
@@ -299,10 +364,19 @@ app.get("/api/weather-forecast/:city", async (req, res) => {
     url.searchParams.set("units", "metric");
 
     const response = await fetch(url.toString());
+    const externalApiDuration = Date.now() - startTime;
+
+    // Record external API call
+    monitoringService.recordExternalApiCall(
+      'openweathermap-forecast',
+      externalApiDuration,
+      response.ok ? 'success' : 'error'
+    );
 
     if (!response.ok) {
       const errorData = await response.json();
-      return res.status(response.status).json({ error: errorData.message || "City not found or failed to fetch data." });
+      monitoringService.recordWeatherApiRequest(city, 'error', 'openweathermap');
+      return handleError(res, response.status, errorData.message || "City not found or failed to fetch data", "FORECAST_API_ERROR", null, req);
     }
 
     const data = await response.json();
@@ -320,24 +394,56 @@ app.get("/api/weather-forecast/:city", async (req, res) => {
         condition: entry.weather[0].main,
       }));
 
+    // Record successful API request
+    monitoringService.recordWeatherApiRequest(city, 'success', 'openweathermap');
+
+    logger.info(`Weather forecast successful for ${city}`, {
+      correlationId: req.correlationId,
+      duration: Date.now() - startTime,
+      forecastCount: forecast.length
+    });
+
     res.json({ forecast });
   } catch (err) {
-    console.error("Error fetching forecast:", err);
-    res.status(500).json({ error: "Failed to fetch weather forecast." });
+    const duration = Date.now() - startTime;
+
+    // Record error metrics
+    monitoringService.recordWeatherApiRequest(city, 'error', 'openweathermap');
+    monitoringService.recordError('external_api', '/api/weather-forecast/:city');
+
+    logError(err, {
+      city,
+      duration,
+      endpoint: 'weather-forecast'
+    }, req.correlationId);
+
+    return handleError(res, 500, "Failed to fetch weather forecast", "FORECAST_FETCH_ERROR", { originalError: err.message }, req);
   }
 });
 
 
 app.get("/api/weather/:city", async (req, res) => {
+  const startTime = Date.now();
+
   try {
     const city = sanitizeInput(req.params.city);
 
+    // Log request
+    logger.info(`Weather request for ${city}`, {
+      correlationId: req.correlationId,
+      ip: req.ip,
+      userAgent: req.get('User-Agent')
+    });
+
     if (!city || !isValidCity(city)) {
+      monitoringService.recordError('validation', '/api/weather/:city');
       return handleError(
         res,
         400,
         "Invalid city name. Use letters, spaces, apostrophes (') and hyphens (-)",
         "INVALID_CITY",
+        null,
+        req
       );
     }
 
@@ -352,11 +458,11 @@ app.get("/api/weather/:city", async (req, res) => {
       if (primarySelector && $(primarySelector).length) {
         text = $(primarySelector).text()?.trim();
       }
-      
+
       if (!text && fallbackSelector && $(fallbackSelector).length) {
         text = $(fallbackSelector).text()?.trim();
       }
-      
+
       return text || null;
     };
 
@@ -373,7 +479,8 @@ app.get("/api/weather/:city", async (req, res) => {
     const date = formatDate(dateText);
 
     if (temperature === "N/A" && condition === "N/A") {
-      return handleError(res, 500, "Failed to parse weather data.", "PARSING_ERROR");
+      monitoringService.recordError('parsing', '/api/weather/:city');
+      return handleError(res, 500, "Failed to parse weather data", "PARSING_ERROR", null, req);
     }
 
     const weatherData = {
@@ -386,22 +493,52 @@ app.get("/api/weather/:city", async (req, res) => {
       pressure,
     };
 
+    // Record successful scraping
+    const duration = Date.now() - startTime;
+    monitoringService.recordWeatherApiRequest(city, 'success', 'scraping');
+
+    logger.info(`Weather request successful for ${city}`, {
+      correlationId: req.correlationId,
+      duration,
+      dataQuality: {
+        temperature: temperature !== "N/A",
+        condition: condition !== "N/A",
+        humidity: humidity !== "N/A",
+        pressure: pressure !== "N/A"
+      }
+    });
+
     res.json(weatherData);
 
   } catch (scrapingError) {
-    console.error("Scraping error:", scrapingError.message);
+    const duration = Date.now() - startTime;
+
+    // Record error metrics
+    monitoringService.recordWeatherApiRequest(req.params.city, 'error', 'scraping');
+
+    // Log error with context
+    logError(scrapingError, {
+      city: req.params.city,
+      duration,
+      endpoint: 'weather',
+      errorCode: scrapingError.code,
+      statusCode: scrapingError.response?.status
+    }, req.correlationId);
 
     await sendAdminAlert(`Weather scrape failed for city: ${req.params.city}\nReason: ${scrapingError.message}`);
 
     if (scrapingError.code === "ECONNABORTED") {
-        return handleError(res, 504, "The weather service is taking too long. Try again later.", "TIMEOUT");
+      monitoringService.recordError('network', '/api/weather/:city');
+      return handleError(res, 504, "The weather service is taking too long. Try again later.", "TIMEOUT", null, req);
     }
     if (scrapingError.response?.status === 404) {
-        return handleError(res, 404, "City not found. Please check the spelling.", "CITY_NOT_FOUND");
+      monitoringService.recordError('external_api', '/api/weather/:city');
+      return handleError(res, 404, "City not found. Please check the spelling.", "CITY_NOT_FOUND", null, req);
     }
 
-    return handleError(res, 502, "Failed to retrieve data from the weather service.", "BAD_GATEWAY");
-    }
+    monitoringService.recordError('external_api', '/api/weather/:city');
+    return handleError(res, 502, "Failed to retrieve data from the weather service.", "BAD_GATEWAY", null, req);
+  }
 });
 
 // Schedule weekly selector validation with randomness
@@ -431,26 +568,24 @@ app.get("/api/version", (req, res) => {
   res.json({ version: "1.0.0", lastUpdated: "2023-10-01" });
 });
 
+// Import enhanced error handlers
+const {
+  corsErrorHandler,
+  routeNotFoundHandler,
+  errorHandler
+} = require("./src/middlewares/error.middleware");
+
+// Add error logging middleware first
+app.use(errorLoggingMiddleware);
+
 // CORS error handler
-app.use((err, req, res, next) => {
-  if (err.message === "Not allowed by CORS") {
-    return handleError(res, 403, "CORS policy disallows access from this origin.", "CORS_DENIED");
-  }
-  next(err);
-});
+app.use(corsErrorHandler);
 
 // Route not found handler (404)
-app.use((req, res, next) => {
-  handleError(res, 404, "Route not found.", "ROUTE_NOT_FOUND");
-});
+app.use(routeNotFoundHandler);
 
 // Final unhandled error handler (500)
-app.use((err, req, res, next) => {
-  if (process.env.NODE_ENV !== 'production') {
-    console.error("Unhandled error:", err);
-  }
-  handleError(res, 500, "Internal server error", "SERVER_ERROR");
-});
+app.use(errorHandler);
 
 const stopServer = () => {
   if (selectorValidationInterval) clearInterval(selectorValidationInterval);
@@ -475,12 +610,30 @@ let server;
 
 if (process.env.NODE_ENV !== 'test') {
   server = app.listen(PORT, async () => {
-    console.log("Server started successfully");
-    await validateSelectors();
-    scheduleSelectorValidation();
+    logger.info("Weather API server started successfully", {
+      port: PORT,
+      environment: process.env.NODE_ENV,
+      nodeVersion: process.version,
+      enableMetrics: process.env.ENABLE_METRICS
+    });
+
+    // Initialize monitoring and validation
+    try {
+      await validateSelectors();
+      scheduleSelectorValidation();
+
+      logger.info("System initialization completed", {
+        selectorValidation: "enabled",
+        monitoring: "enabled",
+        adminDashboard: `/admin/dashboard`
+      });
+    } catch (error) {
+      logError(error, { context: 'server-startup' });
+    }
   });
 } else {
   server = require('http').createServer(app);
+  logger.info("Test server created", { environment: 'test' });
 }
 
 module.exports = {
