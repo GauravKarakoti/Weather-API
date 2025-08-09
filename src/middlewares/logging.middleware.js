@@ -27,7 +27,8 @@ const generateCorrelationId = () => {
         // Fallback to timestamp + random for older Node.js versions
         return `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
     } catch (error) {
-        // Ultimate fallback
+        // Log the error and provide ultimate fallback
+        console.warn('Failed to generate correlation ID:', error.message);
         return `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
     }
 };

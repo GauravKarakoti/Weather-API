@@ -24,9 +24,6 @@
             color: white;
             padding: 1rem 2rem;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -523,6 +520,7 @@
                     </div>
                 `;
             } catch (error) {
+                console.error('Failed to load health data:', error);
                 document.getElementById('health-metrics').innerHTML =
                     '<div class="error-message">Failed to load health data</div>';
             }
@@ -551,6 +549,7 @@
                     </div>
                 `;
             } catch (error) {
+                console.error('Failed to load performance data:', error);
                 document.getElementById('performance-metrics').innerHTML =
                     '<div class="error-message">Failed to load performance data</div>';
             }
@@ -584,6 +583,7 @@
                     ${categoryHtml}
                 `;
             } catch (error) {
+                console.error('Failed to load error data:', error);
                 document.getElementById('error-metrics').innerHTML =
                     '<div class="error-message">Failed to load error data</div>';
             }
@@ -616,6 +616,7 @@
                     </div>
                 `;
             } catch (error) {
+                console.error('Failed to load configuration:', error);
                 document.getElementById('config-info').innerHTML =
                     '<div class="error-message">Failed to load configuration</div>';
             }
@@ -646,6 +647,7 @@
 
                 container.innerHTML = logsHtml;
             } catch (error) {
+                console.error('Failed to load logs:', error);
                 document.getElementById('logs-content').innerHTML =
                     '<div class="error-message">Failed to load logs</div>';
             }
@@ -658,6 +660,7 @@
                 const metrics = await response.text();
                 document.getElementById('metrics-content').textContent = metrics;
             } catch (error) {
+                console.error('Failed to load metrics:', error);
                 document.getElementById('metrics-content').innerHTML =
                     '<div class="error-message">Failed to load metrics</div>';
             }
@@ -715,6 +718,7 @@
                     ${recentErrors || '<div class="loading">No recent errors</div>'}
                 `;
             } catch (error) {
+                console.error('Failed to load error details:', error);
                 document.getElementById('error-details').innerHTML =
                     '<div class="error-message">Failed to load error details</div>';
             }
@@ -799,7 +803,8 @@
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
             } catch (error) {
-                alert('Failed to download metrics');
+                console.error('Failed to download metrics:', error);
+                alert('Failed to download metrics: ' + error.message);
             }
         }
 

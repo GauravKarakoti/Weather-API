@@ -163,15 +163,32 @@ class MonitoringService {
     }
 
     /**
-     * Record cache performance metrics
+     * Record cache hit metrics
+     * @param {string} cacheType - Type of cache (weather, config, etc.)
+     */
+    recordCacheHit(cacheType) {
+        cacheHits.labels(cacheType).inc();
+    }
+
+    /**
+     * Record cache miss metrics
+     * @param {string} cacheType - Type of cache (weather, config, etc.)
+     */
+    recordCacheMiss(cacheType) {
+        cacheMisses.labels(cacheType).inc();
+    }
+
+    /**
+     * Record cache performance metrics (deprecated - use recordCacheHit/recordCacheMiss)
+     * @deprecated Use recordCacheHit() or recordCacheMiss() instead
      * @param {string} cacheType - Type of cache (weather, config, etc.)
      * @param {boolean} hit - Whether it was a cache hit or miss
      */
     recordCachePerformance(cacheType, hit) {
         if (hit) {
-            cacheHits.labels(cacheType).inc();
+            this.recordCacheHit(cacheType);
         } else {
-            cacheMisses.labels(cacheType).inc();
+            this.recordCacheMiss(cacheType);
         }
     }
 

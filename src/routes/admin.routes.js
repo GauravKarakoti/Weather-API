@@ -30,7 +30,7 @@ const adminAuth = (req, res, next) => {
     }
 
     // Check for basic auth header
-    const auth = req.headers.authorization;
+    const auth = req.headers?.authorization;
     if (!auth || !auth.startsWith('Basic ')) {
         // For HTML pages, we redirect (handled only for /admin/login)
         if (req.path === '/login') {

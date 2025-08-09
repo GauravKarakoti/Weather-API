@@ -29,7 +29,10 @@ describe('Logging and Monitoring System', () => {
         try {
             await fs.mkdir(logsDir, { recursive: true });
         } catch (error) {
-            // Directory might already exist
+            // Directory might already exist, log if it's a different error
+            if (error.code !== 'EEXIST') {
+                console.warn('Failed to create logs directory:', error.message);
+            }
         }
     });
 
@@ -384,6 +387,9 @@ describe('Logging and Monitoring System', () => {
 describe('Monitoring Service Standalone Tests', () => {
     test('should handle cache performance recording', () => {
         expect(() => {
+            monitoringService.recordCacheHit('weather');
+            monitoringService.recordCacheMiss('weather');
+            // Test deprecated method still works
             monitoringService.recordCachePerformance('weather', true);
             monitoringService.recordCachePerformance('weather', false);
         }).not.toThrow();
