@@ -11,6 +11,7 @@
  */
 
 // Note: using crypto for UUID generation
+const crypto = require("crypto");
 const {
   logRequest,
   logResponse,
@@ -20,21 +21,33 @@ const {
 
 /**
  * Generate a unique correlation ID for request tracing
- * Uses crypto.randomUUID() if available, fallback to timestamp-based ID
+ * Uses crypto.randomUUID() if available, fallback to cryptographically secure random bytes
  * @returns {string} Unique correlation ID
  */
 const generateCorrelationId = () => {
   try {
     // Use crypto.randomUUID() if available (Node.js 14.17.0+)
-    if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    if (crypto.randomUUID) {
       return crypto.randomUUID();
     }
-    // Fallback to timestamp + random for older Node.js versions
-    return `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+    // Fallback to cryptographically secure random bytes for older Node.js versions
+    const randomBytes = crypto.randomBytes(16);
+    return `${Date.now()}-${randomBytes.toString("hex")}`;
   } catch (error) {
-    // Log the error and provide ultimate fallback
+    // Log the error and provide ultimate fallback using crypto.randomBytes
     console.warn("Failed to generate correlation ID:", error.message);
-    return `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+    try {
+      // Even in fallback, use cryptographically secure random
+      const fallbackBytes = crypto.randomBytes(8);
+      return `${Date.now()}-${fallbackBytes.toString("hex")}`;
+    } catch (fallbackError) {
+      // Last resort: timestamp-only (still avoid Math.random)
+      console.error(
+        "Critical: Cannot generate secure correlation ID:",
+        fallbackError.message,
+      );
+      return `${Date.now()}-emergency`;
+    }
   }
 };
 

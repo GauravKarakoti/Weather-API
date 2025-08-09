@@ -108,12 +108,19 @@ describe("Weather App Client-Side Tests", () => {
   });
 
   test("should display an error for empty city submission", async () => {
+    // Force the script to recache elements to ensure it's using the current DOM
+    scriptModule.cacheElements();
+
     const cityInput = document.getElementById("city");
     const errorElement = document.getElementById("city-error");
-    const submitBtn = document.getElementById("submit-btn");
+
+    expect(cityInput).toBeTruthy();
+    expect(errorElement).toBeTruthy();
 
     cityInput.value = "";
-    submitBtn.click(); // Simulate a user clicking the submit button
+    // Directly call handleSubmit instead of relying on JSDOM's form submission
+    const mockEvent = { preventDefault: jest.fn() };
+    await scriptModule.handleSubmit(mockEvent);
 
     await waitFor(() => {
       expect(errorElement.textContent).toContain("City name cannot be empty.");
@@ -126,10 +133,11 @@ describe("Weather App Client-Side Tests", () => {
     const cityInput = document.getElementById("city");
     const weatherDataContainer = document.getElementById("weather-data");
     const recentList = document.getElementById("recent-list");
-    const submitBtn = document.getElementById("submit-btn");
 
     cityInput.value = "London";
-    submitBtn.click(); // Simulate a user click to trigger the whole process
+    // Directly call handleSubmit instead of relying on JSDOM's form submission
+    const mockEvent = { preventDefault: jest.fn() };
+    await scriptModule.handleSubmit(mockEvent);
 
     await waitFor(() => {
       // 1. Verify fetch was called with the correct URL
