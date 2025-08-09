@@ -1,0 +1,39 @@
+name: Deploy to Render
+
+
+on:
+  push:
+    branches: [main]          # automatic deploys
+  workflow_dispatch:          # manual “Run workflow” button in GitHub UI
+
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1.  Check out repository code
+    - name: Checkout source
+      uses: actions/checkout@v4
+
+    # 2.  Set up Node and restore NPM cache
+    - name: Use Node.js 18 LTS
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18
+        cache: npm
+
+    # 3.  Install dependencies exactly as on Render
+    - name: Install dependencies
+      run: npm ci
+
+    # 4.  Run the Jest test suite (fails the build if any test fails)
+    - name: Run tests
+      run: npm test
+
+    # 5.  Trigger Render deploy
+    - name: Deploy to Render
+      uses: johnbeynon/render-deploy-action@v0.0.8
+      with:
+        service-id: ${{ secrets.RENDER_SERVICE_ID }}
+        api-key:    ${{ secrets.RENDER_API_KEY }}
