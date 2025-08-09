@@ -7,6 +7,7 @@ The Weather API now includes a comprehensive Redis-based caching system that sig
 ## Features
 
 ### ✅ Core Caching Features
+
 - **Redis Integration**: Full Redis support with connection pooling and error handling
 - **Cache-Aside Pattern**: Intelligent caching with write-through functionality
 - **Smart TTL Management**: Different TTL values for different data types (15-30 minutes)
@@ -14,6 +15,7 @@ The Weather API now includes a comprehensive Redis-based caching system that sig
 - **Cluster Support**: Support for both standalone and Redis cluster deployments
 
 ### ✅ Advanced Features
+
 - **Cache Warming**: Automatic cache warming for popular cities every 6 hours
 - **Cache Invalidation**: Manual and automatic cache invalidation strategies
 - **Analytics & Monitoring**: Comprehensive cache hit/miss ratio tracking
@@ -46,6 +48,7 @@ The Weather API now includes a comprehensive Redis-based caching system that sig
 ### 1. Install Redis
 
 #### Option A: Docker (Recommended)
+
 ```bash
 # Run Redis in Docker
 docker run -d --name redis-cache -p 6379:6379 redis:7-alpine
@@ -55,6 +58,7 @@ docker run -d --name redis-cache -p 6379:6379 -v redis-data:/data redis:7-alpine
 ```
 
 #### Option B: Local Installation
+
 ```bash
 # Ubuntu/Debian
 sudo apt update
@@ -90,6 +94,7 @@ BASE_URL=http://localhost:5000
 ### 3. Install Dependencies
 
 The required dependencies are already included in `package.json`:
+
 - `ioredis`: Redis client with cluster support
 - `lz-string`: Data compression library
 
@@ -104,6 +109,7 @@ npm install
 The system supports various Redis configurations:
 
 #### Standalone Redis
+
 ```env
 REDIS_HOST=localhost
 REDIS_PORT=6379
@@ -112,12 +118,14 @@ REDIS_DB=0
 ```
 
 #### Redis Cluster
+
 ```env
 REDIS_CLUSTER_NODES=node1:6379,node2:6379,node3:6379
 REDIS_PASSWORD=your-password
 ```
 
 #### Redis with Authentication
+
 ```env
 REDIS_HOST=your-redis-host.com
 REDIS_PORT=6379
@@ -141,12 +149,14 @@ Different data types have different TTL values:
 The caching system works automatically once configured. No code changes are required for basic functionality.
 
 #### Weather Data Endpoints
+
 - `GET /api/weather/:city` - Cached for 30 minutes
 - `GET /api/weather-forecast/:city` - Cached for 15 minutes
 
 #### Cache Headers
 
 Responses include cache-related headers:
+
 ```http
 X-Cache: HIT|MISS|ERROR
 X-Cache-Age: 15
@@ -193,10 +203,12 @@ curl -X POST http://localhost:5000/admin/cache/warm \
 ### Cache Performance Metrics
 
 Access detailed analytics via:
+
 - **Endpoint**: `GET /admin/cache/analytics?days=7`
 - **Dashboard**: `http://localhost:5000/admin/cache`
 
 #### Metrics Included:
+
 - Cache hit/miss ratios
 - Daily performance trends
 - Redis connection status
@@ -206,11 +218,13 @@ Access detailed analytics via:
 ### Health Monitoring
 
 #### Redis Health Check
+
 ```bash
 curl http://localhost:5000/admin/cache/health --user admin:password
 ```
 
 #### Response Example:
+
 ```json
 {
   "success": true,
@@ -240,12 +254,14 @@ curl http://localhost:5000/admin/cache/health --user admin:password
 The system automatically warms cache for popular cities:
 
 #### Popular Cities List (20 cities):
+
 - London, New York, Tokyo, Paris, Sydney
 - Mumbai, Delhi, Shanghai, Los Angeles, Chicago
 - Toronto, Berlin, Madrid, Rome, Amsterdam
 - Singapore, Hong Kong, Dubai, Moscow, Seoul
 
 #### Warming Schedule:
+
 - **Initial**: 5 minutes after server start
 - **Recurring**: Every 6 hours (configurable)
 - **Batch Size**: 3 concurrent requests
@@ -256,10 +272,10 @@ The system automatically warms cache for popular cities:
 Trigger manual warming via admin endpoint or programmatically:
 
 ```javascript
-const cacheWarmingService = require('./src/services/cacheWarming.service');
+const cacheWarmingService = require("./src/services/cacheWarming.service");
 
 // Warm specific cities
-await cacheWarmingService.manualWarmCache(['London', 'Paris', 'Tokyo']);
+await cacheWarmingService.manualWarmCache(["London", "Paris", "Tokyo"]);
 
 // Warm all popular cities
 await cacheWarmingService.manualWarmCache();
@@ -268,18 +284,21 @@ await cacheWarmingService.manualWarmCache();
 ## Performance Benefits
 
 ### Before Redis Implementation:
+
 - Every request hits external APIs
 - Average response time: 800-1200ms
 - No optimization for popular cities
 - High external API costs
 
 ### After Redis Implementation:
+
 - Cache hit rate: 85-95% for popular cities
 - Average response time: 50-150ms (cached)
 - Reduced external API calls by 90%
 - Significant cost savings
 
 ### Compression Benefits:
+
 - Large responses compressed automatically
 - Average compression ratio: 60-70%
 - Reduced memory usage in Redis
@@ -290,6 +309,7 @@ await cacheWarmingService.manualWarmCache();
 ### Common Issues
 
 #### 1. Redis Connection Failed
+
 ```bash
 # Check Redis status
 redis-cli ping
@@ -302,18 +322,21 @@ echo $REDIS_HOST $REDIS_PORT
 ```
 
 #### 2. Cache Not Working
+
 - Verify Redis is running and accessible
 - Check environment variables are set correctly
 - Review server logs for Redis connection errors
 - Ensure firewall allows Redis port (6379)
 
 #### 3. High Memory Usage
+
 - Monitor Redis memory usage: `redis-cli info memory`
 - Adjust TTL values if needed
 - Enable Redis memory optimization
 - Consider Redis eviction policies
 
 #### 4. Cache Warming Failures
+
 - Check external API availability
 - Verify BASE_URL is correct
 - Review cache warming service logs
@@ -342,12 +365,14 @@ redis-cli info stats
 ## Security Considerations
 
 ### Redis Security
+
 - Use Redis AUTH with strong passwords
 - Configure Redis to bind to specific interfaces
 - Use TLS encryption for Redis connections
 - Implement proper firewall rules
 
 ### Cache Data Security
+
 - Weather data is public, no sensitive information cached
 - Cache keys use normalized city names
 - No user-specific data in cache
@@ -358,16 +383,19 @@ redis-cli info stats
 ### Regular Maintenance Tasks
 
 #### Daily:
+
 - Monitor cache hit rates
 - Check Redis memory usage
 - Review error logs
 
 #### Weekly:
+
 - Analyze cache performance trends
 - Update popular cities list if needed
 - Review and optimize TTL values
 
 #### Monthly:
+
 - Update Redis to latest stable version
 - Review and optimize cache warming schedule
 - Performance testing and optimization
@@ -375,11 +403,13 @@ redis-cli info stats
 ### Cache Cleanup
 
 The system automatically handles:
+
 - TTL-based expiration
 - Memory management
 - Stale data cleanup
 
 Manual cleanup if needed:
+
 ```bash
 # Clear all weather cache
 redis-cli eval "return redis.call('del', unpack(redis.call('keys', 'weather:*')))" 0
@@ -393,25 +423,27 @@ redis-cli eval "return redis.call('del', unpack(redis.call('keys', 'forecast:*')
 ### Node.js Client Example
 
 ```javascript
-const axios = require('axios');
+const axios = require("axios");
 
 // Function to get weather with cache awareness
 async function getWeatherWithCache(city) {
   try {
-    const response = await axios.get(`http://localhost:5000/api/weather/${city}`);
-    
-    const isCached = response.headers['x-cache'] === 'HIT';
-    const cacheAge = response.headers['x-cache-age'];
-    
+    const response = await axios.get(
+      `http://localhost:5000/api/weather/${city}`,
+    );
+
+    const isCached = response.headers["x-cache"] === "HIT";
+    const cacheAge = response.headers["x-cache-age"];
+
     console.log(`Weather for ${city}:`);
     console.log(`Cached: ${isCached}`);
     if (isCached) {
       console.log(`Cache age: ${cacheAge} minutes`);
     }
-    
+
     return response.data;
   } catch (error) {
-    console.error('Error fetching weather:', error.message);
+    console.error("Error fetching weather:", error.message);
     throw error;
   }
 }
@@ -424,13 +456,13 @@ async function getWeatherWithCache(city) {
 async function fetchWeatherData(city) {
   const response = await fetch(`/api/weather/${city}`);
   const data = await response.json();
-  
+
   // Display cache status to user
-  const cacheStatus = response.headers.get('X-Cache');
-  if (cacheStatus === 'HIT') {
-    console.log('Data served from cache - faster response!');
+  const cacheStatus = response.headers.get("X-Cache");
+  if (cacheStatus === "HIT") {
+    console.log("Data served from cache - faster response!");
   }
-  
+
   return data;
 }
 ```
