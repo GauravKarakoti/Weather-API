@@ -255,7 +255,12 @@ class CacheService {
       await redisService.client?.incr(key);
       await redisService.client?.expire(key, 86400 * 7); // Keep for 7 days
     } catch (error) {
-      // Silently fail analytics to not impact main functionality
+      // Log analytics errors but don't impact main functionality
+      logger.debug("Failed to record cache hit analytics", {
+        city,
+        type,
+        error: error.message,
+      });
     }
   }
 
@@ -269,7 +274,12 @@ class CacheService {
       await redisService.client?.incr(key);
       await redisService.client?.expire(key, 86400 * 7); // Keep for 7 days
     } catch (error) {
-      // Silently fail analytics to not impact main functionality
+      // Log analytics errors but don't impact main functionality
+      logger.debug("Failed to record cache miss analytics", {
+        city,
+        type,
+        error: error.message,
+      });
     }
   }
 
@@ -293,16 +303,16 @@ class CacheService {
           await Promise.all([
             redisService.get(
               this.generateKey("analytics", "hits", `weather:${dateStr}`),
-            ) || 0,
+            ),
             redisService.get(
               this.generateKey("analytics", "misses", `weather:${dateStr}`),
-            ) || 0,
+            ),
             redisService.get(
               this.generateKey("analytics", "hits", `forecast:${dateStr}`),
-            ) || 0,
+            ),
             redisService.get(
               this.generateKey("analytics", "misses", `forecast:${dateStr}`),
-            ) || 0,
+            ),
           ]);
 
         analytics.hits[dateStr] = {

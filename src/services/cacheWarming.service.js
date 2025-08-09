@@ -185,12 +185,15 @@ class CacheWarmingService {
   }
 
   /**
-   * Fetch and cache weather data for a city
+   * Common method to fetch and cache data for a city
+   * @param {string} city - City name
+   * @param {string} endpoint - API endpoint (weather or weather-forecast)
+   * @param {string} dataType - Type of data for logging
    */
-  async fetchAndCacheWeather(city) {
+  async fetchAndCacheData(city, endpoint, dataType) {
     try {
       const response = await axios.get(
-        `${this.baseUrl}/api/weather/${encodeURIComponent(city)}`,
+        `${this.baseUrl}/api/${endpoint}/${encodeURIComponent(city)}`,
         {
           timeout: 10000,
           headers: {
@@ -201,13 +204,13 @@ class CacheWarmingService {
       );
 
       if (response.status === 200 && response.data) {
-        logger.debug("Weather data warmed successfully", { city });
+        logger.debug(`${dataType} data warmed successfully`, { city });
         return { success: true, cached: !response.data.cached };
       } else {
         throw new Error(`Invalid response: ${response.status}`);
       }
     } catch (error) {
-      logger.warn("Failed to warm weather data", {
+      logger.warn(`Failed to warm ${dataType} data`, {
         city,
         error: error.message,
       });
@@ -216,34 +219,17 @@ class CacheWarmingService {
   }
 
   /**
+   * Fetch and cache weather data for a city
+   */
+  async fetchAndCacheWeather(city) {
+    return this.fetchAndCacheData(city, "weather", "Weather");
+  }
+
+  /**
    * Fetch and cache forecast data for a city
    */
   async fetchAndCacheForecast(city) {
-    try {
-      const response = await axios.get(
-        `${this.baseUrl}/api/weather-forecast/${encodeURIComponent(city)}`,
-        {
-          timeout: 10000,
-          headers: {
-            "User-Agent": "Weather-API-Cache-Warmer/1.0",
-            "X-Cache-Warming": "true",
-          },
-        },
-      );
-
-      if (response.status === 200 && response.data) {
-        logger.debug("Forecast data warmed successfully", { city });
-        return { success: true, cached: !response.data.cached };
-      } else {
-        throw new Error(`Invalid response: ${response.status}`);
-      }
-    } catch (error) {
-      logger.warn("Failed to warm forecast data", {
-        city,
-        error: error.message,
-      });
-      return { success: false, error: error.message };
-    }
+    return this.fetchAndCacheData(city, "weather-forecast", "Forecast");
   }
 
   /**

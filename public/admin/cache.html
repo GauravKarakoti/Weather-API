@@ -661,7 +661,16 @@
       function showAlert(message, type) {
         const alertsContainer = document.getElementById("alerts");
         const alertDiv = document.createElement("div");
-        alertDiv.className = `alert alert-${type === "success" ? "success" : type === "error" ? "error" : "info"}`;
+        
+        // Extract nested ternary into independent statement
+        let alertType = "info";
+        if (type === "success") {
+          alertType = "success";
+        } else if (type === "error") {
+          alertType = "error";
+        }
+        
+        alertDiv.className = `alert alert-${alertType}`;
         alertDiv.textContent = message;
 
         alertsContainer.appendChild(alertDiv);

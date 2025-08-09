@@ -112,6 +112,10 @@ class RedisService {
     try {
       await this.client.connect();
     } catch (error) {
+      logger.error("Failed to connect to Redis", {
+        error: error.message,
+        connectionAttempts: this.connectionAttempts,
+      });
       this.handleConnectionFailure();
     }
   }

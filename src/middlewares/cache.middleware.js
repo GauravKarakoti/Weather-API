@@ -7,10 +7,15 @@ const { logger } = require("../utils/logger");
  */
 class CacheMiddleware {
   /**
-   * Weather data cache middleware
-   * Checks cache first, serves from cache if available
+   * Common cache handling logic
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   * @param {Function} next - Express next function
+   * @param {string} dataType - Type of data ('weather' or 'forecast')
+   * @param {Function} getCacheData - Function to get cached data
+   * @param {Function} setCacheData - Function to set cache data
    */
-  static async weatherCache(req, res, next) {
+  static async handleCache(req, res, next, dataType, getCacheData, setCacheData) {
     const city = req.params.city;
     const startTime = Date.now();
 
@@ -20,56 +25,18 @@ class CacheMiddleware {
 
     try {
       // Try to get data from cache
-      const cachedData = await cacheService.getWeatherData(city);
+      const cachedData = await getCacheData(city);
 
       if (cachedData) {
-        const cacheAge = Date.now() - new Date(cachedData.cached_at).getTime();
-        const cacheAgeMinutes = Math.floor(cacheAge / (1000 * 60));
-
-        logger.info("Serving weather data from cache", {
-          city,
-          cacheAge: `${cacheAgeMinutes}m`,
-          correlationId: req.correlationId,
-          duration: Date.now() - startTime,
-        });
-
-        // Add cache headers
-        res.set({
-          "X-Cache": "HIT",
-          "X-Cache-Age": cacheAgeMinutes.toString(),
-          "X-Cache-Type": cachedData.is_popular ? "popular" : "standard",
-        });
-
-        return res.json({
-          ...cachedData,
-          cached: true,
-          cache_age_minutes: cacheAgeMinutes,
-        });
+        return this.serveCachedData(res, cachedData, city, startTime, req.correlationId);
       }
 
       // Cache miss - continue to actual API
       res.set("X-Cache", "MISS");
-
-      // Store original res.json to intercept response
-      const originalJson = res.json.bind(res);
-      res.json = function (data) {
-        // Cache the response data (fire and forget)
-        if (data && !data.error) {
-          const isPopular = cacheService.isPopularCity(city);
-          cacheService.setWeatherData(city, data, isPopular).catch((error) => {
-            logger.error("Failed to cache weather data", {
-              city,
-              error: error.message,
-            });
-          });
-        }
-
-        return originalJson(data);
-      };
-
+      this.interceptResponse(res, city, setCacheData);
       next();
     } catch (error) {
-      logger.error("Cache middleware error for weather", {
+      logger.error(`Cache middleware error for ${dataType}`, {
         city,
         error: error.message,
         correlationId: req.correlationId,
@@ -81,77 +48,80 @@ class CacheMiddleware {
   }
 
   /**
-   * Forecast data cache middleware
-   * Checks cache first, serves from cache if available
+   * Serve cached data with appropriate headers and logging
    */
-  static async forecastCache(req, res, next) {
-    const city = req.params.city;
-    const startTime = Date.now();
+  static serveCachedData(res, cachedData, city, startTime, correlationId) {
+    const cacheAge = Date.now() - new Date(cachedData.cached_at).getTime();
+    const cacheAgeMinutes = Math.floor(cacheAge / (1000 * 60));
 
-    if (!city) {
-      return next();
-    }
+    logger.info("Serving data from cache", {
+      city,
+      cacheAge: `${cacheAgeMinutes}m`,
+      correlationId,
+      duration: Date.now() - startTime,
+    });
 
-    try {
-      // Try to get data from cache
-      const cachedData = await cacheService.getForecastData(city);
+    // Add cache headers
+    res.set({
+      "X-Cache": "HIT",
+      "X-Cache-Age": cacheAgeMinutes.toString(),
+      "X-Cache-Type": cachedData.is_popular ? "popular" : "standard",
+    });
 
-      if (cachedData) {
-        const cacheAge = Date.now() - new Date(cachedData.cached_at).getTime();
-        const cacheAgeMinutes = Math.floor(cacheAge / (1000 * 60));
+    return res.json({
+      ...cachedData,
+      cached: true,
+      cache_age_minutes: cacheAgeMinutes,
+    });
+  }
 
-        logger.info("Serving forecast data from cache", {
-          city,
-          cacheAge: `${cacheAgeMinutes}m`,
-          correlationId: req.correlationId,
-          duration: Date.now() - startTime,
-        });
-
-        // Add cache headers
-        res.set({
-          "X-Cache": "HIT",
-          "X-Cache-Age": cacheAgeMinutes.toString(),
-          "X-Cache-Type": cachedData.is_popular ? "popular" : "standard",
-        });
-
-        return res.json({
-          ...cachedData,
-          cached: true,
-          cache_age_minutes: cacheAgeMinutes,
+  /**
+   * Intercept response to cache data
+   */
+  static interceptResponse(res, city, setCacheData) {
+    const originalJson = res.json.bind(res);
+    res.json = function (data) {
+      // Cache the response data (fire and forget)
+      if (data && !data.error) {
+        const isPopular = cacheService.isPopularCity(city);
+        setCacheData(city, data, isPopular).catch((error) => {
+          logger.error("Failed to cache data", {
+            city,
+            error: error.message,
+          });
         });
       }
+      return originalJson(data);
+    };
+  }
 
-      // Cache miss - continue to actual API
-      res.set("X-Cache", "MISS");
+  /**
+   * Weather data cache middleware
+   */
+  static async weatherCache(req, res, next) {
+    return CacheMiddleware.handleCache(
+      req,
+      res,
+      next,
+      "weather",
+      cacheService.getWeatherData.bind(cacheService),
+      cacheService.setWeatherData.bind(cacheService)
+    );
+  }
 
-      // Store original res.json to intercept response
-      const originalJson = res.json.bind(res);
-      res.json = function (data) {
-        // Cache the response data (fire and forget)
-        if (data && !data.error) {
-          const isPopular = cacheService.isPopularCity(city);
-          cacheService.setForecastData(city, data, isPopular).catch((error) => {
-            logger.error("Failed to cache forecast data", {
-              city,
-              error: error.message,
-            });
-          });
-        }
+  /**
+   * Forecast data cache middleware
+   */
+  static async forecastCache(req, res, next) {
+    return CacheMiddleware.handleCache(
+      req,
+      res,
+      next,
+      "forecast",
+      cacheService.getForecastData.bind(cacheService),
+      cacheService.setForecastData.bind(cacheService)
+    );
 
-        return originalJson(data);
-      };
-
-      next();
-    } catch (error) {
-      logger.error("Cache middleware error for forecast", {
-        city,
-        error: error.message,
-        correlationId: req.correlationId,
-      });
-
-      res.set("X-Cache", "ERROR");
-      next();
-    }
   }
 
   /**
