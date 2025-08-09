@@ -15,7 +15,14 @@ class CacheMiddleware {
    * @param {Function} getCacheData - Function to get cached data
    * @param {Function} setCacheData - Function to set cache data
    */
-  static async handleCache(req, res, next, dataType, getCacheData, setCacheData) {
+  static async handleCache(
+    req,
+    res,
+    next,
+    dataType,
+    getCacheData,
+    setCacheData,
+  ) {
     const city = req.params.city;
     const startTime = Date.now();
 
@@ -28,7 +35,13 @@ class CacheMiddleware {
       const cachedData = await getCacheData(city);
 
       if (cachedData) {
-        return this.serveCachedData(res, cachedData, city, startTime, req.correlationId);
+        return this.serveCachedData(
+          res,
+          cachedData,
+          city,
+          startTime,
+          req.correlationId,
+        );
       }
 
       // Cache miss - continue to actual API
@@ -105,7 +118,7 @@ class CacheMiddleware {
       next,
       "weather",
       cacheService.getWeatherData.bind(cacheService),
-      cacheService.setWeatherData.bind(cacheService)
+      cacheService.setWeatherData.bind(cacheService),
     );
   }
 
@@ -119,9 +132,8 @@ class CacheMiddleware {
       next,
       "forecast",
       cacheService.getForecastData.bind(cacheService),
-      cacheService.setForecastData.bind(cacheService)
+      cacheService.setForecastData.bind(cacheService),
     );
-
   }
 
   /**

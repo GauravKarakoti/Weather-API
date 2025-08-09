@@ -661,7 +661,7 @@
       function showAlert(message, type) {
         const alertsContainer = document.getElementById("alerts");
         const alertDiv = document.createElement("div");
-        
+
         // Extract nested ternary into independent statement
         let alertType = "info";
         if (type === "success") {
@@ -669,7 +669,7 @@
         } else if (type === "error") {
           alertType = "error";
         }
-        
+
         alertDiv.className = `alert alert-${alertType}`;
         alertDiv.textContent = message;
 
