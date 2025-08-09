@@ -185,7 +185,7 @@ describe("Rate Limiting and Parsing", () => {
     const apiKey = "test-api-key";
     const headers = { "x-api-key": apiKey };
     // The beforeEach hook already resets the limiter, so no need to reset here.
-    
+
     // Temporarily set NODE_ENV to production to enable rate limiting
     const originalNodeEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = "production";
@@ -195,7 +195,9 @@ describe("Rate Limiting and Parsing", () => {
         await request(app).get("/api/weather/London").set(headers);
       }
 
-      const response = await request(app).get("/api/weather/London").set(headers);
+      const response = await request(app)
+        .get("/api/weather/London")
+        .set(headers);
       expect(response.status).toBe(429);
       expect(response.body.error).toBe("Rate limit exceeded");
     } finally {

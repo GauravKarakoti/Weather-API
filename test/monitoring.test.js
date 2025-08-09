@@ -293,9 +293,7 @@ describe("Logging and Monitoring System", () => {
       const logSpy = jest.spyOn(logger, "error").mockImplementation();
 
       // Attempt XSS injection - use a simpler invalid city name that will trigger validation
-      await request(app)
-        .get('/api/weather/invalid<script>')
-        .expect(400);
+      await request(app).get("/api/weather/invalid<script>").expect(400);
 
       // Should log the security event - in this case it's logged as a validation error
       expect(logSpy).toHaveBeenCalledWith(
