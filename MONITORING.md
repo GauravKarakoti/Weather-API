@@ -34,6 +34,7 @@ The Weather API now includes a comprehensive logging and monitoring system that 
 ## 📊 Features
 
 ### 1. Structured Logging
+
 - **Winston-based logging** with multiple transport options
 - **Daily log rotation** with configurable retention
 - **Correlation IDs** for request tracing across the system
@@ -41,6 +42,7 @@ The Weather API now includes a comprehensive logging and monitoring system that 
 - **JSON format** for easy parsing and analysis
 
 ### 2. Performance Monitoring
+
 - **HTTP request metrics**: response time, status codes, throughput
 - **System metrics**: memory usage, CPU load, uptime
 - **External API metrics**: response times for weather data sources
@@ -48,6 +50,7 @@ The Weather API now includes a comprehensive logging and monitoring system that 
 - **Prometheus-compatible metrics** for integration with monitoring tools
 
 ### 3. Error Tracking and Alerting
+
 - **Categorized error tracking**: validation, network, parsing, etc.
 - **Severity-based alerting**: low, medium, high, critical
 - **Automatic email alerts** for high-severity errors
@@ -55,6 +58,7 @@ The Weather API now includes a comprehensive logging and monitoring system that 
 - **Context-rich error logging** with request details
 
 ### 4. Admin Dashboard
+
 - **Real-time system health** monitoring
 - **Interactive log viewer** with filtering
 - **Performance metrics** and graphs
@@ -66,11 +70,13 @@ The Weather API now includes a comprehensive logging and monitoring system that 
 ### Installation
 
 1. **Install dependencies** (already added to package.json):
+
 ```bash
 npm install
 ```
 
 2. **Configure environment variables**:
+
 ```env
 # Logging Configuration
 LOG_LEVEL=info
@@ -89,6 +95,7 @@ ADMIN_PASSWORD=secure-password-here
 ```
 
 3. **Start the server**:
+
 ```bash
 npm start
 ```
@@ -98,22 +105,26 @@ npm start
 Visit `http://localhost:5000/admin/dashboard` to access the monitoring dashboard.
 
 **Default credentials**:
+
 - Username: `admin`
 - Password: `admin123` (⚠️ Change this in production!)
 
 ## 📈 Metrics
 
 ### HTTP Metrics
+
 - `weather_api_http_request_duration_seconds` - Request duration histogram
 - `weather_api_http_requests_total` - Total HTTP requests counter
 - `weather_api_active_connections` - Current active connections
 
 ### Weather API Metrics
+
 - `weather_api_weather_requests_total` - Weather API requests by city and status
 - `weather_api_external_api_duration_seconds` - External API call durations
 - `weather_api_errors_total` - Error counts by type and route
 
 ### System Metrics
+
 - `weather_api_memory_usage_bytes` - Memory usage by type
 - `weather_api_cpu_usage_percent` - CPU usage percentage
 - Node.js default metrics (garbage collection, event loop, etc.)
@@ -121,12 +132,14 @@ Visit `http://localhost:5000/admin/dashboard` to access the monitoring dashboard
 ## 📝 Logging
 
 ### Log Levels
+
 - **ERROR**: System errors, failed requests, critical issues
 - **WARN**: Warnings, rate limiting, selector validation failures
 - **INFO**: Normal operations, successful requests, system events
 - **DEBUG**: Detailed debugging information, request/response details
 
 ### Log Structure
+
 ```json
 {
   "timestamp": "2023-12-01T10:30:45.123Z",
@@ -141,6 +154,7 @@ Visit `http://localhost:5000/admin/dashboard` to access the monitoring dashboard
 ```
 
 ### Log Files
+
 - `logs/combined-YYYY-MM-DD.log` - All log levels
 - `logs/app-YYYY-MM-DD.log` - Application logs (info and above)
 - `logs/error-YYYY-MM-DD.log` - Error logs only
@@ -150,13 +164,16 @@ Visit `http://localhost:5000/admin/dashboard` to access the monitoring dashboard
 ## 🚨 Alerting
 
 ### Email Alerts
+
 Automatic email alerts are sent for:
+
 - **Critical errors** (5xx status codes)
 - **High error rates** (configurable threshold)
 - **Selector validation failures**
 - **System health issues**
 
 ### Alert Types
+
 1. **Error Alerts**: Detailed error information with context
 2. **Health Alerts**: System performance and resource usage
 3. **Security Alerts**: Suspicious request patterns
@@ -166,48 +183,52 @@ Automatic email alerts are sent for:
 
 ### Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `LOG_LEVEL` | `info` | Logging level (error, warn, info, debug) |
-| `LOG_FILE_PATH` | `./logs` | Directory for log files |
-| `ENABLE_METRICS` | `true` | Enable Prometheus metrics |
-| `ADMIN_EMAIL` | - | Email for alerts |
-| `ADMIN_USERNAME` | `admin` | Dashboard username |
-| `ADMIN_PASSWORD` | `admin123` | Dashboard password |
+| Variable         | Default    | Description                              |
+| ---------------- | ---------- | ---------------------------------------- |
+| `LOG_LEVEL`      | `info`     | Logging level (error, warn, info, debug) |
+| `LOG_FILE_PATH`  | `./logs`   | Directory for log files                  |
+| `ENABLE_METRICS` | `true`     | Enable Prometheus metrics                |
+| `ADMIN_EMAIL`    | -          | Email for alerts                         |
+| `ADMIN_USERNAME` | `admin`    | Dashboard username                       |
+| `ADMIN_PASSWORD` | `admin123` | Dashboard password                       |
 
 ### Monitoring Configuration
+
 ```javascript
 const monitoringConfig = {
   // Error thresholds
   ALERT_THRESHOLD_ERROR_RATE: 10, // errors per minute
   ALERT_THRESHOLD_RESPONSE_TIME: 5000, // milliseconds
-  
+
   // Health check settings
   HEALTH_CHECK_INTERVAL: 30000, // 30 seconds
   HEALTH_CHECK_MEMORY_THRESHOLD: 500, // MB
   HEALTH_CHECK_CPU_THRESHOLD: 80, // percentage
-  
+
   // Performance monitoring
   PERFORMANCE_SAMPLING_RATE: 1.0, // 100% sampling
-  SECURITY_ALERT_THRESHOLD: 5 // suspicious requests per minute
+  SECURITY_ALERT_THRESHOLD: 5, // suspicious requests per minute
 };
 ```
 
 ## 📱 Admin Dashboard Features
 
 ### Overview Cards
+
 - **System Health**: Status, uptime, memory usage
 - **Performance**: Response times, throughput metrics
 - **Errors**: 24-hour error summary by category
 - **Configuration**: Current system settings
 
 ### Detailed Tabs
+
 1. **Logs**: Real-time log viewer with filtering
 2. **Error Details**: Error analysis and categorization
 3. **Raw Metrics**: Prometheus metrics in text format
 4. **Actions**: Admin tools for system management
 
 ### Admin Actions
+
 - **Log Management**: Clear logs, change log levels
 - **Testing**: Send test alerts
 - **Configuration**: Update system settings
@@ -216,12 +237,14 @@ const monitoringConfig = {
 ## 🔒 Security
 
 ### Dashboard Security
+
 - Basic authentication (enhance for production)
 - HTTPS recommended for production
 - Rate limiting on admin endpoints
 - Input validation and sanitization
 
 ### Security Logging
+
 - Suspicious request pattern detection
 - Failed authentication attempts
 - Rate limiting violations
@@ -243,6 +266,7 @@ npm test -- --coverage
 ```
 
 ### Test Coverage
+
 - Logger utility functions
 - Request/response middleware
 - Monitoring service metrics
@@ -253,6 +277,7 @@ npm test -- --coverage
 ## 📊 Integration
 
 ### Prometheus Integration
+
 The monitoring system exposes metrics at `/admin/metrics` in Prometheus format:
 
 ```bash
@@ -261,6 +286,7 @@ curl http://localhost:5000/admin/metrics
 ```
 
 ### External Monitoring Tools
+
 - **Grafana**: Create dashboards using Prometheus metrics
 - **AlertManager**: Configure advanced alerting rules
 - **ELK Stack**: Aggregate and analyze JSON logs
@@ -269,6 +295,7 @@ curl http://localhost:5000/admin/metrics
 ## 🚀 Production Deployment
 
 ### Recommendations
+
 1. **Change default passwords** for admin dashboard
 2. **Configure HTTPS** for secure access
 3. **Set up log aggregation** (ELK, Fluentd, etc.)
@@ -278,6 +305,7 @@ curl http://localhost:5000/admin/metrics
 7. **Regular log rotation** and cleanup
 
 ### Docker Deployment
+
 The monitoring system works seamlessly with Docker:
 
 ```dockerfile
@@ -290,19 +318,20 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 
 ### Admin Endpoints
 
-| Endpoint | Method | Description |
-|----------|---------|-------------|
-| `/admin/dashboard` | GET | Admin dashboard HTML |
-| `/admin/health` | GET | System health status |
-| `/admin/metrics` | GET | Prometheus metrics |
-| `/admin/performance` | GET | Performance statistics |
-| `/admin/logs` | GET | Recent log entries |
-| `/admin/errors` | GET | Error summary |
-| `/admin/config` | GET | System configuration |
-| `/admin/config/log-level` | PUT | Update log level |
-| `/admin/test-alert` | POST | Send test alert |
+| Endpoint                  | Method | Description            |
+| ------------------------- | ------ | ---------------------- |
+| `/admin/dashboard`        | GET    | Admin dashboard HTML   |
+| `/admin/health`           | GET    | System health status   |
+| `/admin/metrics`          | GET    | Prometheus metrics     |
+| `/admin/performance`      | GET    | Performance statistics |
+| `/admin/logs`             | GET    | Recent log entries     |
+| `/admin/errors`           | GET    | Error summary          |
+| `/admin/config`           | GET    | System configuration   |
+| `/admin/config/log-level` | PUT    | Update log level       |
+| `/admin/test-alert`       | POST   | Send test alert        |
 
 ### Health Check Response
+
 ```json
 {
   "status": "healthy",
@@ -336,6 +365,7 @@ When adding new features:
 ## 🎯 Roadmap
 
 Future enhancements:
+
 - [ ] Advanced analytics and reporting
 - [ ] Machine learning for anomaly detection
 - [ ] Distributed tracing integration

@@ -1,12 +1,12 @@
 /**
  * Enhanced Email Service for Alerts and Monitoring
- * 
+ *
  * Provides comprehensive email alerting functionality:
  * - Error alerts with severity-based formatting
  * - System health notifications
  * - Performance degradation alerts
  * - Selector validation failure alerts
- * 
+ *
  * Modular design with template-based email formatting.
  */
 
@@ -21,7 +21,7 @@ const createTransporter = () => {
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST || "smtp.gmail.com",
     port: parseInt(process.env.SMTP_PORT) || 465,
-    secure: process.env.SMTP_SECURE !== 'false', // Default to secure
+    secure: process.env.SMTP_SECURE !== "false", // Default to secure
     auth: {
       user: process.env.MAIL_USER,
       pass: process.env.MAIL_PASS,
@@ -40,7 +40,11 @@ const transporter = createTransporter();
  * @returns {boolean} True if email can be sent
  */
 const isEmailConfigured = () => {
-  return !!(process.env.ADMIN_EMAIL && process.env.MAIL_USER && process.env.MAIL_PASS);
+  return !!(
+    process.env.ADMIN_EMAIL &&
+    process.env.MAIL_USER &&
+    process.env.MAIL_PASS
+  );
 };
 
 /**
@@ -50,10 +54,10 @@ const isEmailConfigured = () => {
  */
 const getSeverityStyle = (severity) => {
   const styles = {
-    low: { color: '#28a745', icon: 'ℹ️', priority: 'Low' },
-    medium: { color: '#ffc107', icon: '⚠️', priority: 'Medium' },
-    high: { color: '#fd7e14', icon: '🚨', priority: 'High' },
-    critical: { color: '#dc3545', icon: '🔥', priority: 'CRITICAL' }
+    low: { color: "#28a745", icon: "ℹ️", priority: "Low" },
+    medium: { color: "#ffc107", icon: "⚠️", priority: "Medium" },
+    high: { color: "#fd7e14", icon: "🚨", priority: "High" },
+    critical: { color: "#dc3545", icon: "🔥", priority: "CRITICAL" },
   };
   return styles[severity] || styles.medium;
 };
@@ -64,7 +68,15 @@ const getSeverityStyle = (severity) => {
  * @returns {string} HTML email template
  */
 const generateErrorAlertHTML = (alertData) => {
-  const { severity, category, statusCode, code, message, correlationId, requestDetails } = alertData;
+  const {
+    severity,
+    category,
+    statusCode,
+    code,
+    message,
+    correlationId,
+    requestDetails,
+  } = alertData;
   const style = getSeverityStyle(severity);
 
   return `
@@ -98,10 +110,12 @@ const generateErrorAlertHTML = (alertData) => {
           <p><strong>Error Code:</strong> <span class="code">${code}</span></p>
           <p><strong>Category:</strong> ${category}</p>
           <p><strong>Message:</strong> ${message}</p>
-          ${correlationId ? `<p><strong>Correlation ID:</strong> <span class="code">${correlationId}</span></p>` : ''}
+          ${correlationId ? `<p><strong>Correlation ID:</strong> <span class="code">${correlationId}</span></p>` : ""}
         </div>
         
-        ${requestDetails ? `
+        ${
+          requestDetails
+            ? `
         <div class="details">
           <h4>Request Details</h4>
           <p><strong>Method:</strong> ${requestDetails.method}</p>
@@ -109,16 +123,18 @@ const generateErrorAlertHTML = (alertData) => {
           <p><strong>IP Address:</strong> ${requestDetails.ip}</p>
           <p><strong>User Agent:</strong> ${requestDetails.userAgent}</p>
         </div>
-        ` : ''}
+        `
+            : ""
+        }
         
         <div class="details">
           <h4>Recommended Actions</h4>
           <ul>
-            ${severity === 'critical' ? '<li>Immediate investigation required</li>' : ''}
-            <li>Check application logs for correlation ID: ${correlationId || 'N/A'}</li>
+            ${severity === "critical" ? "<li>Immediate investigation required</li>" : ""}
+            <li>Check application logs for correlation ID: ${correlationId || "N/A"}</li>
             <li>Monitor error frequency and patterns</li>
-            ${category === 'external_api' ? '<li>Verify external API service status</li>' : ''}
-            ${category === 'network' ? '<li>Check network connectivity and DNS resolution</li>' : ''}
+            ${category === "external_api" ? "<li>Verify external API service status</li>" : ""}
+            ${category === "network" ? "<li>Check network connectivity and DNS resolution</li>" : ""}
             <li>Review monitoring dashboard for related metrics</li>
           </ul>
         </div>
@@ -143,7 +159,7 @@ const sendErrorAlert = async (alertData) => {
     return;
   }
 
-  if (process.env.NODE_ENV === 'test') {
+  if (process.env.NODE_ENV === "test") {
     console.log("Skipping error alert in test environment");
     return;
   }
@@ -162,15 +178,19 @@ Error Details:
 - Error Code: ${code}
 - Category: ${category}
 - Message: ${message}
-- Correlation ID: ${alertData.correlationId || 'N/A'}
+- Correlation ID: ${alertData.correlationId || "N/A"}
 
-${alertData.requestDetails ? `
+${
+  alertData.requestDetails
+    ? `
 Request Details:
 - Method: ${alertData.requestDetails.method}
 - URL: ${alertData.requestDetails.url}
 - IP: ${alertData.requestDetails.ip}
 - User Agent: ${alertData.requestDetails.userAgent}
-` : ''}
+`
+    : ""
+}
 
 This is an automated alert from Weather API Monitoring System.
   `;
@@ -182,15 +202,15 @@ This is an automated alert from Weather API Monitoring System.
       subject,
       text: textContent,
       html: htmlContent,
-      priority: severity === 'critical' ? 'high' : 'normal'
+      priority: severity === "critical" ? "high" : "normal",
     });
 
     console.log(`Error alert sent successfully - ${code} (${severity})`);
   } catch (error) {
     console.error("Failed to send error alert email:", error.message);
     logError(error, {
-      type: 'email-alert-failure',
-      originalAlert: alertData
+      type: "email-alert-failure",
+      originalAlert: alertData,
     });
   }
 };
@@ -205,7 +225,7 @@ const sendAdminAlert = async (failedSelectors) => {
     return;
   }
 
-  if (process.env.NODE_ENV === 'test') {
+  if (process.env.NODE_ENV === "test") {
     console.log("Skipping selector alert in test environment");
     return;
   }
@@ -282,14 +302,14 @@ Weather API Monitoring System
       to: process.env.ADMIN_EMAIL,
       subject,
       text: textContent,
-      html: htmlContent
+      html: htmlContent,
     });
     console.log("Selector validation alert sent successfully");
   } catch (error) {
     console.error("Failed to send selector alert email:", error.message);
     logError(error, {
-      type: 'selector-alert-failure',
-      failedSelectors
+      type: "selector-alert-failure",
+      failedSelectors,
     });
   }
 };
@@ -299,8 +319,8 @@ Weather API Monitoring System
  * @param {Object} healthData - System health metrics
  * @param {string} alertType - Type of health alert
  */
-const sendHealthAlert = async (healthData, alertType = 'warning') => {
-  if (!isEmailConfigured() || process.env.NODE_ENV === 'test') {
+const sendHealthAlert = async (healthData, alertType = "warning") => {
+  if (!isEmailConfigured() || process.env.NODE_ENV === "test") {
     return;
   }
 
@@ -318,7 +338,7 @@ const sendHealthAlert = async (healthData, alertType = 'warning') => {
       from: `"Weather API Health" <${process.env.MAIL_USER}>`,
       to: process.env.ADMIN_EMAIL,
       subject,
-      html: htmlContent
+      html: htmlContent,
     });
   } catch (error) {
     console.error("Failed to send health alert:", error.message);
@@ -329,5 +349,5 @@ module.exports = {
   sendAdminAlert,
   sendErrorAlert,
   sendHealthAlert,
-  isEmailConfigured
+  isEmailConfigured,
 };

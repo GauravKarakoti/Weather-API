@@ -22,12 +22,12 @@ const rateLimiters = {
 
 const dynamicRateLimiter = (req, res, next) => {
   // Disable rate limiting in development to ease testing
-  if (process.env.NODE_ENV !== 'production') {
+  if (process.env.NODE_ENV !== "production") {
     return next();
   }
 
   // Never rate-limit admin routes
-  if (req.path.startsWith('/admin')) {
+  if (req.path.startsWith("/admin")) {
     return next();
   }
 

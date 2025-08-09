@@ -1,509 +1,537 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Weather API - Admin Login</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #333;
-        }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #333;
+      }
 
+      .login-container {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        width: 100%;
+        max-width: 400px;
+        margin: 20px;
+      }
+
+      .login-header {
+        background: #2c3e50;
+        color: white;
+        padding: 2rem;
+        text-align: center;
+      }
+
+      .login-header h1 {
+        font-size: 1.8rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+      }
+
+      .login-header p {
+        opacity: 0.9;
+        font-size: 0.95rem;
+      }
+
+      .weather-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        display: block;
+      }
+
+      .login-form {
+        padding: 2rem;
+      }
+
+      .form-group {
+        margin-bottom: 1.5rem;
+        position: relative;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: #555;
+      }
+
+      .form-group input {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 2px solid #e0e6ed;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        background: #f8f9fa;
+      }
+
+      .form-group input:focus {
+        outline: none;
+        border-color: #3498db;
+        background: white;
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+      }
+
+      .login-button {
+        width: 100%;
+        padding: 0.875rem;
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+      }
+
+      .login-button:hover {
+        background: linear-gradient(135deg, #2980b9, #1f6391);
+        transform: translateY(-1px);
+        box-shadow: 0 8px 25px rgba(52, 152, 219, 0.3);
+      }
+
+      .login-button:active {
+        transform: translateY(0);
+      }
+
+      .login-button:disabled {
+        background: #bdc3c7;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+
+      .error-message {
+        background: #fee;
+        color: #e74c3c;
+        padding: 0.75rem;
+        border-radius: 6px;
+        margin-bottom: 1rem;
+        border-left: 4px solid #e74c3c;
+        font-size: 0.9rem;
+        display: none;
+      }
+
+      .success-message {
+        background: #eef;
+        color: #27ae60;
+        padding: 0.75rem;
+        border-radius: 6px;
+        margin-bottom: 1rem;
+        border-left: 4px solid #27ae60;
+        font-size: 0.9rem;
+        display: none;
+      }
+
+      .loading-spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: white;
+        animation: spin 1s ease-in-out infinite;
+        display: none;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .login-footer {
+        background: #f8f9fa;
+        padding: 1rem 2rem;
+        text-align: center;
+        font-size: 0.85rem;
+        color: #666;
+        border-top: 1px solid #e9ecef;
+      }
+
+      .demo-credentials {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        font-size: 0.9rem;
+      }
+
+      .demo-credentials h4 {
+        color: #856404;
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+      }
+
+      .demo-credentials p {
+        color: #856404;
+        margin: 0.25rem 0;
+      }
+
+      .credential-item {
+        background: white;
+        padding: 0.5rem;
+        border-radius: 4px;
+        margin: 0.25rem 0;
+        font-family: "Courier New", monospace;
+        border: 1px solid #f1c40f;
+      }
+
+      .show-password {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: #666;
+        font-size: 0.9rem;
+        padding: 0;
+      }
+
+      .password-input {
+        padding-right: 3rem !important;
+      }
+
+      .features-list {
+        background: #f0f9ff;
+        border-radius: 6px;
+        padding: 1rem;
+        margin-top: 1rem;
+      }
+
+      .features-list h4 {
+        color: #2563eb;
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .features-list ul {
+        list-style: none;
+        font-size: 0.85rem;
+        color: #1e40af;
+      }
+
+      .features-list li {
+        margin: 0.25rem 0;
+        padding-left: 1rem;
+        position: relative;
+      }
+
+      .features-list li:before {
+        content: "✓";
+        position: absolute;
+        left: 0;
+        color: #10b981;
+        font-weight: bold;
+      }
+
+      @media (max-width: 480px) {
         .login-container {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-            width: 100%;
-            max-width: 400px;
-            margin: 20px;
+          margin: 10px;
         }
 
         .login-header {
-            background: #2c3e50;
-            color: white;
-            padding: 2rem;
-            text-align: center;
-        }
-
-        .login-header h1 {
-            font-size: 1.8rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-
-        .login-header p {
-            opacity: 0.9;
-            font-size: 0.95rem;
-        }
-
-        .weather-icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-            display: block;
+          padding: 1.5rem;
         }
 
         .login-form {
-            padding: 2rem;
+          padding: 1.5rem;
         }
-
-        .form-group {
-            margin-bottom: 1.5rem;
-            position: relative;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-            color: #555;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border: 2px solid #e0e6ed;
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            background: #f8f9fa;
-        }
-
-        .form-group input:focus {
-            outline: none;
-            border-color: #3498db;
-            background: white;
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
-        }
-
-        .login-button {
-            width: 100%;
-            padding: 0.875rem;
-            background: linear-gradient(135deg, #3498db, #2980b9);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-        }
-
-        .login-button:hover {
-            background: linear-gradient(135deg, #2980b9, #1f6391);
-            transform: translateY(-1px);
-            box-shadow: 0 8px 25px rgba(52, 152, 219, 0.3);
-        }
-
-        .login-button:active {
-            transform: translateY(0);
-        }
-
-        .login-button:disabled {
-            background: #bdc3c7;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        .error-message {
-            background: #fee;
-            color: #e74c3c;
-            padding: 0.75rem;
-            border-radius: 6px;
-            margin-bottom: 1rem;
-            border-left: 4px solid #e74c3c;
-            font-size: 0.9rem;
-            display: none;
-        }
-
-        .success-message {
-            background: #eef;
-            color: #27ae60;
-            padding: 0.75rem;
-            border-radius: 6px;
-            margin-bottom: 1rem;
-            border-left: 4px solid #27ae60;
-            font-size: 0.9rem;
-            display: none;
-        }
-
-        .loading-spinner {
-            width: 16px;
-            height: 16px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: white;
-            animation: spin 1s ease-in-out infinite;
-            display: none;
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        .login-footer {
-            background: #f8f9fa;
-            padding: 1rem 2rem;
-            text-align: center;
-            font-size: 0.85rem;
-            color: #666;
-            border-top: 1px solid #e9ecef;
-        }
-
-        .demo-credentials {
-            background: #fff3cd;
-            border: 1px solid #ffeaa7;
-            border-radius: 6px;
-            padding: 1rem;
-            margin-bottom: 1.5rem;
-            font-size: 0.9rem;
-        }
-
-        .demo-credentials h4 {
-            color: #856404;
-            margin-bottom: 0.5rem;
-            font-size: 0.9rem;
-        }
-
-        .demo-credentials p {
-            color: #856404;
-            margin: 0.25rem 0;
-        }
-
-        .credential-item {
-            background: white;
-            padding: 0.5rem;
-            border-radius: 4px;
-            margin: 0.25rem 0;
-            font-family: 'Courier New', monospace;
-            border: 1px solid #f1c40f;
-        }
-
-        .show-password {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: #666;
-            font-size: 0.9rem;
-            padding: 0;
-        }
-
-
-
-        .password-input {
-            padding-right: 3rem !important;
-        }
-
-        .features-list {
-            background: #f0f9ff;
-            border-radius: 6px;
-            padding: 1rem;
-            margin-top: 1rem;
-        }
-
-        .features-list h4 {
-            color: #2563eb;
-            font-size: 0.9rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .features-list ul {
-            list-style: none;
-            font-size: 0.85rem;
-            color: #1e40af;
-        }
-
-        .features-list li {
-            margin: 0.25rem 0;
-            padding-left: 1rem;
-            position: relative;
-        }
-
-        .features-list li:before {
-            content: "✓";
-            position: absolute;
-            left: 0;
-            color: #10b981;
-            font-weight: bold;
-        }
-
-        @media (max-width: 480px) {
-            .login-container {
-                margin: 10px;
-            }
-
-            .login-header {
-                padding: 1.5rem;
-            }
-
-            .login-form {
-                padding: 1.5rem;
-            }
-        }
+      }
     </style>
-</head>
+  </head>
 
-<body>
+  <body>
     <div class="login-container">
-        <div class="login-header">
-            <span class="weather-icon">🌦️</span>
-            <h1>Admin Dashboard</h1>
-            <p>Weather API Monitoring System</p>
+      <div class="login-header">
+        <span class="weather-icon">🌦️</span>
+        <h1>Admin Dashboard</h1>
+        <p>Weather API Monitoring System</p>
+      </div>
+
+      <div class="login-form">
+        <div class="demo-credentials">
+          <h4>🔑 Demo Credentials</h4>
+          <div class="credential-item"><strong>Username:</strong> admin</div>
+          <div class="credential-item"><strong>Password:</strong> admin123</div>
         </div>
 
-        <div class="login-form">
-            <div class="demo-credentials">
-                <h4>🔑 Demo Credentials</h4>
-                <div class="credential-item">
-                    <strong>Username:</strong> admin
-                </div>
-                <div class="credential-item">
-                    <strong>Password:</strong> admin123
-                </div>
-            </div>
-
-            <div class="error-message" id="error-message">
-                Invalid credentials. Please try again.
-            </div>
-
-            <div class="success-message" id="success-message">
-                Login successful! Redirecting to dashboard...
-            </div>
-
-            <form id="login-form">
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" name="username" placeholder="Enter your username" value="admin"
-                        required autocomplete="username">
-                </div>
-
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" placeholder="Enter your password"
-                        value="admin123" class="password-input" required autocomplete="current-password">
-                    <button type="button" class="show-password" onclick="togglePassword()">
-                        👁️
-                    </button>
-                </div>
-
-                <button type="submit" class="login-button" id="login-button">
-                    <span class="loading-spinner" id="loading-spinner"></span>
-                    <span id="button-text">🚀 Access Dashboard</span>
-                </button>
-            </form>
-
-            <div class="features-list">
-                <h4>📊 Dashboard Features</h4>
-                <ul>
-                    <li>Real-time system monitoring</li>
-                    <li>Performance metrics & analytics</li>
-                    <li>Live log viewer with filtering</li>
-                    <li>Error tracking & alerting</li>
-                    <li>Admin tools & configuration</li>
-                </ul>
-            </div>
+        <div class="error-message" id="error-message">
+          Invalid credentials. Please try again.
         </div>
 
-        <div class="login-footer">
-            <p>🔒 Secure access to Weather API monitoring</p>
-            <p>Version 1.0.0 • <span id="current-time"></span></p>
+        <div class="success-message" id="success-message">
+          Login successful! Redirecting to dashboard...
         </div>
+
+        <form id="login-form">
+          <div class="form-group">
+            <label for="username">Username</label>
+            <input
+              type="text"
+              id="username"
+              name="username"
+              placeholder="Enter your username"
+              value="admin"
+              required
+              autocomplete="username"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              placeholder="Enter your password"
+              value="admin123"
+              class="password-input"
+              required
+              autocomplete="current-password"
+            />
+            <button
+              type="button"
+              class="show-password"
+              onclick="togglePassword()"
+            >
+              👁️
+            </button>
+          </div>
+
+          <button type="submit" class="login-button" id="login-button">
+            <span class="loading-spinner" id="loading-spinner"></span>
+            <span id="button-text">🚀 Access Dashboard</span>
+          </button>
+        </form>
+
+        <div class="features-list">
+          <h4>📊 Dashboard Features</h4>
+          <ul>
+            <li>Real-time system monitoring</li>
+            <li>Performance metrics & analytics</li>
+            <li>Live log viewer with filtering</li>
+            <li>Error tracking & alerting</li>
+            <li>Admin tools & configuration</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="login-footer">
+        <p>🔒 Secure access to Weather API monitoring</p>
+        <p>Version 1.0.0 • <span id="current-time"></span></p>
+      </div>
     </div>
 
     <script>
-        // Update current time
-        function updateTime() {
-            const now = new Date();
-            document.getElementById('current-time').textContent = now.toLocaleString();
+      // Update current time
+      function updateTime() {
+        const now = new Date();
+        document.getElementById("current-time").textContent =
+          now.toLocaleString();
+      }
+
+      updateTime();
+      setInterval(updateTime, 1000);
+
+      // Toggle password visibility
+      function togglePassword() {
+        const passwordInput = document.getElementById("password");
+        const showPasswordBtn = document.querySelector(".show-password");
+
+        if (passwordInput.type === "password") {
+          passwordInput.type = "text";
+          showPasswordBtn.textContent = "🙈";
+        } else {
+          passwordInput.type = "password";
+          showPasswordBtn.textContent = "👁️";
+        }
+      }
+
+      // Show/hide messages
+      function showMessage(type, message) {
+        const errorDiv = document.getElementById("error-message");
+        const successDiv = document.getElementById("success-message");
+
+        // Hide all messages first
+        errorDiv.style.display = "none";
+        successDiv.style.display = "none";
+
+        if (type === "error") {
+          errorDiv.textContent = message;
+          errorDiv.style.display = "block";
+        } else if (type === "success") {
+          successDiv.textContent = message;
+          successDiv.style.display = "block";
         }
 
-        updateTime();
-        setInterval(updateTime, 1000);
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+          errorDiv.style.display = "none";
+          successDiv.style.display = "none";
+        }, 5000);
+      }
 
-        // Toggle password visibility
-        function togglePassword() {
-            const passwordInput = document.getElementById('password');
-            const showPasswordBtn = document.querySelector('.show-password');
+      // Set loading state
+      function setLoading(loading) {
+        const button = document.getElementById("login-button");
+        const spinner = document.getElementById("loading-spinner");
+        const buttonText = document.getElementById("button-text");
 
-            if (passwordInput.type === 'password') {
-                passwordInput.type = 'text';
-                showPasswordBtn.textContent = '🙈';
+        if (loading) {
+          button.disabled = true;
+          spinner.style.display = "block";
+          buttonText.textContent = "Authenticating...";
+        } else {
+          button.disabled = false;
+          spinner.style.display = "none";
+          buttonText.textContent = "🚀 Access Dashboard";
+        }
+      }
+
+      // Handle form submission
+      document
+        .getElementById("login-form")
+        .addEventListener("submit", async function (e) {
+          e.preventDefault();
+
+          const username = document.getElementById("username").value.trim();
+          const password = document.getElementById("password").value;
+
+          // Validate inputs
+          if (!username || !password) {
+            showMessage("error", "Please enter both username and password.");
+            return;
+          }
+
+          setLoading(true);
+
+          try {
+            // Create basic auth header
+            const credentials = btoa(`${username}:${password}`);
+
+            // Test authentication by accessing a protected endpoint
+            const response = await fetch("/admin/health", {
+              method: "GET",
+              headers: {
+                Authorization: `Basic ${credentials}`,
+                "Content-Type": "application/json",
+              },
+            });
+
+            if (response.ok) {
+              // Store credentials for subsequent requests (in a real app, use proper session management)
+              sessionStorage.setItem("adminAuth", credentials);
+
+              showMessage(
+                "success",
+                "Login successful! Redirecting to dashboard...",
+              );
+
+              // Redirect to dashboard after a short delay
+              setTimeout(() => {
+                window.location.replace("/admin/dashboard");
+              }, 1500);
+            } else if (response.status === 401 || response.status === 403) {
+              showMessage(
+                "error",
+                "Invalid username or password. Please try again.",
+              );
             } else {
-                passwordInput.type = 'password';
-                showPasswordBtn.textContent = '👁️';
+              showMessage("error", "Server error. Please try again later.");
             }
+          } catch (error) {
+            console.error("Login error:", error);
+            showMessage(
+              "error",
+              "Connection error. Please check your network and try again.",
+            );
+          } finally {
+            setLoading(false);
+          }
+        });
+
+      // Check if already authenticated
+      window.addEventListener("load", function () {
+        // Check for error parameters in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const error = urlParams.get("error");
+
+        if (error === "invalid") {
+          showMessage("error", "Invalid credentials. Please try again.");
+          // Clear the URL parameter
+          window.history.replaceState({}, document.title, "/admin/login");
         }
 
-        // Show/hide messages
-        function showMessage(type, message) {
-            const errorDiv = document.getElementById('error-message');
-            const successDiv = document.getElementById('success-message');
-
-            // Hide all messages first
-            errorDiv.style.display = 'none';
-            successDiv.style.display = 'none';
-
-            if (type === 'error') {
-                errorDiv.textContent = message;
-                errorDiv.style.display = 'block';
-            } else if (type === 'success') {
-                successDiv.textContent = message;
-                successDiv.style.display = 'block';
-            }
-
-            // Auto-hide after 5 seconds
-            setTimeout(() => {
-                errorDiv.style.display = 'none';
-                successDiv.style.display = 'none';
-            }, 5000);
+        const storedAuth = sessionStorage.getItem("adminAuth");
+        if (storedAuth) {
+          // Test if the stored credentials are still valid
+          fetch("/admin/health", {
+            headers: {
+              Authorization: `Basic ${storedAuth}`,
+            },
+          })
+            .then((response) => {
+              if (response.ok) {
+                // Already authenticated, redirect to dashboard and replace history
+                window.location.replace("/admin/dashboard");
+              } else {
+                // Credentials expired, clear them
+                sessionStorage.removeItem("adminAuth");
+              }
+            })
+            .catch(() => {
+              // Error checking auth, stay on login page
+              sessionStorage.removeItem("adminAuth");
+            });
         }
+      });
 
-        // Set loading state
-        function setLoading(loading) {
-            const button = document.getElementById('login-button');
-            const spinner = document.getElementById('loading-spinner');
-            const buttonText = document.getElementById('button-text');
-
-            if (loading) {
-                button.disabled = true;
-                spinner.style.display = 'block';
-                buttonText.textContent = 'Authenticating...';
-            } else {
-                button.disabled = false;
-                spinner.style.display = 'none';
-                buttonText.textContent = '🚀 Access Dashboard';
-            }
-        }
-
-        // Handle form submission
-        document.getElementById('login-form').addEventListener('submit', async function (e) {
-            e.preventDefault();
-
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value;
-
-            // Validate inputs
-            if (!username || !password) {
-                showMessage('error', 'Please enter both username and password.');
-                return;
-            }
-
-            setLoading(true);
-
-            try {
-                // Create basic auth header
-                const credentials = btoa(`${username}:${password}`);
-
-                // Test authentication by accessing a protected endpoint
-                const response = await fetch('/admin/health', {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Basic ${credentials}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                if (response.ok) {
-                    // Store credentials for subsequent requests (in a real app, use proper session management)
-                    sessionStorage.setItem('adminAuth', credentials);
-
-                    showMessage('success', 'Login successful! Redirecting to dashboard...');
-
-                    // Redirect to dashboard after a short delay
-                    setTimeout(() => {
-                        window.location.replace('/admin/dashboard');
-                    }, 1500);
-
-                } else if (response.status === 401 || response.status === 403) {
-                    showMessage('error', 'Invalid username or password. Please try again.');
-                } else {
-                    showMessage('error', 'Server error. Please try again later.');
-                }
-
-            } catch (error) {
-                console.error('Login error:', error);
-                showMessage('error', 'Connection error. Please check your network and try again.');
-            } finally {
-                setLoading(false);
-            }
+      // Handle Enter key on form inputs
+      document
+        .getElementById("username")
+        .addEventListener("keypress", function (e) {
+          if (e.key === "Enter") {
+            document.getElementById("password").focus();
+          }
         });
 
-        // Check if already authenticated
-        window.addEventListener('load', function () {
-            // Check for error parameters in URL
-            const urlParams = new URLSearchParams(window.location.search);
-            const error = urlParams.get('error');
-
-            if (error === 'invalid') {
-                showMessage('error', 'Invalid credentials. Please try again.');
-                // Clear the URL parameter
-                window.history.replaceState({}, document.title, '/admin/login');
-            }
-
-            const storedAuth = sessionStorage.getItem('adminAuth');
-            if (storedAuth) {
-                // Test if the stored credentials are still valid
-                fetch('/admin/health', {
-                    headers: {
-                        'Authorization': `Basic ${storedAuth}`
-                    }
-                })
-                    .then(response => {
-                        if (response.ok) {
-                            // Already authenticated, redirect to dashboard and replace history
-                            window.location.replace('/admin/dashboard');
-                        } else {
-                            // Credentials expired, clear them
-                            sessionStorage.removeItem('adminAuth');
-                        }
-                    })
-                    .catch(() => {
-                        // Error checking auth, stay on login page
-                        sessionStorage.removeItem('adminAuth');
-                    });
-            }
+      document
+        .getElementById("password")
+        .addEventListener("keypress", function (e) {
+          if (e.key === "Enter") {
+            document
+              .getElementById("login-form")
+              .dispatchEvent(new Event("submit"));
+          }
         });
 
-        // Handle Enter key on form inputs
-        document.getElementById('username').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
-                document.getElementById('password').focus();
-            }
-        });
-
-        document.getElementById('password').addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
-                document.getElementById('login-form').dispatchEvent(new Event('submit'));
-            }
-        });
-
-        // Auto-focus username field
-        document.getElementById('username').focus();
+      // Auto-focus username field
+      document.getElementById("username").focus();
     </script>
-</body>
-
+  </body>
 </html>

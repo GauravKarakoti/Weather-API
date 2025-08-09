@@ -1,6 +1,6 @@
 /**
  * Enhanced Error Handling Middleware with Monitoring Integration
- * 
+ *
  * Provides comprehensive error handling with:
  * - Structured error responses
  * - Error tracking and metrics
@@ -8,32 +8,32 @@
  * - Request context preservation
  */
 
-const { logError } = require('../utils/logger');
-const { monitoringService } = require('../services/monitoring.service');
+const { logError } = require("../utils/logger");
+const { monitoringService } = require("../services/monitoring.service");
 
 /**
  * Error severity levels for alert triggering
  */
 const ERROR_SEVERITY = {
-  LOW: 'low',
-  MEDIUM: 'medium',
-  HIGH: 'high',
-  CRITICAL: 'critical'
+  LOW: "low",
+  MEDIUM: "medium",
+  HIGH: "high",
+  CRITICAL: "critical",
 };
 
 /**
  * Error categorization for monitoring and alerting
  */
 const ERROR_CATEGORIES = {
-  VALIDATION: 'validation',
-  AUTHENTICATION: 'authentication',
-  AUTHORIZATION: 'authorization',
-  NETWORK: 'network',
-  EXTERNAL_API: 'external_api',
-  PARSING: 'parsing',
-  RATE_LIMIT: 'rate_limit',
-  SYSTEM: 'system',
-  UNKNOWN: 'unknown'
+  VALIDATION: "validation",
+  AUTHENTICATION: "authentication",
+  AUTHORIZATION: "authorization",
+  NETWORK: "network",
+  EXTERNAL_API: "external_api",
+  PARSING: "parsing",
+  RATE_LIMIT: "rate_limit",
+  SYSTEM: "system",
+  UNKNOWN: "unknown",
 };
 
 /**
@@ -45,7 +45,14 @@ const ERROR_CATEGORIES = {
  * @param {Object} details - Additional error details
  * @param {Object} req - Express request object (optional)
  */
-function handleError(res, statusCode, message, code, details = null, req = null) {
+function handleError(
+  res,
+  statusCode,
+  message,
+  code,
+  details = null,
+  req = null,
+) {
   const errRes = {
     statusCode,
     error: message,
@@ -64,26 +71,33 @@ function handleError(res, statusCode, message, code, details = null, req = null)
   const { category, severity } = categorizeError(statusCode, code);
 
   // Record error metrics
-  const route = req?.route?.path || req?.path || 'unknown';
+  const route = req?.route?.path || req?.path || "unknown";
   monitoringService.recordError(category, route);
 
   // Log error with context
   if (req) {
-    logError(new Error(`${code}: ${message}`), {
-      statusCode,
-      code,
-      category,
-      severity,
-      method: req.method,
-      url: req.url,
-      userAgent: req.get('User-Agent'),
-      ip: req.ip,
-      details
-    }, req.correlationId);
+    logError(
+      new Error(`${code}: ${message}`),
+      {
+        statusCode,
+        code,
+        category,
+        severity,
+        method: req.method,
+        url: req.url,
+        userAgent: req.get("User-Agent"),
+        ip: req.ip,
+        details,
+      },
+      req.correlationId,
+    );
   }
 
   // Trigger alerts for high/critical severity errors
-  if (severity === ERROR_SEVERITY.HIGH || severity === ERROR_SEVERITY.CRITICAL) {
+  if (
+    severity === ERROR_SEVERITY.HIGH ||
+    severity === ERROR_SEVERITY.CRITICAL
+  ) {
     triggerErrorAlert(statusCode, message, code, category, severity, req);
   }
 
@@ -101,25 +115,29 @@ function categorizeError(statusCode, code) {
   let severity = ERROR_SEVERITY.LOW;
 
   // Categorize by error code
-  if (code.includes('VALIDATION') || code.includes('INVALID')) {
+  if (code.includes("VALIDATION") || code.includes("INVALID")) {
     category = ERROR_CATEGORIES.VALIDATION;
     severity = ERROR_SEVERITY.LOW;
-  } else if (code.includes('AUTH') || code.includes('UNAUTHORIZED')) {
+  } else if (code.includes("AUTH") || code.includes("UNAUTHORIZED")) {
     category = ERROR_CATEGORIES.AUTHENTICATION;
     severity = ERROR_SEVERITY.MEDIUM;
-  } else if (code.includes('FORBIDDEN') || code.includes('ACCESS_DENIED')) {
+  } else if (code.includes("FORBIDDEN") || code.includes("ACCESS_DENIED")) {
     category = ERROR_CATEGORIES.AUTHORIZATION;
     severity = ERROR_SEVERITY.MEDIUM;
-  } else if (code.includes('RATE_LIMIT') || code.includes('TOO_MANY')) {
+  } else if (code.includes("RATE_LIMIT") || code.includes("TOO_MANY")) {
     category = ERROR_CATEGORIES.RATE_LIMIT;
     severity = ERROR_SEVERITY.MEDIUM;
-  } else if (code.includes('NETWORK') || code.includes('TIMEOUT') || code.includes('BAD_GATEWAY')) {
+  } else if (
+    code.includes("NETWORK") ||
+    code.includes("TIMEOUT") ||
+    code.includes("BAD_GATEWAY")
+  ) {
     category = ERROR_CATEGORIES.NETWORK;
     severity = ERROR_SEVERITY.HIGH;
-  } else if (code.includes('EXTERNAL') || code.includes('API')) {
+  } else if (code.includes("EXTERNAL") || code.includes("API")) {
     category = ERROR_CATEGORIES.EXTERNAL_API;
     severity = ERROR_SEVERITY.HIGH;
-  } else if (code.includes('PARSING') || code.includes('PARSE')) {
+  } else if (code.includes("PARSING") || code.includes("PARSE")) {
     category = ERROR_CATEGORIES.PARSING;
     severity = ERROR_SEVERITY.MEDIUM;
   }
@@ -148,10 +166,17 @@ function categorizeError(statusCode, code) {
  * @param {string} severity - Error severity
  * @param {Object} req - Express request object
  */
-async function triggerErrorAlert(statusCode, message, code, category, severity, req) {
+async function triggerErrorAlert(
+  statusCode,
+  message,
+  code,
+  category,
+  severity,
+  req,
+) {
   try {
     // Import email service dynamically to avoid circular dependencies
-    const emailService = require('../services/email.service');
+    const emailService = require("../services/email.service");
 
     const alertData = {
       timestamp: new Date().toISOString(),
@@ -161,18 +186,20 @@ async function triggerErrorAlert(statusCode, message, code, category, severity, 
       code,
       message,
       correlationId: req?.correlationId,
-      requestDetails: req ? {
-        method: req.method,
-        url: req.url,
-        userAgent: req.get('User-Agent'),
-        ip: req.ip
-      } : null
+      requestDetails: req
+        ? {
+            method: req.method,
+            url: req.url,
+            userAgent: req.get("User-Agent"),
+            ip: req.ip,
+          }
+        : null,
     };
 
     await emailService.sendErrorAlert(alertData);
   } catch (alertError) {
     // Log alert failure but don't throw to avoid error loops
-    console.error('Failed to send error alert:', alertError.message);
+    console.error("Failed to send error alert:", alertError.message);
   }
 }
 
@@ -185,10 +212,17 @@ async function triggerErrorAlert(statusCode, message, code, category, severity, 
  */
 function corsErrorHandler(err, req, res, next) {
   if (err.message === "Not allowed by CORS") {
-    return handleError(res, 403, "CORS blocked this origin", "CORS_DENIED", {
-      origin: req.get('Origin'),
-      referer: req.get('Referer')
-    }, req);
+    return handleError(
+      res,
+      403,
+      "CORS blocked this origin",
+      "CORS_DENIED",
+      {
+        origin: req.get("Origin"),
+        referer: req.get("Referer"),
+      },
+      req,
+    );
   }
   next(err);
 }
@@ -199,10 +233,17 @@ function corsErrorHandler(err, req, res, next) {
  * @param {Object} res - Express response object
  */
 function routeNotFoundHandler(req, res) {
-  return handleError(res, 404, "Route not found", "ROUTE_NOT_FOUND", {
-    attemptedRoute: req.originalUrl,
-    method: req.method
-  }, req);
+  return handleError(
+    res,
+    404,
+    "Route not found",
+    "ROUTE_NOT_FOUND",
+    {
+      attemptedRoute: req.originalUrl,
+      method: req.method,
+    },
+    req,
+  );
 }
 
 /**
@@ -214,7 +255,7 @@ function routeNotFoundHandler(req, res) {
  */
 function errorHandler(err, req, res, next) {
   // Don't log errors in test environment to avoid noise
-  if (process.env.NODE_ENV !== 'test') {
+  if (process.env.NODE_ENV !== "test") {
     console.error("Unhandled error:", err);
   }
 
@@ -228,7 +269,7 @@ function errorHandler(err, req, res, next) {
       err.message,
       err.code,
       err.details,
-      req
+      req,
     );
   }
 
@@ -236,13 +277,17 @@ function errorHandler(err, req, res, next) {
   return handleError(
     res,
     500,
-    process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message,
+    process.env.NODE_ENV === "production"
+      ? "Internal server error"
+      : err.message,
     "UNHANDLED_EXCEPTION",
-    process.env.NODE_ENV === 'production' ? null : {
-      stack: err.stack,
-      name: err.name
-    },
-    req
+    process.env.NODE_ENV === "production"
+      ? null
+      : {
+          stack: err.stack,
+          name: err.name,
+        },
+    req,
   );
 }
 

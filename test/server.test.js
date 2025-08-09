@@ -16,7 +16,7 @@ process.env.MIN_MAX_TEMPERATURE_CLASS = "min-max-temp-fallback";
 process.env.HUMIDITY_PRESSURE_CLASS = "humidity-pressure-fallback";
 process.env.CONDITION_CLASS = "condition-fallback";
 process.env.DATE_CLASS = "date-fallback";
-process.env.NODE_ENV = 'test';
+process.env.NODE_ENV = "test";
 process.env.SCRAPE_API_FIRST = "https://example.com/";
 process.env.SCRAPE_API_LAST = "/weather";
 
@@ -28,7 +28,7 @@ afterAll(async () => {
 });
 
 describe("City Validation", () => {
-  const { isValidCity } = require('../server');
+  const { isValidCity } = require("../server");
 
   test("should accept city names with digits", () => {
     expect(isValidCity("100 Mile House")).toBe(true);
@@ -64,7 +64,7 @@ describe("Weather API Endpoint", () => {
         <div class="humidity-pressure-fallback">60% 1015hPa</div>
         <div class="condition-fallback">Sunny</div>
         <div class="date-fallback">2023-12-01</div>
-      `
+      `,
     });
   });
 
@@ -98,7 +98,9 @@ describe("Weather API Endpoint", () => {
     axios.get.mockRejectedValue(new Error("API error"));
     const response = await request(app).get("/api/weather/London");
     expect(response.status).toBe(502);
-    expect(response.body.error).toBe("Failed to retrieve data from the weather service.");
+    expect(response.body.error).toBe(
+      "Failed to retrieve data from the weather service.",
+    );
     expect(response.body.code).toBe("BAD_GATEWAY");
   });
 });
@@ -106,7 +108,7 @@ describe("Weather API Endpoint", () => {
 describe("fetchWeatherData", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    axios.get.mockResolvedValue({ data: '<html></html>' });
+    axios.get.mockResolvedValue({ data: "<html></html>" });
   });
 
   test("should properly encode city names with diacritics", async () => {
@@ -115,7 +117,7 @@ describe("fetchWeatherData", () => {
 
     expect(axios.get).toHaveBeenCalled();
     const calledUrl = axios.get.mock.calls[0][0];
-    expect(calledUrl).toContain(encodeURIComponent(city).replace(/%20/g, '-'));
+    expect(calledUrl).toContain(encodeURIComponent(city).replace(/%20/g, "-"));
   });
 
   test("should handle city names with spaces", async () => {
@@ -124,7 +126,7 @@ describe("fetchWeatherData", () => {
 
     expect(axios.get).toHaveBeenCalled();
     const calledUrl = axios.get.mock.calls[0][0];
-    expect(calledUrl).toContain(encodeURIComponent(city).replace(/%20/g, '-'));
+    expect(calledUrl).toContain(encodeURIComponent(city).replace(/%20/g, "-"));
   });
 
   test("should handle city names with special characters", async () => {
@@ -133,7 +135,7 @@ describe("fetchWeatherData", () => {
 
     expect(axios.get).toHaveBeenCalled();
     const calledUrl = axios.get.mock.calls[0][0];
-    expect(calledUrl).toContain(encodeURIComponent(city).replace(/%20/g, '-'));
+    expect(calledUrl).toContain(encodeURIComponent(city).replace(/%20/g, "-"));
   });
 });
 
@@ -147,7 +149,7 @@ describe("Rate Limiting and Parsing", () => {
         <div class="humidity-pressure-fallback">60% 1015hPa</div>
         <div class="condition-fallback">Sunny</div>
         <div class="date-fallback">2023-12-01</div>
-      `
+      `,
     });
   });
 

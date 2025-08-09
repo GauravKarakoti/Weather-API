@@ -10,6 +10,7 @@ If you discover a security vulnerability in Weather-API, we encourage you to rep
 
 How to Report
 Please report vulnerabilities through one of the following secure channels:
+
 - Create a private security advisory on GitHub
 - Use GitHub's private vulnerability reporting feature
 - Contact the maintainers through GitHub issues (for non-sensitive matters only)
