@@ -43,8 +43,8 @@ const defaultConfig = {
   // Admin Dashboard Configuration
   ADMIN_DASHBOARD_ENABLED: "true",
   ADMIN_DASHBOARD_PATH: "/admin",
-  ADMIN_USERNAME: "admin",
-  ADMIN_PASSWORD: "admin123", // Change in production!
+  // Note: Admin credentials are now stored in PostgreSQL database
+  // Default admin user: username=admin, password=admin123
 };
 
 /**
@@ -169,9 +169,9 @@ const getEnvironmentConfig = (environment) => {
     case "production":
       return {
         LOG_LEVEL: "info",
-        ADMIN_PASSWORD: "", // Must be set via environment variable
         SECURITY_LOGGING_ENABLED: true,
         ALERT_THRESHOLD_ERROR_RATE: 5, // Stricter in production
+        // Note: Admin credentials managed via database in production
       };
 
     default:
@@ -246,6 +246,7 @@ const getConfigSummary = (config) => {
     adminDashboard: {
       enabled: config.ADMIN_DASHBOARD_ENABLED,
       path: config.ADMIN_DASHBOARD_PATH,
+      authMethod: "database", // Admin authentication via PostgreSQL
     },
     alerts: {
       email: !!config.ALERT_EMAIL,
