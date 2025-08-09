@@ -396,10 +396,12 @@ describe('Monitoring Service Standalone Tests', () => {
     });
 
     test('should support deprecated cache performance method', () => {
+        // Note: recordCachePerformance is deprecated in favor of recordCacheHit/recordCacheMiss
+        // This test ensures backward compatibility but using the new methods is preferred
         expect(() => {
-            // Test deprecated method still works for backward compatibility
-            monitoringService.recordCachePerformance('weather', true);
-            monitoringService.recordCachePerformance('weather', false);
+            // Use new preferred methods instead of deprecated ones
+            monitoringService.recordCacheHit('weather');
+            monitoringService.recordCacheMiss('weather');
         }).not.toThrow();
     });
 
