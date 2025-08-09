@@ -6,10 +6,28 @@
  * is properly configured.
  */
 
+const crypto = require('crypto');
 const { logger } = require('../utils/logger');
 const { initializeDatabase, testConnection, closePool } = require('../config/database');
 const { runMigrations } = require('./migrations');
 const { createUser, getUserByUsername, hashPassword } = require('../services/user.service');
+
+/**
+ * Generate a secure random password
+ * @returns {string} Secure password
+ */
+const generateSecurePassword = () => {
+    const length = 16;
+    const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+    let password = '';
+    
+    for (let i = 0; i < length; i++) {
+        const randomIndex = crypto.randomInt(0, charset.length);
+        password += charset[randomIndex];
+    }
+    
+    return password;
+};
 
 /**
  * Initialize database and run setup tasks
@@ -88,10 +106,19 @@ const ensureDefaultAdminUser = async () => {
         // Create default admin user
         logger.info('Creating default admin user...');
 
+        // Get admin password from environment or generate a secure one
+        const adminPassword = process.env.ADMIN_PASSWORD || generateSecurePassword();
+        
+        if (!process.env.ADMIN_PASSWORD) {
+            logger.warn('⚠️  SECURITY: No ADMIN_PASSWORD environment variable set!');
+            logger.warn(`⚠️  Generated temporary password: ${adminPassword}`);
+            logger.warn('⚠️  Please set ADMIN_PASSWORD environment variable and restart the application');
+        }
+
         const defaultUser = {
-            username: 'admin',
-            password: 'admin123', // Default password - should be changed in production
-            email: 'admin@weatherapi.local',
+            username: process.env.ADMIN_USERNAME || 'admin',
+            password: adminPassword,
+            email: process.env.ADMIN_EMAIL || 'admin@weatherapi.local',
             role: 'admin'
         };
 

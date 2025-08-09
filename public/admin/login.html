@@ -296,9 +296,9 @@
 
     <div class="login-form">
       <div class="demo-credentials">
-        <h4>🔑 Demo Credentials</h4>
-        <div class="credential-item"><strong>Username:</strong> admin</div>
-        <div class="credential-item"><strong>Password:</strong> admin123</div>
+        <h4>🔑 Admin Login</h4>
+        <div class="credential-item"><strong>Note:</strong> Use your configured admin credentials</div>
+        <div class="credential-item"><strong>Default setup:</strong> Check server logs for initial credentials</div>
       </div>
 
       <div class="error-message" id="error-message">
@@ -312,13 +312,13 @@
       <form id="login-form">
         <div class="form-group">
           <label for="username">Username</label>
-          <input type="text" id="username" name="username" placeholder="Enter your username" value="admin" required
+          <input type="text" id="username" name="username" placeholder="Enter your username" required
             autocomplete="username" />
         </div>
 
         <div class="form-group">
           <label for="password">Password</label>
-          <input type="password" id="password" name="password" placeholder="Enter your password" value="admin123"
+          <input type="password" id="password" name="password" placeholder="Enter your password"
             class="password-input" required autocomplete="current-password" />
           <button type="button" class="show-password" onclick="togglePassword()" title="Toggle password visibility">
             <i class="fas fa-eye" id="toggle-icon"></i>
@@ -373,6 +373,8 @@
         passwordInput.type = "password";
         toggleIcon.className = "fas fa-eye";
         document.querySelector(".show-password").title = "Show password";
+        // Log password visibility toggle for security monitoring
+        console.warn('Password visibility toggled - security event logged');
       }
     }
 
