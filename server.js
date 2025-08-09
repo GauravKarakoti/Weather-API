@@ -34,7 +34,11 @@ const adminRoutes = require("./src/routes/admin.routes");
 const { handleError } = require("./src/middlewares/error.middleware");
 
 // Database initialization
-const { initializeApp, shutdownDatabase, getDatabaseHealth } = require("./src/database/init");
+const {
+  initializeApp,
+  shutdownDatabase,
+  getDatabaseHealth,
+} = require("./src/database/init");
 
 // Load environment variables
 const envResult = dotenv.config();
@@ -694,7 +698,7 @@ const stopServer = async () => {
   try {
     await shutdownDatabase();
   } catch (error) {
-    logger.error('Error during database shutdown', { error: error.message });
+    logger.error("Error during database shutdown", { error: error.message });
   }
 
   return new Promise((resolve, reject) => {
@@ -748,21 +752,26 @@ if (process.env.NODE_ENV !== "test") {
         monitoring: "enabled",
         adminDashboard: `/admin/dashboard`,
         adminLogin: `/admin/login`,
-        defaultCredentials: process.env.NODE_ENV !== 'production' ?
-          "admin/admin123 (change in production)" : "configured via database"
+        defaultCredentials:
+          process.env.NODE_ENV !== "production"
+            ? "admin/admin123 (change in production)"
+            : "configured via database",
       });
     } catch (error) {
       logError(error, { context: "server-startup" });
 
       // For database errors, log additional context
-      if (error.message.includes('DATABASE_URL')) {
-        logger.error("Database connection failed. Please ensure DATABASE_URL is set in your .env file", {
-          hint: "Example: DATABASE_URL=postgresql://username:password@host:port/database?ssl=true"
-        });
+      if (error.message.includes("DATABASE_URL")) {
+        logger.error(
+          "Database connection failed. Please ensure DATABASE_URL is set in your .env file",
+          {
+            hint: "Example: DATABASE_URL=postgresql://username:password@host:port/database?ssl=true",
+          },
+        );
       }
 
       // Don't exit on database errors in development, but warn
-      if (process.env.NODE_ENV === 'production') {
+      if (process.env.NODE_ENV === "production") {
         logger.error("Critical error during startup in production. Exiting...");
         process.exit(1);
       } else {
@@ -781,34 +790,34 @@ const gracefulShutdown = async (signal) => {
 
   try {
     await stopServer();
-    logger.info('Graceful shutdown completed');
+    logger.info("Graceful shutdown completed");
     process.exit(0);
   } catch (error) {
-    logger.error('Error during graceful shutdown', { error: error.message });
+    logger.error("Error during graceful shutdown", { error: error.message });
     process.exit(1);
   }
 };
 
 // Register shutdown handlers
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
 // Handle uncaught exceptions
-process.on('uncaughtException', (error) => {
-  logger.error('Uncaught Exception', {
+process.on("uncaughtException", (error) => {
+  logger.error("Uncaught Exception", {
     error: error.message,
-    stack: error.stack
+    stack: error.stack,
   });
-  gracefulShutdown('uncaughtException');
+  gracefulShutdown("uncaughtException");
 });
 
 // Handle unhandled promise rejections
-process.on('unhandledRejection', (reason, promise) => {
-  logger.error('Unhandled Rejection', {
+process.on("unhandledRejection", (reason, promise) => {
+  logger.error("Unhandled Rejection", {
     reason: reason,
-    promise: promise
+    promise: promise,
   });
-  gracefulShutdown('unhandledRejection');
+  gracefulShutdown("unhandledRejection");
 });
 
 module.exports = {

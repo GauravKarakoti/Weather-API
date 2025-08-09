@@ -17,6 +17,7 @@ npm install
 ```
 
 This will install the new PostgreSQL dependencies:
+
 - `pg` - PostgreSQL client for Node.js
 - `bcrypt` - Password hashing library
 
@@ -85,18 +86,21 @@ CREATE TABLE admin_users (
 ## Features
 
 ### 🔐 **Enhanced Security**
+
 - Bcrypt password hashing with salt rounds 12
 - Account locking after 5 failed attempts (30-minute lockout)
 - Secure session handling
 - Database-stored credentials
 
 ### 📊 **Admin Management**
+
 - Create new admin users
 - Update passwords
 - Deactivate accounts
 - View user activity logs
 
 ### 🔍 **Database Monitoring**
+
 - Connection pool status
 - Migration status tracking
 - Database health checks
@@ -105,6 +109,7 @@ CREATE TABLE admin_users (
 ## API Endpoints
 
 ### Authentication
+
 All admin routes now use database authentication via Basic Auth headers.
 
 ### New Database Management Endpoints
@@ -167,11 +172,13 @@ npm run lint:fix
 ## Production Deployment
 
 ### 1. Environment Setup
+
 - Set `NODE_ENV=production`
 - Use a strong `DATABASE_URL` connection string
 - Change default admin password immediately
 
 ### 2. Security Checklist
+
 - [ ] Update default admin password
 - [ ] Use environment-specific database
 - [ ] Enable SSL/TLS for database connections
@@ -179,6 +186,7 @@ npm run lint:fix
 - [ ] Set up monitoring alerts
 
 ### 3. Database Backup
+
 Ensure your Neon database has automated backups enabled.
 
 ## Troubleshooting
@@ -186,31 +194,38 @@ Ensure your Neon database has automated backups enabled.
 ### Connection Issues
 
 **Error**: `DATABASE_URL environment variable is not set`
+
 - **Solution**: Add DATABASE_URL to your `.env` file
 
 **Error**: `Database connection test failed`
+
 - **Solution**: Verify your DATABASE_URL format and credentials
 - Check if your Neon database is active
 
 **Error**: `SSL connection required`
+
 - **Solution**: Ensure `?sslmode=require` is in your DATABASE_URL
 
 ### Migration Issues
 
 **Error**: `relation "admin_users" does not exist`
+
 - **Solution**: Run `npm run db:migrate` to create tables
 
 **Error**: `Migration already executed`
+
 - **Solution**: This is normal - migrations run only once
 
 ### Authentication Issues
 
 **Error**: `Authentication service unavailable`
+
 - **Solution**: Check database connection and ensure migrations have run
 
 ## Support
 
 For issues related to:
+
 - **Database setup**: Check Neon documentation
 - **Application issues**: Check server logs
 - **Authentication**: Verify database connection and user creation
@@ -232,6 +247,6 @@ If you were previously using environment variables for admin credentials:
 ✅ **Security Features**: Account locking, failed attempt tracking  
 ✅ **Database Monitoring**: Health checks and performance metrics  
 ✅ **Migration System**: Automated database schema management  
-✅ **Graceful Shutdown**: Proper database connection cleanup  
+✅ **Graceful Shutdown**: Proper database connection cleanup
 
 The Weather API now supports robust user management while maintaining all existing weather functionality!

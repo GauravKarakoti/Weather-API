@@ -25,6 +25,7 @@ Minor security patches will be included in regular updates as needed.
 ## 🔧 Recent Security Improvements
 
 ### Fixed Vulnerabilities (Latest Update)
+
 - **Hardcoded Password Removal**: Removed hardcoded `admin123` password from all source files
 - **Login Form Security**: Removed password autofill and plain-text password display
 - **Environment-Based Authentication**: Admin credentials now configured via environment variables
@@ -32,6 +33,7 @@ Minor security patches will be included in regular updates as needed.
 - **Password Visibility Logging**: Added security logging for password visibility toggles
 
 ### Admin Setup (REQUIRED)
+
 1. Copy `.env.example` to `.env`
 2. Set secure admin credentials:
    ```env
@@ -45,9 +47,11 @@ Minor security patches will be included in regular updates as needed.
    - No dictionary words or personal information
 
 ### Security Warnings
+
 ⚠️ **If you don't set `ADMIN_PASSWORD`**: The system will generate a temporary password and log it to the console. This is for development only - always set a secure password in production.
 
 ## Security Best Practices
+
 Make sure to use the latest version of Weather-API for the latest security features and patches.
 Follow password best practices, such as using strong, unique passwords for each account.
 Regularly update your dependencies to the latest versions.

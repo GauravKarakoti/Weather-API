@@ -55,38 +55,37 @@ const adminAuth = async (req, res, next) => {
     const authResult = await authenticateUser(username, password);
 
     if (!authResult.success) {
-      logger.warn('Admin authentication failed', {
+      logger.warn("Admin authentication failed", {
         username,
         reason: authResult.message,
         ip: req.ip,
-        userAgent: req.get('User-Agent')
+        userAgent: req.get("User-Agent"),
       });
 
       return res.status(403).json({
-        error: authResult.message || "Invalid credentials"
+        error: authResult.message || "Invalid credentials",
       });
     }
 
     // Store user info in request for potential use in routes
     req.user = authResult.user;
 
-    logger.info('Admin authentication successful', {
+    logger.info("Admin authentication successful", {
       username: authResult.user.username,
       userId: authResult.user.id,
-      ip: req.ip
+      ip: req.ip,
     });
 
     return next();
-
   } catch (error) {
-    logger.error('Admin authentication error', {
+    logger.error("Admin authentication error", {
       error: error.message,
       ip: req.ip,
-      userAgent: req.get('User-Agent')
+      userAgent: req.get("User-Agent"),
     });
 
     return res.status(500).json({
-      error: "Authentication service unavailable"
+      error: "Authentication service unavailable",
     });
   }
 };
@@ -422,7 +421,7 @@ router.get("/database/status", adminAuth, async (req, res) => {
     res.json({
       connected: isConnected,
       pool: poolStatus,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
     logger.error("Failed to get database status:", error);
@@ -439,9 +438,9 @@ router.post("/database/migrate", adminAuth, async (req, res) => {
 
     await runMigrations();
 
-    logger.info('Admin action: Database migrations executed', {
+    logger.info("Admin action: Database migrations executed", {
       userId: req.user?.id,
-      username: req.user?.username
+      username: req.user?.username,
     });
 
     res.json({ message: "Database migrations completed successfully" });
@@ -494,15 +493,17 @@ router.post("/users", adminAuth, async (req, res) => {
     const { username, password, email, role = "admin" } = req.body;
 
     if (!username || !password) {
-      return res.status(400).json({ error: "Username and password are required" });
+      return res
+        .status(400)
+        .json({ error: "Username and password are required" });
     }
 
     const user = await createUser({ username, password, email, role });
 
-    logger.info('Admin action: New user created', {
+    logger.info("Admin action: New user created", {
       createdUserId: user.id,
       createdUsername: user.username,
-      createdBy: req.user?.username
+      createdBy: req.user?.username,
     });
 
     res.status(201).json(user);
@@ -532,9 +533,9 @@ router.put("/users/:userId/password", adminAuth, async (req, res) => {
 
     await updatePassword(parseInt(userId), password);
 
-    logger.info('Admin action: User password updated', {
+    logger.info("Admin action: User password updated", {
       targetUserId: userId,
-      updatedBy: req.user?.username
+      updatedBy: req.user?.username,
     });
 
     res.json({ message: "Password updated successfully" });
@@ -554,14 +555,16 @@ router.delete("/users/:userId", adminAuth, async (req, res) => {
 
     // Prevent users from deactivating themselves
     if (req.user?.id === parseInt(userId)) {
-      return res.status(400).json({ error: "Cannot deactivate your own account" });
+      return res
+        .status(400)
+        .json({ error: "Cannot deactivate your own account" });
     }
 
     await deactivateUser(parseInt(userId));
 
-    logger.info('Admin action: User deactivated', {
+    logger.info("Admin action: User deactivated", {
       targetUserId: userId,
-      deactivatedBy: req.user?.username
+      deactivatedBy: req.user?.username,
     });
 
     res.json({ message: "User deactivated successfully" });
