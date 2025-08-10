@@ -27,7 +27,7 @@ function errorHandler(err, req, res, next) {
     500,
     "Server error",
     "UNHANDLED_EXCEPTION",
-    err.message
+    err.message,
   );
 }
 
