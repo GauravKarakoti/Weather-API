@@ -1,5 +1,7 @@
 # 🌦️ Weather API - Your Personal Weather Scraper!
 
+![GSSoC Logo](/Weather-API/public/assets/gssoc%20logo.png)
+
 <a name="top"></a>
 A simple yet powerful weather scraper built with **Node.js, Express, and Cheerio**. This project dynamically fetches real-time weather data for any city, scrapes the necessary details, and presents them on an intuitive user interface. 🌍☀️🌧️
 
@@ -124,6 +126,44 @@ weather-api/
 
 ---
 
+## 🤝 Contributors:
+
+We love our contributors! If you'd like to help, please check out our [`CONTRIBUTE.md`](https://github.com/GauravKarakoti/Weather-API/blob/main/Contributing.md) file for guidelines.
+
+Thanks to these amazing people who have contributed to the **Weather-API** project:
+
+<!-- readme: contributors -start -->
+<p align="center">
+    <img src="https://api.vaunt.dev/v1/github/entities/GauravKarakoti/repositories/Weather-API/contributors?format=svg&limit=54" width="1000" />
+</p>
+<!-- readme: contributors -end -->
+
+---
+
+## 📬 Contact
+
+Have ideas, feedback, or just want to say hi?
+- 🛠️ Open an issue in the repository
+
+---
+
+## 📜 Code of Conduct
+
+To ensure a welcoming and inclusive environment, we have a Code of Conduct that all contributors are expected to follow. In short: **Be respectful, be kind, and be collaborative.** Please read the full [Code of Conduct](https://github.com/GauravKarakoti/Weather-API/blob/main/Code%20of%20Conduct.md) before participating.
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](https://github.com/GauravKarakoti/Weather-API/blob/main/LICENSE.md).
+
+---
+
+## 💡 Suggestions & Feedback
+Feel free to open issues or discussions if you have any feedback, feature suggestions, or want to collaborate!
+
+---
+
 ## 🤝 Contributions Welcome!
 
 💡 Have suggestions or improvements? Open an issue or submit a pull request!
@@ -140,6 +180,16 @@ const apiUrl = `http://localhost:3003/${city}`;
 
 ---
 
+<p align="center">
+  Thank you for your support!
+  <br>
+  <br>
+  <a href="https://github.com/GauravKarakoti/Weather-API/stargazers">
+    <img src="https://img.shields.io/github/stars/GauravKarakoti/Weather-API?style=for-the-badge&logo=github&color=FFC107&logoColor=white" alt="GitHub Stars">
+  </a>
+</p>
+
+---
 🚀 **Stay Ahead of the Weather – One City at a Time!** 🌍☀️🌧️
 
 [🔝 Back to Top](#top)
