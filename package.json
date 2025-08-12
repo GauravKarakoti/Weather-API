@@ -8,7 +8,10 @@
     "dev": "nodemon server.js",
     "lint": "eslint . --ext .js,.jsx",
     "lint:fix": "eslint . --ext .js,.jsx --fix",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "db:migrate": "node -e \"require('./src/database/migrations').runMigrations().then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); })\"",
+    "db:status": "node -e \"require('./src/database/migrations').getMigrationStatus().then(s => { console.log(JSON.stringify(s, null, 2)); process.exit(0); }).catch(e => { console.error(e); process.exit(1); })\"",
+    "db:reset": "node -e \"require('./src/database/init').resetDatabase().then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); })\""
   },
   "keywords": [],
   "author": "",
@@ -18,14 +21,22 @@
   "dependencies": {
     "@testing-library/dom": "^10.4.1",
     "axios": "^1.8.3",
+    "bcrypt": "^5.1.1",
     "cheerio": "^1.0.0-rc.10",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
-    "express": "^5.1.0",
-    "express-rate-limit": "^8.0.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "express-winston": "^4.2.0",
+    "ioredis": "^5.7.0",
+    "lz-string": "^1.5.0",
     "node-fetch": "^3.3.2",
     "nodemailer": "^7.0.5",
     "nodemon": "^3.1.9",
+    "pg": "^8.12.0",
+    "prom-client": "^15.0.0",
+    "winston": "^3.11.0",
+    "winston-daily-rotate-file": "^4.7.1",
     "xss": "^1.0.15"
   },
   "devDependencies": {
