@@ -52,15 +52,13 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  min-height: 100vh;
   background:
     linear-gradient(rgba(10, 10, 10, 0.8), rgba(10, 10, 10, 0.8)),
     url("./assets/WeatherBackground.png") no-repeat center center/cover;
-
   overflow-x: hidden;
-  color: #ffffff;
   padding: 20px;
-  box-sizing: border-box; /* Added for better box model handling */
+  box-sizing: border-box;
+  /* Added for better box model handling */
   font-family: "Segoe UI", "Arial", sans-serif;
   color: #f6f0d6;
   backdrop-filter: blur(3px);
@@ -116,7 +114,6 @@ body {
   padding: 5px;
   width: 100%;
   min-width: 400px;
-  padding: 10px 14px;
   font-size: 1rem;
   border: none;
   border-radius: 8px;
@@ -162,6 +159,7 @@ label {
   font-weight: 300;
   margin-left: 0.2em;
 }
+
 .searching {
   position: relative;
   display: flex;
@@ -181,8 +179,10 @@ label {
 }
 
 input {
-  width: 100%; /* MODIFICATION: Changed to 100% for better alignment */
-  box-sizing: border-box; /* Added for consistent padding */
+  width: 100%;
+  /* MODIFICATION: Changed to 100% for better alignment */
+  box-sizing: border-box;
+  /* Added for consistent padding */
   padding: 0.65rem 1rem !important;
   background: rgba(255, 255, 255, 0.05);
   color: var(--text-color);
@@ -283,8 +283,8 @@ button:focus-visible {
   border: none !important;
   outline: none !important;
   box-shadow: none !important;
-  background: none !important;
 }
+
 .searchBtn:focus-visible {
   outline: 2px solid #833092;
   outline-offset: 2px;
@@ -361,6 +361,7 @@ button {
   animation: spin 1s ease-in-out infinite;
   margin-left: 10px;
 }
+
 .spinner.loading {
   box-shadow:
     0 0 10px #833092,
@@ -371,6 +372,7 @@ button {
 .hidden {
   display: none;
 }
+
 .fade {
   opacity: 1;
   transition: opacity 0.3s ease;
@@ -385,13 +387,15 @@ button {
   font-size: 1.2em;
   padding: 0.4em 0.8em;
   background: transparent;
-  color: #ff4d6d; /* neon pink/red */
+  color: #ff4d6d;
+  /* neon pink/red */
   border: 1px solid #ff4d6d;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 0 6px rgba(255, 77, 109, 0.4);
 }
+
 .close-btn:hover {
   background: #ff4d6d;
   color: #fff;
@@ -429,6 +433,7 @@ button {
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 5px;
 }
+
 #weather-data::-webkit-scrollbar {
   width: 6px;
 }
@@ -445,6 +450,7 @@ button {
 .recent-searches {
   margin-top: 2.5em;
 }
+
 .recent-searches h2 {
   background: linear-gradient(to right, #ba68c8, #9575cd, purple);
   -webkit-background-clip: text;
@@ -472,12 +478,14 @@ button {
       0 0 20px var(--recent-title-glow2),
       0 0 40px var(--recent-title-shadow);
   }
+
   50% {
     text-shadow:
       0 0 15px var(--recent-title-glow2),
       0 0 30px var(--recent-title-glow1),
       0 0 60px var(--recent-title-shadow);
   }
+
   100% {
     text-shadow:
       0 0 10px var(--recent-title-glow1),
@@ -535,7 +543,6 @@ button {
 .error-message {
   color: var(--error-color);
   font-size: 0.9em;
-  margin-top: 0.5rem;
   display: flex;
   gap: 0.8em;
   justify-content: left;
@@ -564,7 +571,8 @@ button {
 @media (max-width: 600px) {
   .container {
     padding: 1em;
-    max-height: none; /* Allow container to grow */
+    max-height: none;
+    /* Allow container to grow */
   }
 
   .container h1 {

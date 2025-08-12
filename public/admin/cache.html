@@ -1,0 +1,694 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cache Management - Weather API Admin</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f5f5f5;
+        color: #333;
+        line-height: 1.6;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 10px;
+        margin-bottom: 2rem;
+        text-align: center;
+      }
+
+      .header h1 {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .header p {
+        font-size: 1.1rem;
+        opacity: 0.9;
+      }
+
+      .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+        margin-bottom: 2rem;
+      }
+
+      .card {
+        background: white;
+        border-radius: 10px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e1e5e9;
+      }
+
+      .card h3 {
+        color: #2c3e50;
+        margin-bottom: 1rem;
+        font-size: 1.3rem;
+        border-bottom: 2px solid #3498db;
+        padding-bottom: 0.5rem;
+      }
+
+      .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .stat-item {
+        text-align: center;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border: 1px solid #e9ecef;
+      }
+
+      .stat-value {
+        font-size: 1.8rem;
+        font-weight: bold;
+        color: #2c3e50;
+        display: block;
+      }
+
+      .stat-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        margin-top: 0.5rem;
+      }
+
+      .status-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 8px;
+      }
+
+      .status-connected {
+        background-color: #28a745;
+      }
+
+      .status-disconnected {
+        background-color: #dc3545;
+      }
+
+      .btn {
+        background: #3498db;
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 1rem;
+        margin: 0.25rem;
+        transition: background-color 0.3s;
+      }
+
+      .btn:hover {
+        background: #2980b9;
+      }
+
+      .btn-success {
+        background: #28a745;
+      }
+
+      .btn-success:hover {
+        background: #218838;
+      }
+
+      .btn-warning {
+        background: #ffc107;
+        color: #212529;
+      }
+
+      .btn-warning:hover {
+        background: #e0a800;
+      }
+
+      .btn-danger {
+        background: #dc3545;
+      }
+
+      .btn-danger:hover {
+        background: #c82333;
+      }
+
+      .form-group {
+        margin-bottom: 1rem;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+      }
+
+      .form-group input {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 1rem;
+      }
+
+      .alert {
+        padding: 1rem;
+        border-radius: 5px;
+        margin-bottom: 1rem;
+        border: 1px solid transparent;
+      }
+
+      .alert-success {
+        color: #155724;
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+      }
+
+      .alert-error {
+        color: #721c24;
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+      }
+
+      .alert-info {
+        color: #0c5460;
+        background-color: #d1ecf1;
+        border-color: #bee5eb;
+      }
+
+      .loading {
+        display: none;
+        text-align: center;
+        padding: 2rem;
+      }
+
+      .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #3498db;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 2s linear infinite;
+        margin: 0 auto 1rem;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .cache-keys {
+        max-height: 300px;
+        overflow-y: auto;
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 5px;
+        padding: 1rem;
+      }
+
+      .cache-key {
+        padding: 0.5rem;
+        margin-bottom: 0.5rem;
+        background: white;
+        border-radius: 3px;
+        font-family: monospace;
+        font-size: 0.9rem;
+        border: 1px solid #dee2e6;
+      }
+
+      .popular-cities {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 1rem;
+      }
+
+      .city-tag {
+        background: #e3f2fd;
+        color: #1976d2;
+        padding: 0.25rem 0.75rem;
+        border-radius: 15px;
+        font-size: 0.9rem;
+        border: 1px solid #bbdefb;
+      }
+
+      .back-link {
+        display: inline-block;
+        margin-bottom: 1rem;
+        color: #3498db;
+        text-decoration: none;
+        font-weight: 600;
+      }
+
+      .back-link:hover {
+        text-decoration: underline;
+      }
+
+      @media (max-width: 768px) {
+        .container {
+          padding: 10px;
+        }
+
+        .header h1 {
+          font-size: 2rem;
+        }
+
+        .dashboard-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <a href="/admin/dashboard" class="back-link">← Back to Admin Dashboard</a>
+
+      <div class="header">
+        <h1>🚀 Redis Cache Management</h1>
+        <p>Monitor and manage the Weather API caching system</p>
+      </div>
+
+      <div id="alerts"></div>
+
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>Loading cache data...</p>
+      </div>
+
+      <div class="dashboard-grid" id="dashboard">
+        <!-- Cache Health Status -->
+        <div class="card">
+          <h3>🔧 Redis Health Status</h3>
+          <div id="health-status">
+            <div class="stat-grid">
+              <div class="stat-item">
+                <span class="stat-value" id="redis-status">
+                  <span class="status-indicator status-disconnected"></span>
+                  Checking...
+                </span>
+                <div class="stat-label">Redis Connection</div>
+              </div>
+              <div class="stat-item">
+                <span class="stat-value" id="cache-keys-count">-</span>
+                <div class="stat-label">Total Cache Keys</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cache Performance -->
+        <div class="card">
+          <h3>📊 Cache Performance</h3>
+          <div id="performance-stats">
+            <div class="stat-grid">
+              <div class="stat-item">
+                <span class="stat-value" id="hit-rate">-</span>
+                <div class="stat-label">Hit Rate</div>
+              </div>
+              <div class="stat-item">
+                <span class="stat-value" id="total-hits">-</span>
+                <div class="stat-label">Total Hits</div>
+              </div>
+              <div class="stat-item">
+                <span class="stat-value" id="total-misses">-</span>
+                <div class="stat-label">Total Misses</div>
+              </div>
+              <div class="stat-item">
+                <span class="stat-value" id="compression-saved">-</span>
+                <div class="stat-label">Compression Saved</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cache Management Actions -->
+        <div class="card">
+          <h3>⚡ Cache Actions</h3>
+          <div style="margin-bottom: 1rem">
+            <button class="btn btn-success" onclick="warmCache()">
+              🔥 Warm Cache
+            </button>
+            <button class="btn btn-warning" onclick="refreshData()">
+              🔄 Refresh Data
+            </button>
+          </div>
+
+          <div class="form-group">
+            <label for="city-input">Invalidate Cache for City:</label>
+            <input
+              type="text"
+              id="city-input"
+              placeholder="Enter city name (e.g., London)"
+            />
+            <button
+              class="btn btn-danger"
+              onclick="invalidateCity()"
+              style="margin-top: 0.5rem"
+            >
+              🗑️ Invalidate City
+            </button>
+          </div>
+
+          <div class="form-group">
+            <label for="pattern-input">Invalidate Cache Pattern:</label>
+            <input
+              type="text"
+              id="pattern-input"
+              placeholder="Enter pattern (e.g., weather:*)"
+            />
+            <button
+              class="btn btn-danger"
+              onclick="invalidatePattern()"
+              style="margin-top: 0.5rem"
+            >
+              🗑️ Invalidate Pattern
+            </button>
+          </div>
+        </div>
+
+        <!-- Cache Analytics -->
+        <div class="card">
+          <h3>📈 Cache Analytics (Last 7 Days)</h3>
+          <div id="analytics-data">
+            <p>Loading analytics...</p>
+          </div>
+        </div>
+
+        <!-- Popular Cities -->
+        <div class="card">
+          <h3>🌟 Popular Cities</h3>
+          <p>These cities are automatically cached with longer TTL:</p>
+          <div class="popular-cities">
+            <div class="city-tag">London</div>
+            <div class="city-tag">New York</div>
+            <div class="city-tag">Tokyo</div>
+            <div class="city-tag">Paris</div>
+            <div class="city-tag">Sydney</div>
+            <div class="city-tag">Mumbai</div>
+            <div class="city-tag">Delhi</div>
+            <div class="city-tag">Shanghai</div>
+            <div class="city-tag">Los Angeles</div>
+            <div class="city-tag">Chicago</div>
+            <div class="city-tag">Toronto</div>
+            <div class="city-tag">Berlin</div>
+            <div class="city-tag">Madrid</div>
+            <div class="city-tag">Rome</div>
+            <div class="city-tag">Amsterdam</div>
+            <div class="city-tag">Singapore</div>
+            <div class="city-tag">Hong Kong</div>
+            <div class="city-tag">Dubai</div>
+            <div class="city-tag">Moscow</div>
+            <div class="city-tag">Seoul</div>
+          </div>
+        </div>
+
+        <!-- Cache Keys Overview -->
+        <div class="card">
+          <h3>🔑 Cache Keys Breakdown</h3>
+          <div id="cache-breakdown">
+            <div class="stat-grid">
+              <div class="stat-item">
+                <span class="stat-value" id="weather-keys">-</span>
+                <div class="stat-label">Weather Keys</div>
+              </div>
+              <div class="stat-item">
+                <span class="stat-value" id="forecast-keys">-</span>
+                <div class="stat-label">Forecast Keys</div>
+              </div>
+              <div class="stat-item">
+                <span class="stat-value" id="analytics-keys">-</span>
+                <div class="stat-label">Analytics Keys</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let refreshInterval;
+
+      // Initialize dashboard
+      document.addEventListener("DOMContentLoaded", function () {
+        loadCacheData();
+        // Auto-refresh every 30 seconds
+        refreshInterval = setInterval(loadCacheData, 30000);
+      });
+
+      // Load all cache data
+      async function loadCacheData() {
+        showLoading(true);
+
+        try {
+          await Promise.all([loadHealthStatus(), loadAnalytics()]);
+          showAlert("Cache data loaded successfully", "success");
+        } catch (error) {
+          showAlert("Error loading cache data: " + error.message, "error");
+        } finally {
+          showLoading(false);
+        }
+      }
+
+      // Load health status
+      async function loadHealthStatus() {
+        try {
+          const response = await fetch("/admin/cache/health");
+          const data = await response.json();
+
+          if (data.success) {
+            updateHealthStatus(data.health);
+          } else {
+            throw new Error("Health check failed");
+          }
+        } catch (error) {
+          console.error("Error loading health status:", error);
+          updateHealthStatus(null);
+        }
+      }
+
+      // Load analytics
+      async function loadAnalytics() {
+        try {
+          const response = await fetch("/admin/cache/analytics?days=7");
+          const data = await response.json();
+
+          if (data.success) {
+            updateAnalytics(data.analytics, data.redis);
+          } else {
+            throw new Error("Analytics load failed");
+          }
+        } catch (error) {
+          console.error("Error loading analytics:", error);
+          document.getElementById("analytics-data").innerHTML =
+            '<p style="color: #dc3545;">Error loading analytics data</p>';
+        }
+      }
+
+      // Update health status display
+      function updateHealthStatus(health) {
+        const redisStatus = document.getElementById("redis-status");
+        const cacheKeysCount = document.getElementById("cache-keys-count");
+        const weatherKeys = document.getElementById("weather-keys");
+        const forecastKeys = document.getElementById("forecast-keys");
+        const analyticsKeys = document.getElementById("analytics-keys");
+
+        if (health && health.redis) {
+          redisStatus.innerHTML =
+            '<span class="status-indicator status-connected"></span>Connected';
+          cacheKeysCount.textContent =
+            health.cacheKeys.weather +
+            health.cacheKeys.forecast +
+            health.cacheKeys.analytics;
+          weatherKeys.textContent = health.cacheKeys.weather;
+          forecastKeys.textContent = health.cacheKeys.forecast;
+          analyticsKeys.textContent = health.cacheKeys.analytics;
+        } else {
+          redisStatus.innerHTML =
+            '<span class="status-indicator status-disconnected"></span>Disconnected';
+          cacheKeysCount.textContent = "N/A";
+          weatherKeys.textContent = "N/A";
+          forecastKeys.textContent = "N/A";
+          analyticsKeys.textContent = "N/A";
+        }
+      }
+
+      // Update analytics display
+      function updateAnalytics(analytics, redis) {
+        document.getElementById("hit-rate").textContent = redis.hitRate || "0%";
+        document.getElementById("total-hits").textContent = redis.hits || 0;
+        document.getElementById("total-misses").textContent = redis.misses || 0;
+        document.getElementById("compression-saved").textContent =
+          redis.compressionSavedKB ? redis.compressionSavedKB + " KB" : "0 KB";
+
+        // Display daily analytics
+        const analyticsContainer = document.getElementById("analytics-data");
+        if (analytics.summary.totalHits + analytics.summary.totalMisses > 0) {
+          analyticsContainer.innerHTML = `
+                    <div class="stat-grid">
+                        <div class="stat-item">
+                            <span class="stat-value">${analytics.summary.hitRate}%</span>
+                            <div class="stat-label">7-Day Hit Rate</div>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">${analytics.summary.totalHits}</span>
+                            <div class="stat-label">Total Hits</div>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">${analytics.summary.totalMisses}</span>
+                            <div class="stat-label">Total Misses</div>
+                        </div>
+                    </div>
+                `;
+        } else {
+          analyticsContainer.innerHTML =
+            "<p>No analytics data available yet. Start using the API to see metrics.</p>";
+        }
+      }
+
+      // Cache management functions
+      async function warmCache() {
+        showLoading(true);
+        try {
+          const response = await fetch("/admin/cache/warm", { method: "POST" });
+          const data = await response.json();
+
+          if (data.success) {
+            showAlert(
+              `Cache warming initiated for ${data.citiesToWarm.length} cities`,
+              "success",
+            );
+            setTimeout(loadCacheData, 2000); // Refresh after 2 seconds
+          } else {
+            throw new Error(data.message || "Cache warming failed");
+          }
+        } catch (error) {
+          showAlert("Error warming cache: " + error.message, "error");
+        } finally {
+          showLoading(false);
+        }
+      }
+
+      async function invalidateCity() {
+        const city = document.getElementById("city-input").value.trim();
+        if (!city) {
+          showAlert("Please enter a city name", "error");
+          return;
+        }
+
+        try {
+          const response = await fetch("/admin/cache/invalidate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ city }),
+          });
+          const data = await response.json();
+
+          if (data.success) {
+            showAlert(data.message, "success");
+            document.getElementById("city-input").value = "";
+            setTimeout(loadCacheData, 1000);
+          } else {
+            throw new Error(data.error || "Invalidation failed");
+          }
+        } catch (error) {
+          showAlert("Error invalidating cache: " + error.message, "error");
+        }
+      }
+
+      async function invalidatePattern() {
+        const pattern = document.getElementById("pattern-input").value.trim();
+        if (!pattern) {
+          showAlert("Please enter a cache pattern", "error");
+          return;
+        }
+
+        try {
+          const response = await fetch("/admin/cache/invalidate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ pattern }),
+          });
+          const data = await response.json();
+
+          if (data.success) {
+            showAlert(data.message, "success");
+            document.getElementById("pattern-input").value = "";
+            setTimeout(loadCacheData, 1000);
+          } else {
+            throw new Error(data.error || "Invalidation failed");
+          }
+        } catch (error) {
+          showAlert("Error invalidating cache: " + error.message, "error");
+        }
+      }
+
+      function refreshData() {
+        loadCacheData();
+      }
+
+      // Utility functions
+      function showLoading(show) {
+        document.getElementById("loading").style.display = show
+          ? "block"
+          : "none";
+        document.getElementById("dashboard").style.display = show
+          ? "none"
+          : "grid";
+      }
+
+      function showAlert(message, type) {
+        const alertsContainer = document.getElementById("alerts");
+        const alertDiv = document.createElement("div");
+
+        // Extract nested ternary into independent statement
+        let alertType = "info";
+        if (type === "success") {
+          alertType = "success";
+        } else if (type === "error") {
+          alertType = "error";
+        }
+
+        alertDiv.className = `alert alert-${alertType}`;
+        alertDiv.textContent = message;
+
+        alertsContainer.appendChild(alertDiv);
+
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+          if (alertDiv.parentNode) {
+            alertDiv.parentNode.removeChild(alertDiv);
+          }
+        }, 5000);
+      }
+
+      // Cleanup on page unload
+      window.addEventListener("beforeunload", function () {
+        if (refreshInterval) {
+          clearInterval(refreshInterval);
+        }
+      });
+    </script>
+  </body>
+</html>

@@ -36,16 +36,31 @@ const getWeather = async (req, res) => {
       return text || null;
     };
 
-    const temperatureText = getElementText("TEMPERATURE_CLASS");
+    const temperatureText = getElementText(
+      process.env.TEMPERATURE_CLASS,
+      fallbackSelectors.TEMPERATURE_CLASS,
+    );
     const temperature = parseTemperature(temperatureText);
-    const minMaxText = getElementText("MIN_MAX_TEMPERATURE_CLASS");
+    const minMaxText = getElementText(
+      process.env.MIN_MAX_TEMPERATURE_CLASS,
+      fallbackSelectors.MIN_MAX_TEMPERATURE_CLASS,
+    );
     const { minTemperature, maxTemperature } =
       parseMinMaxTemperature(minMaxText);
-    const humidityPressureText = getElementText("HUMIDITY_PRESSURE_CLASS");
+    const humidityPressureText = getElementText(
+      process.env.HUMIDITY_PRESSURE_CLASS,
+      fallbackSelectors.HUMIDITY_PRESSURE_CLASS,
+    );
     const { humidity, pressure } = parseHumidityPressure(humidityPressureText);
-    const condition = getElementText("CONDITION_CLASS") || "N/A";
-    const dateText = getElementText("DATE_CLASS");
-    const date = formatDate(dateText);
+    const condition = getElementText(
+      process.env.CONDITION_CLASS,
+      fallbackSelectors.CONDITION_CLASS,
+    );
+    const dateText = getElementText(
+      process.env.DATE_CLASS,
+      fallbackSelectors.DATE_CLASS,
+    );
+    const date = formatDate(dateText); // Declare date variable here
 
     if (temperature === "N/A" && condition === "N/A") {
       return handleError(

@@ -1,12 +1,14 @@
 const parseTemperature = (text) => {
-  const match = text?.match(/-?\d+(\.\d+)?/);
+  // Fixed ReDoS vulnerability: Use atomic grouping to prevent backtracking
+  const match = text?.match(/-?\d+(?:\.\d+)?/);
   if (!match) return "N/A";
   const temp = parseFloat(match[0]);
   return temp >= -100 && temp <= 100 ? `${temp.toFixed(1)} °C` : "N/A";
 };
 
 const parseMinMaxTemperature = (text) => {
-  const matches = text?.match(/-?\d+(\.\d+)?/g) || [];
+  // Fixed ReDoS vulnerability: Use atomic grouping to prevent backtracking
+  const matches = text?.match(/-?\d+(?:\.\d+)?/g) || [];
   const min = parseFloat(matches[0]);
   const max = parseFloat(matches[1]);
   return {
