@@ -1,6 +1,12 @@
 // Use fixed app version (from package.json)
 const CACHE_VERSION = "app-cache-v1.0.0";
-const CORE_ASSETS = ["/", "/index.html", "/style.css", "/script.js"];
+const CORE_ASSETS = [
+  "/", 
+  "/index.html", 
+  "/style.css", 
+  "/script.js", 
+  "/fallback.png" // Added fallback image to core assets
+];
 
 // Install event: Cache core assets with partial success logging
 self.addEventListener("install", (event) => {
@@ -12,9 +18,7 @@ self.addEventListener("install", (event) => {
           CORE_ASSETS.map((url) =>
             fetch(url)
               .then((response) => {
-                if (response.ok) return cache.put(url, response);
-                // Clone response before caching
-                const responseClone = response.clone();
+                if (response.ok) return cache.put(url, response.clone());
                 console.warn(`Skipped caching: ${url} - ${response.status}`);
               })
               .catch((err) => console.warn(`Fetch failed for: ${url}`, err)),
@@ -50,7 +54,6 @@ self.addEventListener("fetch", (event) => {
         if (cached) return cached;
 
         return fetch(event.request).then((response) => {
-          const clonedResponse = response.clone();
           if (
             event.request.method === "GET" &&
             response.status === 200 &&
@@ -79,14 +82,11 @@ self.addEventListener("periodicsync", (event) => {
     event.waitUntil(
       (async () => {
         const cache = await caches.open(CACHE_VERSION);
-
-        // Get recent searches from storage to refresh their weather data
         const recentSearches = await getRecentSearches();
 
         if (recentSearches && recentSearches.length > 0) {
           await Promise.all(
             recentSearches.slice(0, 3).map(async (city) => {
-              // Limit to 3 most recent
               try {
                 const encodedCity = encodeURIComponent(city);
                 const url = `https://weather-api-ex1z.onrender.com/api/weather/${encodedCity}`;
@@ -109,7 +109,6 @@ self.addEventListener("periodicsync", (event) => {
           );
         }
 
-        // Also refresh config
         try {
           const configResponse = await fetch(
             "https://weather-api-ex1z.onrender.com/config",
@@ -129,38 +128,29 @@ self.addEventListener("periodicsync", (event) => {
   }
 });
 
-// Helper function to get recent searches from clients
+// Helper: Get recent searches from clients
 async function getRecentSearches() {
   try {
-    // Try to get recent searches from clients using MessageChannel
     const clients = await self.clients.matchAll();
-
     if (clients.length > 0) {
-      const client = clients[0]; // Use the first available client
-
+      const client = clients[0];
       return new Promise((resolve) => {
         const messageChannel = new MessageChannel();
-
         messageChannel.port1.onmessage = (event) => {
           if (event.data && event.data.recentSearches) {
             resolve(event.data.recentSearches);
           } else {
-            resolve(["London", "New York", "Tokyo"]); // Fallback
+            resolve(["London", "New York", "Tokyo"]);
           }
         };
-
         client.postMessage({ type: "GET_RECENT_SEARCHES" }, [
           messageChannel.port2,
         ]);
-
-        // Timeout after 5 seconds
         setTimeout(() => {
           resolve(["London", "New York", "Tokyo"]);
         }, 5000);
       });
     }
-
-    // Fallback: return some default cities if no clients
     return ["London", "New York", "Tokyo"];
   } catch (err) {
     console.error("Failed to get recent searches", err);
