@@ -308,7 +308,7 @@ const parseMinMaxTemperature = (rawText) => {
     }
     // Create global version from base pattern
     const regex = new RegExp(TEMPERATURE_PATTERN.source, 'g');
-    const matches = (rawText.match(regex) || [];
+    const matches = rawText.match(regex) || [];
     
     const minTemp = matches[0] ? parseFloat(matches[0]) : null;
     const maxTemp = matches[1] ? parseFloat(matches[1]) : null;
@@ -599,6 +599,8 @@ app.get("/api/weather/:city", weatherAuthMiddleware, async (req, res) => {
         "FORECAST_FETCH_ERROR",
         { originalError: err.message },
       );
+    } catch(err) {
+      console.log(err);
     }
   },
 );
@@ -629,18 +631,7 @@ app.get(
         );
       }
 
-      if (primarySelector && $(primarySelector).length) {
-        text = $(primarySelector).text()?.trim();
-      }
-
-      if (!text && fallbackSelector && $(fallbackSelector).length) {
-        text = $(fallbackSelector).text()?.trim();
-      }
-
-      return text || null;
-    };
-
-    const response = await fetchWeatherData(city);
+      const response = await fetchWeatherData(city);
     const $ = cheerio.load(response.data);
     
     const getElementText = (selectorKey) => {
@@ -707,6 +698,17 @@ app.get(
       });
 
       res.json(weatherData);
+
+      if (primarySelector && $(primarySelector).length) {
+        text = $(primarySelector).text()?.trim();
+      }
+
+      if (!text && fallbackSelector && $(fallbackSelector).length) {
+        text = $(fallbackSelector).text()?.trim();
+      }
+
+      return text || null;
+
     } catch (scrapingError) {
       const duration = Date.now() - startTime;
 
