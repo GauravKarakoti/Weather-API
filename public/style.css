@@ -55,7 +55,6 @@ body {
   background:
     linear-gradient(rgba(10, 10, 10, 0.8), rgba(10, 10, 10, 0.8)),
     url("./assets/WeatherBackground.png") no-repeat center center/cover;
-
   overflow-x: hidden;
   padding: 20px;
   box-sizing: border-box;

@@ -18,7 +18,9 @@ self.addEventListener("install", (event) => {
           CORE_ASSETS.map((url) =>
             fetch(url)
               .then((response) => {
-                if (response.ok) return cache.put(url, response.clone());
+                if (response.ok) return cache.put(url, response);
+                // Clone response before caching
+                const responseClone = response.clone();
                 console.warn(`Skipped caching: ${url} - ${response.status}`);
               })
               .catch((err) => console.warn(`Fetch failed for: ${url}`, err)),
@@ -54,6 +56,7 @@ self.addEventListener("fetch", (event) => {
         if (cached) return cached;
 
         return fetch(event.request).then((response) => {
+          const clonedResponse = response.clone();
           if (
             event.request.method === "GET" &&
             response.status === 200 &&
@@ -87,6 +90,7 @@ self.addEventListener("periodicsync", (event) => {
         if (recentSearches && recentSearches.length > 0) {
           await Promise.all(
             recentSearches.slice(0, 3).map(async (city) => {
+              // Limit to 3 most recent
               try {
                 const encodedCity = encodeURIComponent(city);
                 const url = `https://weather-api-ex1z.onrender.com/api/weather/${encodedCity}`;
@@ -132,25 +136,33 @@ self.addEventListener("periodicsync", (event) => {
 async function getRecentSearches() {
   try {
     const clients = await self.clients.matchAll();
+
     if (clients.length > 0) {
-      const client = clients[0];
+      const client = clients[0]; // Use the first available client
+
       return new Promise((resolve) => {
         const messageChannel = new MessageChannel();
+
         messageChannel.port1.onmessage = (event) => {
           if (event.data && event.data.recentSearches) {
             resolve(event.data.recentSearches);
           } else {
-            resolve(["London", "New York", "Tokyo"]);
+            resolve(["London", "New York", "Tokyo"]); // Fallback
           }
         };
+
         client.postMessage({ type: "GET_RECENT_SEARCHES" }, [
           messageChannel.port2,
         ]);
+
+        // Timeout after 5 seconds
         setTimeout(() => {
           resolve(["London", "New York", "Tokyo"]);
         }, 5000);
       });
     }
+
+    // Fallback: return some default cities if no clients
     return ["London", "New York", "Tokyo"];
   } catch (err) {
     console.error("Failed to get recent searches", err);

@@ -281,6 +281,7 @@ function errorHandler(err, req, res, next) {
       ? "Internal server error"
       : err.message,
     "UNHANDLED_EXCEPTION",
+    err.message,
     process.env.NODE_ENV === "production"
       ? null
       : {
