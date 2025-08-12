@@ -20,7 +20,7 @@ let requireAuth, optionalAuth;
 const axios = require("axios");
 const cheerio = require("cheerio");
 
-function handleError(res, statusCode, message, code, details = null) {
+function sendErrorResponse(res, statusCode, message, code, details = null) {
   const errRes = {
     statusCode,
     error: message,
@@ -491,13 +491,12 @@ app.get(
         "configuration",
         "/api/weather-forecast/:city",
       );
-      return handleError(
+      return sendErrorResponse(
         res,
         500,
         "API key not set",
         "MISSING_API_KEY",
         null,
-        req,
       );
     }
 
@@ -525,13 +524,12 @@ app.get(
           "error",
           "openweathermap",
         );
-        return handleError(
+        return sendErrorResponse(
           res,
           response.status,
           errorData.message || "City not found or failed to fetch data",
           "FORECAST_API_ERROR",
           null,
-          req,
         );
       }
 
@@ -594,13 +592,12 @@ app.get("/api/weather/:city", weatherAuthMiddleware, async (req, res) => {
   try {
     const city = sanitizeInput(req.params.city);
 
-      return handleError(
+      return sendErrorResponse(
         res,
         500,
         "Failed to fetch weather forecast",
         "FORECAST_FETCH_ERROR",
         { originalError: err.message },
-        req,
       );
     }
   },
@@ -623,13 +620,12 @@ app.get(
 
       if (!city || !isValidCity(city)) {
         monitoringService.recordError("validation", "/api/weather/:city");
-        return handleError(
+        return sendErrorResponse(
           res,
           400,
           "Invalid city name. Use letters, spaces, apostrophes (') and hyphens (-)",
           "INVALID_CITY",
           null,
-          req,
         );
       }
 
@@ -677,7 +673,7 @@ app.get(
       const date = formatDate(dateText);
 
       if (temperature === "N/A" && condition === "N/A") {
-        return handleError(
+        return sendErrorResponse(
           res,
           500,
           "Failed to parse weather data.",
@@ -743,35 +739,32 @@ app.get(
 
       if (scrapingError.code === "ECONNABORTED") {
         monitoringService.recordError("network", "/api/weather/:city");
-        return handleError(
+        return sendErrorResponse(
           res,
           504,
           "The weather service is taking too long. Try again later.",
           "TIMEOUT",
           null,
-          req,
         );
       }
       if (scrapingError.response?.status === 404) {
         monitoringService.recordError("external_api", "/api/weather/:city");
-        return handleError(
+        return sendErrorResponse(
           res,
           404,
           "City not found. Please check the spelling.",
           "CITY_NOT_FOUND",
           null,
-          req,
         );
       }
 
       monitoringService.recordError("external_api", "/api/weather/:city");
-      return handleError(
+      return sendErrorResponse(
         res,
         502,
         "Failed to retrieve data from the weather service.",
         "BAD_GATEWAY",
         null,
-        req,
       );
     }
   },
@@ -827,7 +820,7 @@ app.use(errorLoggingMiddleware);
 // CORS error handler
 app.use((err, req, res, next) => {
   if (err.message === "Not allowed by CORS") {
-    return handleError(
+    return sendErrorResponse(
       res,
       403,
       "CORS policy disallows access from this origin.",
@@ -846,7 +839,7 @@ app.use((err, req, res, next) => {
   if (process.env.NODE_ENV !== "production") {
     console.error("Unhandled error:", err);
   }
-  handleError(res, 500, "Internal server error", "SERVER_ERROR");
+  sendErrorResponse(res, 500, "Internal server error", "SERVER_ERROR");
 });
 app.use(errorHandler);
 

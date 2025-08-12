@@ -254,12 +254,10 @@ function routeNotFoundHandler(req, res) {
  * @param {Function} next - Express next function
  */
 function errorHandler(err, req, res, next) {
-  // Don't log errors in test environment to avoid noise
   if (process.env.NODE_ENV !== "test") {
     console.error("Unhandled error:", err);
   }
 
-  // Determine if this is a known error type
   const isKnownError = err.statusCode && err.code;
 
   if (isKnownError) {
@@ -273,7 +271,6 @@ function errorHandler(err, req, res, next) {
     );
   }
 
-  // Handle unknown errors
   return handleError(
     res,
     500,
@@ -281,7 +278,6 @@ function errorHandler(err, req, res, next) {
       ? "Internal server error"
       : err.message,
     "UNHANDLED_EXCEPTION",
-    err.message,
     process.env.NODE_ENV === "production"
       ? null
       : {
