@@ -1,6 +1,6 @@
 # 🌦️ Weather API - Your Personal Weather Scraper!
 
-![GSSoC Logo](/Weather-API/public/assets/gssoc%20logo.png)
+![GSSoC Logo]([/Weather-API/public/assets/gssoc%20logo.png](https://github.com/DivyaJain-DataAnalyst/Weather-API/blob/main/public/assets/gssoc%20logo.png))
 
 <a name="top"></a>
 
@@ -197,15 +197,16 @@ const apiUrl = `http://localhost:3003/${city}`;
 ---
 <div align="center">
   <h2 style="font-size:3rem;">Our Contributors <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Red%20Heart.png" alt="Red Heart" width="40" height="40" /></h2>
-  </div>
-  We love our contributors! If you'd like to help, please check out our [`CONTRIBUTE.md`](https://github.com/GauravKarakoti/Weather-API/blob/main/Contributing.md) file for guidelines.
+ 
+  We love our contributors! If you'd like to help, please check out our [CONTRIBUTE.md](https://github.com/GauravKarakoti/Weather-API/blob/main/Contributing.md) file for guidelines.
+  
   <h3>Thanks to these amazing people who have contributed to the **Weather-API** project:</h3>
 <p align="center">
     <img src="https://api.vaunt.dev/v1/github/entities/GauravKarakoti/repositories/Weather-API/contributors?format=svg&limit=54" width="1000" />
 </p>
 <p style="font-family:var(--ff-philosopher);font-size:3rem;"><b> Show some <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Red%20Heart.png" alt="Red Heart" width="40" height="40" /> by starring this awesome repository!
 </p>
-
+ </div>
 ---
 🚀 **Stay Ahead of the Weather – One City at a Time!** 🌍☀️🌧️
 
