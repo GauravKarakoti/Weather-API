@@ -3,10 +3,33 @@
 ![GSSoC Logo](/Weather-API/public/assets/gssoc%20logo.png)
 
 <a name="top"></a>
+
 A simple yet powerful weather scraper built with **Node.js, Express, and Cheerio**. This project dynamically fetches real-time weather data for any city, scrapes the necessary details, and presents them on an intuitive user interface. 🌍☀️🌧️
 
----
+[![Open Source](https://badges.frapsoft.com/os/v1/open-source.svg?v=103)](https://github.com/Apertre-2-0)
 
+<table align="center">
+    <thead align="center">
+        <tr border: 1px;>
+            <td><b><img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/tarikul-islam-anik/main/assets/images/Star.png" width="20" height="20"> Stars</b></td>
+            <td><b>🍴 Forks</b></td>
+            <td><b><img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/tarikul-islam-anik/main/assets/images/Lady%20Beetle.png" width="20" height="20"> Issues</b></td>
+            <td><b><img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/tarikul-islam-anik/main/assets/images/Check%20Mark%20Button.png" width="20" height="20"> Open PRs</b></td>
+            <td><b><img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/tarikul-islam-anik/main/assets/images/Cross%20Mark.png" width="20" height="20"> Closed PRs</b></td>
+        </tr>
+     </thead>
+    <tbody>
+         <tr>
+            <td><img alt="Stars" src="https://img.shields.io/github/stars/GauravKarakoti/Weather-API?style=flat&logo=github"/></td>
+             <td><img alt="Forks" src="https://img.shields.io/github/forks/GauravKarakoti/Weather-API?style=flat&logo=github"/></td>
+            <td><img alt="Issues" src="https://img.shields.io/github/issues/GauravKarakoti/Weather-API?style=flat&logo=github"/></td>
+            <td><img alt="Open Pull Requests" src="https://img.shields.io/github/issues-pr/GauravKarakoti/Weather-API?style=flat&logo=github"/></td>
+           <td><img alt="Closed Pull Requests" src="https://img.shields.io/github/issues-pr-closed/GauravKarakoti/Weather-API?style=flat&color=critical&logo=github"/></td>
+        </tr>
+    </tbody>
+</table>
+
+---
 ## ✨ Features That Shine
 
 🔹 **Real-Time Weather Data:** Get instant updates on:
@@ -125,40 +148,22 @@ weather-api/
 - **Jest** - Efficient And RObut management for testing 💪🏻
 
 ---
-
-## 🤝 Contributors:
-
-We love our contributors! If you'd like to help, please check out our [`CONTRIBUTE.md`](https://github.com/GauravKarakoti/Weather-API/blob/main/Contributing.md) file for guidelines.
-
-Thanks to these amazing people who have contributed to the **Weather-API** project:
-
-<!-- readme: contributors -start -->
-<p align="center">
-    <img src="https://api.vaunt.dev/v1/github/entities/GauravKarakoti/repositories/Weather-API/contributors?format=svg&limit=54" width="1000" />
-</p>
-<!-- readme: contributors -end -->
-
----
-
 ## 📬 Contact
 
 Have ideas, feedback, or just want to say hi?
 - 🛠️ Open an issue in the repository
 
 ---
-
 ## 📜 Code of Conduct
 
 To ensure a welcoming and inclusive environment, we have a Code of Conduct that all contributors are expected to follow. In short: **Be respectful, be kind, and be collaborative.** Please read the full [Code of Conduct](https://github.com/GauravKarakoti/Weather-API/blob/main/Code%20of%20Conduct.md) before participating.
 
 ---
-
 ## 📄 License
 
 This project is licensed under the [MIT License](https://github.com/GauravKarakoti/Weather-API/blob/main/LICENSE.md).
 
 ---
-
 ## 💡 Suggestions & Feedback
 Feel free to open issues or discussions if you have any feedback, feature suggestions, or want to collaborate!
 
@@ -180,16 +185,32 @@ const apiUrl = `http://localhost:3003/${city}`;
 
 ---
 
+<h2>Project Admin:</h2>
+<table>
+<tr>
+<td align="center">
+<a href="https://github.com/GauravKarakoti"><img src="https://avatars.githubusercontent.com/u/180496085?v=4" height="140px" width="140px" alt="Gaurav Karakoti "></a><br><sub><b>Gaurav Karakoti </b><br><a href="https://www.linkedin.com/in/gaurav-karakoti-248960302/"><img src="https://github-production-user-asset-6210df.s3.amazonaws.com/73993775/278833250-adb040ea-e3ef-446e-bcd4-3e8d7d4c0176.png" width="45px" height="45px"></a></sub>
+</td>
+</tr>
+</table>
+
+---
+<div align="center">
+  <h2 style="font-size:3rem;">Our Contributors <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Red%20Heart.png" alt="Red Heart" width="40" height="40" /></h2>
+  </div>
+  We love our contributors! If you'd like to help, please check out our [`CONTRIBUTE.md`](https://github.com/GauravKarakoti/Weather-API/blob/main/Contributing.md) file for guidelines.
+  <h3>Thanks to these amazing people who have contributed to the **Weather-API** project:</h3>
 <p align="center">
-  Thank you for your support!
-  <br>
-  <br>
-  <a href="https://github.com/GauravKarakoti/Weather-API/stargazers">
-    <img src="https://img.shields.io/github/stars/GauravKarakoti/Weather-API?style=for-the-badge&logo=github&color=FFC107&logoColor=white" alt="GitHub Stars">
-  </a>
+    <img src="https://api.vaunt.dev/v1/github/entities/GauravKarakoti/repositories/Weather-API/contributors?format=svg&limit=54" width="1000" />
+</p>
+<p style="font-family:var(--ff-philosopher);font-size:3rem;"><b> Show some <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Red%20Heart.png" alt="Red Heart" width="40" height="40" /> by starring this awesome repository!
 </p>
 
 ---
 🚀 **Stay Ahead of the Weather – One City at a Time!** 🌍☀️🌧️
+
+---
+ **👨‍💻 Developed By**  **❤️GauravKarakoti❤️** 
+[GitHub](https://github.com/GauravKarakoti) | [LinkedIn](https://www.linkedin.com/in/gaurav-karakoti/)
 
 [🔝 Back to Top](#top)
