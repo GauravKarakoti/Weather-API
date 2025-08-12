@@ -185,11 +185,80 @@ app.use((req, res, next) => {
 // Admin routes for monitoring dashboard
 app.use("/admin", adminRoutes);
 
-const sanitizeInput = (str) => xss(str.trim());
+
+
+
+const xssOptions = {
+  whiteList: {}, // No HTML tags allowed - strip all HTML
+  stripIgnoreTag: true, // Remove all unrecognized tags
+  stripIgnoreTagBody: ['script'], // Remove script tag content entirely
+  allowCommentTag: false, // No HTML comments
+  css: false, // No inline CSS
+};
+
+
+const xssFilter = new xss.FilterXSS(xssOptions);
+
+
+const sanitizeInput = (str) => {
+  if (typeof str !== 'string') {
+    return '';
+  }
+
+  const xssFiltered = xssFilter.process(str);
+
+
+  const trimmed = xssFiltered.trim();
+
+  // Additional validation for city names - only allow safe characters
+  // This regex allows letters (including unicode), spaces, hyphens, apostrophes, and numbers
+  const sanitized = trimmed.replace(/[^\p{L}\p{M}\s''\-\d]/gu, '');
+
+  return sanitized;
+};
+
+
 
 const isValidCity = (city) => {
-  return /^[\p{L}\p{M}\s'’\-\d]{2,50}$/u.test(city);
+
+  if (typeof city !== 'string' || !city.trim()) {
+    return false;
+  }
+
+  if (city.length < 2 || city.length > 50) {
+    return false;
+  }
+
+  const validCityPattern = /^[\p{L}\p{M}\s''\-\d]{2,50}$/u;
+  if (!validCityPattern.test(city)) {
+    return false;
+  }
+
+
+  const xssPatterns = [
+    /<script/i,
+    /javascript:/i,
+    /on\w+=/i,
+    /<iframe/i,
+    /<object/i,
+    /<embed/i,
+    /data:text\/html/i
+  ];
+
+  return !xssPatterns.some(pattern => pattern.test(city));
 };
+
+
+const sanitizeCityName = (str) => {
+
+  const generalSanitized = sanitizeInput(str);
+
+
+  return generalSanitized
+    .replace(/[^\p{L}\p{M}\s''\-\d]/gu, '')
+    .substring(0, 50);
+};
+
 
 const parseTemperature = (rawText) => {
   try {
@@ -508,7 +577,7 @@ app.get(
     const startTime = Date.now();
 
     try {
-      const city = sanitizeInput(req.params.city);
+      const city = sanitizeCityName(req.params.city);
 
       // Log request
       logger.info(`Weather request for ${city}`, {
@@ -623,8 +692,10 @@ app.get(
         req.correlationId,
       );
 
+      // Sanitize error message before sending to admin
+    const sanitizedCity = sanitizeCityName(req.params.city);
       await sendAdminAlert(
-        `Weather scrape failed for city: ${req.params.city}\nReason: ${scrapingError.message}`,
+        `Weather scrape failed for city: ${sanitizedCity}\nReason: ${scrapingError.message}`,
       );
 
       if (scrapingError.code === "ECONNABORTED") {
