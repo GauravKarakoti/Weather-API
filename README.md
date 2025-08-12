@@ -1,12 +1,16 @@
 # 🌦️ Weather API - Your Personal Weather Scraper!
 
-![GSSoC Logo]([/Weather-API/public/assets/gssoc%20logo.png](https://github.com/DivyaJain-DataAnalyst/Weather-API/blob/main/public/assets/gssoc%20logo.png))
+![GSSoC Logo](https://github.com/GauravKarakoti/Weather-API/blob/main/public/assets/gssoc%20logo.png)
 
-<a name="top"></a>
+<tr>
+<td align="center">
+<a href="https://s2apertre.resourcio.in"><img src="https://s2apertre.resourcio.in/Logo_primary.svg" height="140px" width="180px" alt="Apertre 2025"></a>
+</td>
+</tr>
 
 A simple yet powerful weather scraper built with **Node.js, Express, and Cheerio**. This project dynamically fetches real-time weather data for any city, scrapes the necessary details, and presents them on an intuitive user interface. 🌍☀️🌧️
 
-[![Open Source](https://badges.frapsoft.com/os/v1/open-source.svg?v=103)](https://github.com/Apertre-2-0)
+[![Open Source](https://badges.frapsoft.com/os/v1/open-source.svg?v=103)](https://github.com/GauravKarakoti/Weather-API)
 
 <table align="center">
     <thead align="center">
