@@ -32,6 +32,16 @@ class RedisService {
       return;
     }
 
+    // Warn if required env vars are missing in production
+    if (process.env.NODE_ENV === "production") {
+      if (!process.env.REDIS_HOST) {
+        logger.warn("REDIS_HOST is not set in production environment.");
+      }
+      if (!process.env.REDIS_PORT) {
+        logger.warn("REDIS_PORT is not set in production environment.");
+      }
+    }
+
     try {
       const redisConfig = {
         host: process.env.REDIS_HOST || "localhost",
@@ -41,7 +51,8 @@ class RedisService {
         retryDelayOnFailover: 100,
         enableReadyCheck: true,
         maxRetriesPerRequest: 3,
-        lazyConnect: true,
+        // Set lazyConnect to false for production for immediate connection
+        lazyConnect: process.env.NODE_ENV === "production" ? false : true,
         keepAlive: 30000,
         connectTimeout: 10000,
         commandTimeout: 5000,
@@ -66,7 +77,15 @@ class RedisService {
       }
 
       this.setupEventHandlers();
-      this.connect();
+      // For production, connect immediately and log errors
+      if (process.env.NODE_ENV === "production") {
+        this.client.connect().catch((error) => {
+          logger.error("Redis connection failed on startup (production)", { error: error.message });
+          this.handleConnectionFailure();
+        });
+      } else {
+        this.connect();
+      }
     } catch (error) {
       logger.error("Redis initialization failed", { error: error.message });
       this.handleConnectionFailure();
