@@ -70,7 +70,7 @@ class RedisService {
 
         this.client = new Redis.Cluster(nodes, {
           redisOptions: redisConfig,
-          enableOfflineQueue: false,
+          // enableOfflineQueue is already false by default, so no need to set it explicitly unless you want to override
         });
       } else {
         this.client = new Redis(redisConfig);
