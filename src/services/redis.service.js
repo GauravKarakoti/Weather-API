@@ -51,8 +51,8 @@ class RedisService {
         retryDelayOnFailover: 100,
         enableReadyCheck: true,
         maxRetriesPerRequest: 3,
-        // Set lazyConnect to false for production for immediate connection
-        lazyConnect: process.env.NODE_ENV === "production" ? false : true,
+  // Set lazyConnect to true only if not in production
+  lazyConnect: process.env.NODE_ENV !== "production",
         keepAlive: 30000,
         connectTimeout: 10000,
         commandTimeout: 5000,
