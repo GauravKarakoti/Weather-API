@@ -588,23 +588,6 @@ app.get(
   },
 );
 
-app.get("/api/weather/:city", weatherAuthMiddleware, async (req, res) => {
-  try {
-    const city = sanitizeInput(req.params.city);
-
-      return sendErrorResponse(
-        res,
-        500,
-        "Failed to fetch weather forecast",
-        "FORECAST_FETCH_ERROR",
-        { originalError: err.message },
-      );
-    } catch(err) {
-      console.log(err);
-    }
-  },
-);
-
 app.get(
   "/api/weather/:city",
   CacheMiddleware.weatherCache,
@@ -893,7 +876,7 @@ const stopServer = async () => {
   });
 };
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3003;
 let server;
 
 if (process.env.NODE_ENV !== "test") {
