@@ -19,13 +19,11 @@ class RedisService {
       compressionSaved: 0,
     };
 
-    // Initialize without blocking
-    this.initialize().catch(error => {
-      logger.error("Redis initialization failed", { error: error.message });
-    });
+    // Initialize synchronously - async operations will be handled separately
+    this.initializeSync();
   }
 
-  async initialize() {
+  initializeSync() {
     // Check if Redis is disabled
     if (
       process.env.REDIS_HOST === "disabled" ||
@@ -35,6 +33,15 @@ class RedisService {
       return;
     }
 
+    // Schedule async initialization for next tick to avoid blocking constructor
+    setImmediate(() => {
+      this.initializeAsync().catch(error => {
+        logger.error("Redis initialization failed", { error: error.message });
+      });
+    });
+  }
+
+  async initializeAsync() {
     // Quick check - if we can't connect to Redis, disable it
     await this.testConnectionAndDisable();
   }
