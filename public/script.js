@@ -1,3 +1,20 @@
+
+
+// Service Worker Registration
+// -----------------------------
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+      .then((registration) => {
+        console.log('Service Worker registered with scope:', registration.scope);
+      })
+      .catch((error) => {
+        console.error('Service Worker registration failed:', error);
+      });
+  });
+}
+
+
 // Weather emoji configuration object
 const WEATHER_CONFIG = {
   emojis: {
@@ -654,34 +671,28 @@ async function loadConfig() {
 }
 
 function setupServiceWorker() {
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker
-        .register("/sw.js")
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js', { scope: '/' })
         .then((registration) => {
-          console.log(
-            "Service Worker registered with scope:",
-            registration.scope,
-          );
+          console.log('Service Worker registered with scope:', registration.scope);
 
-          // Register periodic sync if supported
+          // Optional: register periodic sync if supported
           setupPeriodicSync(registration);
 
+          // Listen for updates
           registration.onupdatefound = () => {
             const newSW = registration.installing;
             newSW.onstatechange = () => {
-              if (
-                newSW.state === "installed" &&
-                navigator.serviceWorker.controller
-              ) {
-                console.log("New content is available, please refresh.");
+              if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+                console.log('New content is available, please refresh.');
                 showUpdateNotification();
               }
             };
           };
         })
         .catch((error) =>
-          console.error("Service Worker registration failed:", error),
+          console.error('Service Worker registration failed:', error),
         );
     });
   }
