@@ -190,19 +190,11 @@ function cacheElements() {
     form.addEventListener("submit", handleSubmit);
   }
 
-  // Ensure clicking the visible buttons triggers the same logic without relying on native form submit
   if (weatherBtn) {
-    weatherBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      handleSubmit(e);
-    });
+    weatherBtn.addEventListener("click", handleSubmit);
   }
-
   if (searchBtn) {
-    searchBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      handleSubmit(e);
-    });
+    searchBtn.addEventListener("click", handleSubmit);
   }
 
   if (clearBtn) {
