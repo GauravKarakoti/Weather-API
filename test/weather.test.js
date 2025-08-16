@@ -6,19 +6,14 @@ const path = require("path");
 const { JSDOM } = require("jsdom");
 const { waitFor } = require("@testing-library/dom");
 
-// Load the actual HTML content once
 const html = fs.readFileSync(
   path.resolve(__dirname, "../public/index.html"),
-  "utf8",
+  "utf8"
 );
 
-// Mock fetch before all tests
+// Global mocks
 global.fetch = jest.fn();
-
-// Mock DOMPurify
-global.DOMPurify = {
-  sanitize: (str) => str,
-};
+global.DOMPurify = { sanitize: (str) => str };
 
 describe("Weather App Client-Side Tests", () => {
   let document;
@@ -26,10 +21,8 @@ describe("Weather App Client-Side Tests", () => {
   let scriptModule;
 
   beforeEach(() => {
-    // Reset mocks for each test
-    fetch.mockClear();
+    jest.clearAllMocks();
 
-    // Set up a new JSDOM instance for each test to ensure isolation
     const dom = new JSDOM(html, {
       url: "http://localhost",
       runScripts: "dangerously",
@@ -40,9 +33,9 @@ describe("Weather App Client-Side Tests", () => {
     document = window.document;
     global.window = window;
     global.document = document;
-    global.Event = window.Event; // Make the Event constructor available globally
+    global.Event = window.Event;
 
-    // Mock localStorage for consistent testing
+    // Mock localStorage
     const mockStorage = {};
     global.localStorage = {
       getItem: jest.fn((key) => mockStorage[key] || null),
@@ -57,17 +50,18 @@ describe("Weather App Client-Side Tests", () => {
       }),
     };
 
-    // Mock alert to prevent it from blocking test execution
+    // Prevent blocking alerts
     global.window.alert = jest.fn();
 
-    // Reset modules and re-require the script to get a fresh instance with the new DOM
+    // Reload script fresh each test
     jest.resetModules();
     scriptModule = require("../public/script.js");
 
-    // Manually initialize the application logic on the new JSDOM instance
-    scriptModule.initialize();
+    if (typeof scriptModule.initialize === "function") {
+      scriptModule.initialize();
+    }
 
-    // Mock the successful fetch responses
+    // Mock fetch API responses
     fetch.mockImplementation((url) => {
       if (url.toString().includes("/api/weather-forecast/")) {
         return Promise.resolve({
@@ -108,7 +102,6 @@ describe("Weather App Client-Side Tests", () => {
   });
 
   test("should display an error for empty city submission", async () => {
-    // Force the script to recache elements to ensure it's using the current DOM
     scriptModule.cacheElements();
 
     const cityInput = document.getElementById("city");
@@ -118,14 +111,13 @@ describe("Weather App Client-Side Tests", () => {
     expect(errorElement).toBeTruthy();
 
     cityInput.value = "";
-    // Directly call handleSubmit instead of relying on JSDOM's form submission
     const mockEvent = { preventDefault: jest.fn() };
     await scriptModule.handleSubmit(mockEvent);
 
     await waitFor(() => {
       expect(errorElement.textContent).toContain("City name cannot be empty.");
     });
-    // Ensure fetch was not called for an empty input
+
     expect(fetch).not.toHaveBeenCalled();
   });
 
@@ -135,20 +127,16 @@ describe("Weather App Client-Side Tests", () => {
     const recentList = document.getElementById("recent-list");
 
     cityInput.value = "London";
-    // Directly call handleSubmit instead of relying on JSDOM's form submission
     const mockEvent = { preventDefault: jest.fn() };
     await scriptModule.handleSubmit(mockEvent);
 
     await waitFor(() => {
-      // 1. Verify fetch was called with the correct URL
       expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining("/api/weather-forecast/London"),
+        expect.stringContaining("/api/weather-forecast/London")
       );
-      // 2. Verify weather data is rendered in the DOM
       expect(weatherDataContainer.innerHTML).toContain(
-        "<strong>Temp:</strong> 22.0°C",
+        "<strong>Temp:</strong> 22.0°C"
       );
-      // 3. Verify the city was added to the recent searches list
       expect(recentList.children.length).toBe(1);
       expect(recentList.textContent).toContain("London");
     });
@@ -157,7 +145,6 @@ describe("Weather App Client-Side Tests", () => {
   test("should add a city to recent searches and update the UI", async () => {
     const recentList = document.getElementById("recent-list");
 
-    // Manually call the function to test its logic in isolation
     scriptModule.addToRecentSearches("Tokyo");
 
     await waitFor(() => {
