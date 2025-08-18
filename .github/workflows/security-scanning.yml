@@ -1,0 +1,188 @@
+name: Security Scanning
+
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 2 * * 1'       # Weekly security scan (Monday 2 AM UTC)
+  workflow_dispatch:          # Manual trigger
+
+
+jobs:
+  npm-audit:
+    runs-on: ubuntu-latest
+    name: NPM Security Audit
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+
+    - name: Use Node.js 18 LTS
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18
+        cache: npm
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run npm audit
+      run: |
+        echo "## 🔍 NPM Audit Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Run audit and capture results
+        if npm audit --audit-level=moderate --json > audit-results.json; then
+          echo "✅ **No vulnerabilities found**" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "⚠️ **Vulnerabilities detected:**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          npm audit --audit-level=moderate >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🔧 Auto-fix Recommendations:" >> $GITHUB_STEP_SUMMARY
+        npm audit fix --dry-run >> $GITHUB_STEP_SUMMARY || true
+
+    - name: Upload audit results
+      uses: actions/upload-artifact@v4
+      with:
+        name: npm-audit-results
+        path: audit-results.json
+
+  eslint-security:
+    runs-on: ubuntu-latest
+    name: ESLint Security Analysis
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+
+    - name: Use Node.js 18 LTS
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18
+        cache: npm
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Install ESLint security plugins
+      run: |
+        npm install --no-save eslint-plugin-security@latest
+        npm install --no-save eslint-plugin-node@latest
+
+    - name: Run ESLint security scan
+      run: |
+        echo "## 🛡️ ESLint Security Analysis" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Create temporary eslint config with security rules
+        cat > .eslintrc.security.js << 'EOF'
+        module.exports = {
+          extends: ['./eslint.config.js'],
+          plugins: ['security', 'node'],
+          rules: {
+            'security/detect-unsafe-regex': 'error',
+            'security/detect-buffer-noassert': 'error',
+            'security/detect-child-process': 'warn',
+            'security/detect-disable-mustache-escape': 'error',
+            'security/detect-eval-with-expression': 'error',
+            'security/detect-no-csrf-before-method-override': 'error',
+            'security/detect-non-literal-fs-filename': 'warn',
+            'security/detect-non-literal-regexp': 'error',
+            'security/detect-object-injection': 'warn',
+            'security/detect-possible-timing-attacks': 'error',
+            'security/detect-pseudoRandomBytes': 'error'
+          }
+        };
+        EOF
+        
+        if npx eslint . --config .eslintrc.security.js --ext .js --format json > eslint-security.json; then
+          echo "✅ **No security issues found by ESLint**" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "⚠️ **Security issues detected:**" >> $GITHUB_STEP_SUMMARY
+          npx eslint . --config .eslintrc.security.js --ext .js || true
+        fi
+
+    - name: Upload ESLint security results
+      uses: actions/upload-artifact@v4
+      with:
+        name: eslint-security-results
+        path: eslint-security.json
+
+  codeql-analysis:
+    runs-on: ubuntu-latest
+    name: CodeQL Security Analysis
+    
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: javascript
+        queries: security-and-quality
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:javascript"
+
+  snyk-security:
+    runs-on: ubuntu-latest
+    name: Snyk Vulnerability Scan
+    if: ${{ vars.SNYK_TOKEN != '' || secrets.SNYK_TOKEN != '' }}
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+
+    - name: Use Node.js 18 LTS
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18
+        cache: npm
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run Snyk to check for vulnerabilities
+      uses: snyk/actions/node@master
+      continue-on-error: true
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        args: --severity-threshold=medium --json > snyk-results.json
+
+    - name: Upload Snyk results
+      uses: actions/upload-artifact@v4
+      with:
+        name: snyk-security-results
+        path: snyk-results.json
+
+  dependency-review:
+    runs-on: ubuntu-latest
+    name: Dependency Review
+    if: github.event_name == 'pull_request'
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+
+    - name: Dependency Review
+      uses: actions/dependency-review-action@v4
+      with:
+        fail-on-severity: moderate
+        comment-summary-in

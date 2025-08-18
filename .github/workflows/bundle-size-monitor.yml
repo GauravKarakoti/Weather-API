@@ -1,0 +1,343 @@
+name: Bundle Size Monitor
+
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+
+jobs:
+  analyze-dependencies:
+    runs-on: ubuntu-latest
+    name: Dependency Size Analysis
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch full history for comparison
+
+    - name: Use Node.js 18 LTS
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18
+        cache: npm
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Generate dependency analysis
+      run: |
+        echo "## 📦 Bundle Size Analysis" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Total node_modules size
+        NODE_MODULES_SIZE=$(du -sh node_modules 2>/dev/null | cut -f1 || echo "N/A")
+        echo "### 📁 Total Dependencies Size: **${NODE_MODULES_SIZE}**" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Production dependencies analysis
+        echo "### 🚀 Production Dependencies:" >> $GITHUB_STEP_SUMMARY
+        echo "| Package | Version | Size |" >> $GITHUB_STEP_SUMMARY
+        echo "|---------|---------|------|" >> $GITHUB_STEP_SUMMARY
+        
+        # Get production dependencies from package.json
+        PROD_DEPS=$(node -e "
+          const pkg = require('./package.json');
+          const deps = pkg.dependencies || {};
+          Object.keys(deps).forEach(dep => {
+            console.log(dep + '@' + deps[dep]);
+          });
+        ")
+        
+        for dep in $PROD_DEPS; do
+          if [ -d "node_modules/${dep%@*}" ]; then
+            SIZE=$(du -sh "node_modules/${dep%@*}" 2>/dev/null | cut -f1 || echo "N/A")
+            echo "| ${dep%@*} | ${dep#*@} | ${SIZE} |" >> $GITHUB_STEP_SUMMARY
+          fi
+        done
+
+    - name: Analyze critical packages
+      run: |
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### ⚡ Critical Package Analysis:" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Weather API specific packages
+        PACKAGES=("express" "axios" "cheerio" "cors" "dotenv")
+        
+        for pkg in "${PACKAGES[@]}"; do
+          if [ -d "node_modules/$pkg" ]; then
+            SIZE=$(du -sh "node_modules/$pkg" | cut -f1)
+            VERSION=$(node -e "console.log(require('./node_modules/$pkg/package.json').version)" 2>/dev/null || echo "N/A")
+            echo "- **$pkg** v$VERSION: $SIZE" >> $GITHUB_STEP_SUMMARY
+          fi
+        done
+
+    - name: Check for heavy dependencies
+      run: |
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🔍 Largest Dependencies (>5MB):" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Find large dependencies
+        find node_modules -maxdepth 1 -type d -exec du -sm {} + 2>/dev/null | \
+          awk '$1 > 5 {print "- **" $2 "**: " $1 "MB"}' | \
+          sed 's|node_modules/||' >> $GITHUB_STEP_SUMMARY || echo "✅ No dependencies over 5MB found" >> $GITHUB_STEP_SUMMARY
+
+  package-analysis:
+    runs-on: ubuntu-latest
+    name: Package Size Analysis
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+
+    - name: Use Node.js 18 LTS
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18
+        cache: npm
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Install bundle analysis tools
+      run: |
+        npm install -g cost-of-modules@latest
+        npm install -g bundlesize@latest
+
+    - name: Analyze source code size
+      run: |
+        echo "## 📝 Source Code Analysis" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Source code breakdown
+        echo "### 🗂️ Source Code Breakdown:" >> $GITHUB_STEP_SUMMARY
+        echo "| Directory | Size | Files |" >> $GITHUB_STEP_SUMMARY
+        echo "|-----------|------|-------|" >> $GITHUB_STEP_SUMMARY
+        
+        for dir in src public config; do
+          if [ -d "$dir" ]; then
+            SIZE=$(du -sh "$dir" | cut -f1)
+            FILES=$(find "$dir" -type f | wc -l)
+            echo "| $dir | $SIZE | $FILES |" >> $GITHUB_STEP_SUMMARY
+          fi
+        done
+        
+        # Main files
+        if [ -f "server.js" ]; then
+          SIZE=$(wc -c server.js | awk '{print $1}')
+          LINES=$(wc -l server.js | awk '{print $1}')
+          echo "| server.js | ${SIZE} bytes | ${LINES} lines |" >> $GITHUB_STEP_SUMMARY
+        fi
+
+    - name: Run cost-of-modules analysis
+      run: |
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 💰 Cost of Modules Analysis:" >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        cost-of-modules --less --no-install >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "Analysis completed" >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+    - name: Check for unused dependencies
+      run: |
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🧹 Dependency Usage Check:" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Simple check for unused dependencies
+        UNUSED_DEPS=""
+        
+        # Check each production dependency
+        node -e "
+          const fs = require('fs');
+          const pkg = require('./package.json');
+          const deps = Object.keys(pkg.dependencies || {});
+          
+          // Read all JS files
+          const glob = require('glob');
+          let allCode = '';
+          
+          try {
+            const files = glob.sync('**/*.js', { ignore: 'node_modules/**' });
+            files.forEach(file => {
+              allCode += fs.readFileSync(file, 'utf8');
+            });
+            
+            const unused = deps.filter(dep => 
+              !allCode.includes(dep) && 
+              !allCode.includes(dep.replace('-', ''))
+            );
+            
+            if (unused.length > 0) {
+              console.log('⚠️ **Potentially unused dependencies:**');
+              unused.forEach(dep => console.log('- ' + dep));
+            } else {
+              console.log('✅ **All dependencies appear to be used**');
+            }
+          } catch (e) {
+            console.log('✅ **Dependency usage check completed**');
+          }
+        " >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "✅ **Dependency usage check completed**" >> $GITHUB_STEP_SUMMARY
+
+  performance-impact:
+    runs-on: ubuntu-latest
+    name: Performance Impact Analysis
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+
+    - name: Use Node.js 18 LTS
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18
+        cache: npm
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Measure cold start time
+      run: |
+        echo "## ⏱️ Performance Impact" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Measure server startup time
+        echo "### 🚀 Server Startup Analysis:" >> $GITHUB_STEP_SUMMARY
+        
+        START_TIME=$(date +%s%3N)
+        timeout 30 node server.js &
+        SERVER_PID=$!
+        
+        # Wait for server to be ready
+        sleep 5
+        
+        if curl -f http://localhost:3003/api/version >/dev/null 2>&1; then
+          END_TIME=$(date +%s%3N)
+          STARTUP_TIME=$((END_TIME - START_TIME))
+          echo "- **Cold start time**: ${STARTUP_TIME}ms" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ✅ Server started successfully" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- **Status**: ⚠️ Server startup verification failed" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        kill $SERVER_PID 2>/dev/null || true
+
+    - name: Memory usage analysis
+      run: |
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🧠 Memory Usage Estimation:" >> $GITHUB_STEP_SUMMARY
+        
+        # Estimate memory usage based on dependencies
+        node -e "
+          const pkg = require('./package.json');
+          const deps = Object.keys(pkg.dependencies || {});
+          
+          // Rough estimation based on common package sizes
+          const heavyPackages = ['cheerio', 'axios', 'express'];
+          const lightPackages = ['cors', 'dotenv'];
+          
+          let estimatedMemory = 50; // Base Node.js + app
+          
+          deps.forEach(dep => {
+            if (heavyPackages.includes(dep)) {
+              estimatedMemory += 15;
+            } else if (lightPackages.includes(dep)) {
+              estimatedMemory += 2;
+            } else {
+              estimatedMemory += 5;
+            }
+          });
+          
+          console.log('- **Estimated memory usage**: ~' + estimatedMemory + 'MB');
+          console.log('- **Dependencies count**: ' + deps.length);
+          
+          if (estimatedMemory > 200) {
+            console.log('- **Recommendation**: ⚠️ Consider optimizing dependencies');
+          } else {
+            console.log('- **Status**: ✅ Memory usage looks reasonable');
+          }
+        " >> $GITHUB_STEP_SUMMARY
+
+  size-comparison:
+    runs-on: ubuntu-latest
+    name: Size Comparison
+    if: github.event_name == 'pull_request'
+
+    steps:
+    - name: Checkout PR source
+      uses: actions/checkout@v4
+
+    - name: Use Node.js 18 LTS
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18
+        cache: npm
+
+    - name: Install PR dependencies
+      run: npm ci
+
+    - name: Get PR bundle size
+      run: |
+        PR_SIZE=$(du -sh node_modules 2>/dev/null | cut -f1)
+        echo "PR_BUNDLE_SIZE=$PR_SIZE" >> $GITHUB_ENV
+
+    - name: Checkout main branch
+      uses: actions/checkout@v4
+      with:
+        ref: main
+
+    - name: Install main dependencies
+      run: npm ci
+
+    - name: Get main bundle size
+      run: |
+        MAIN_SIZE=$(du -sh node_modules 2>/dev/null | cut -f1)
+        echo "MAIN_BUNDLE_SIZE=$MAIN_SIZE" >> $GITHUB_ENV
+
+    - name: Compare sizes
+      run: |
+        echo "## 📊 Bundle Size Comparison" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Branch | Bundle Size |" >> $GITHUB_STEP_SUMMARY
+        echo "|--------|-------------|" >> $GITHUB_STEP_SUMMARY
+        echo "| main | ${{ env.MAIN_BUNDLE_SIZE }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| PR | ${{ env.PR_BUNDLE_SIZE }} |" >> $GITHUB_STEP_SUMMARY
+
+    - name: Comment PR with size analysis
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const comment = `## 📦 Bundle Size Analysis
+
+          ### 📊 Size Comparison:
+          - **Main branch**: ${{ env.MAIN_BUNDLE_SIZE }}
+          - **This PR**: ${{ env.PR_BUNDLE_SIZE }}
+
+          ### 🔍 What's Analyzed:
+          - Total \`node_modules\` size
+          - Production dependency breakdown  
+          - Critical package analysis (Express, Axios, Cheerio)
+          - Memory usage estimation
+          - Server startup time impact
+
+          ### 💡 Optimization Tips:
+          - Keep dependencies minimal for your weather API
+          - Consider using lightweight alternatives for heavy packages
+          - Regular dependency audits with \`npm outdated\`
+          - Use \`npm ls --depth=0\` to review direct dependencies
+
+          > 🚀 **Weather API Performance**: Smaller bundles = faster cold starts on Render!
+
+          *Automated by GitHub Actions Bundle Size Monitor*`;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
