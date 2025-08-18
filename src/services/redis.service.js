@@ -19,8 +19,8 @@ class RedisService {
       compressionSaved: 0,
     };
 
-    // Initialize synchronously - async operations will be handled separately
-    this.initializeSync();
+    // Note: Do NOT start any async work in the constructor.
+    // Call start() explicitly after environment variables are loaded.
   }
 
   initializeSync() {
@@ -46,6 +46,11 @@ class RedisService {
     await this.testConnectionAndDisable();
   }
 
+  // Public method to start the Redis service after env has been loaded
+  start() {
+    this.initializeSync();
+  }
+
   async testConnectionAndDisable() {
     try {
       const redisConfig = {
@@ -57,20 +62,39 @@ class RedisService {
         connectTimeout: 2000, // Very short timeout
         commandTimeout: 1000,
         enableOfflineQueue: false,
+        autoResendUnfulfilledCommands: false,
+        autoResubscribe: false,
+        retryStrategy: () => null, // disable auto-reconnect
+        reconnectOnError: () => false, // never reconnect on errors
+        showFriendlyErrorStack: true,
       };
 
       this.client = new Redis(redisConfig);
-      
+
+      // Attach handlers immediately to avoid "[ioredis] Unhandled error event" logs
+      this.client.on("error", (err) => {
+        logger.warn("Redis error during initialisation", { error: err.message });
+      });
+      this.client.on("end", () => {
+        this.isConnected = false;
+      });
+
       // Quick connection test
       await this.client.connect();
       await this.client.ping();
-      
+
       this.isConnected = true;
       logger.info("Redis connection successful - caching enabled");
       this.setupEventHandlers();
-      
+
     } catch (error) {
       logger.warn("Redis connection failed - disabling cache", { error: error.message });
+      if (this.client) {
+        try {
+          // Ensure the client is fully shut down to stop further events
+          this.client.disconnect();
+        } catch (_) {}
+      }
       this.disableRedis();
     }
   }

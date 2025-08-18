@@ -123,6 +123,13 @@ const sendAdminAlert = async (failedSelectors) => {
 
 const app = express();
 configureEnv(); // Load env or fallback
+// After env is set, explicitly start Redis service
+try {
+  redisService.start();
+} catch (e) {
+  // Never crash app due to cache startup issues
+  console.warn("Redis service start skipped due to initialization error:", e.message);
+}
 
 // Now that env is configured, require OAuth routes and middleware that depend on env
 ({
