@@ -595,22 +595,7 @@ app.get(
   },
 );
 
-app.get("/api/weather/:city", weatherAuthMiddleware, async (req, res) => {
-  try {
-    const city = sanitizeInput(req.params.city);
-
-      return sendErrorResponse(
-        res,
-        500,
-        "Failed to fetch weather forecast",
-        "FORECAST_FETCH_ERROR",
-        { originalError: err.message },
-      );
-    } catch(err) {
-      console.log(err);
-    }
-  },
-);
+// Removed erroneous duplicate route with unused variable and unreachable code
 
 app.get(
   "/api/weather/:city",

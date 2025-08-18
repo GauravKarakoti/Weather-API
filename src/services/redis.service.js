@@ -93,7 +93,11 @@ class RedisService {
         try {
           // Ensure the client is fully shut down to stop further events
           this.client.disconnect();
-        } catch (_) {}
+        } catch (disconnectError) {
+          logger.warn("Redis disconnect failed during cleanup", {
+            error: disconnectError.message,
+          });
+        }
       }
       this.disableRedis();
     }
