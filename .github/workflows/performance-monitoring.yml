@@ -1,0 +1,174 @@
+name: Performance Monitoring
+
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 8 * * 1'       # Weekly on Monday mornings (8 AM UTC)
+  workflow_dispatch:          # Manual trigger
+
+
+jobs:
+  lighthouse-audit:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Checkout code
+    - name: Checkout source
+      uses: actions/checkout@v4
+
+    # 2. Setup Node.js with caching
+    - name: Use Node.js 18 LTS
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18
+        cache: npm
+
+    # 3. Install dependencies
+    - name: Install dependencies
+      run: npm ci
+
+    # 4. Start your weather API server in background
+    - name: Start weather API server
+      run: |
+        npm start &
+        echo "Server starting..."
+        sleep 15
+        echo "Checking if server is ready..."
+        curl -f http://localhost:3003/api/version || exit 1
+        echo "✅ Server is ready for testing"
+
+    # 5. Run Lighthouse CI performance audit
+    - name: Run Lighthouse CI
+      uses: treosh/lighthouse-ci-action@v10
+      with:
+        urls: |
+          http://localhost:3003
+          http://localhost:3003/api/weather/delhi
+          http://localhost:3003/api/version
+        configPath: './.lighthouserc.js'
+        uploadArtifacts: true
+        temporaryPublicStorage: true
+
+    # 6. Performance API endpoint test
+    - name: Test API response times
+      run: |
+        echo "## 🚀 API Performance Report" >> $GITHUB_STEP_SUMMARY
+        echo "| Endpoint | Response Time | Status |" >> $GITHUB_STEP_SUMMARY
+        echo "|----------|---------------|--------|" >> $GITHUB_STEP_SUMMARY
+        
+        # Test version endpoint
+        START_TIME=$(date +%s%3N)
+        STATUS=$(curl -o /dev/null -s -w "%{http_code}" http://localhost:3003/api/version)
+        END_TIME=$(date +%s%3N)
+        RESPONSE_TIME=$((END_TIME - START_TIME))
+        echo "| /api/version | ${RESPONSE_TIME}ms | ${STATUS} |" >> $GITHUB_STEP_SUMMARY
+        
+        # Test weather endpoint
+        START_TIME=$(date +%s%3N)
+        STATUS=$(curl -o /dev/null -s -w "%{http_code}" http://localhost:3003/api/weather/delhi)
+        END_TIME=$(date +%s%3N)
+        RESPONSE_TIME=$((END_TIME - START_TIME))
+        echo "| /api/weather/delhi | ${RESPONSE_TIME}ms | ${STATUS} |" >> $GITHUB_STEP_SUMMARY
+        
+        # Test config endpoint
+        START_TIME=$(date +%s%3N)
+        STATUS=$(curl -o /dev/null -s -w "%{http_code}" http://localhost:3003/config)
+        END_TIME=$(date +%s%3N)
+        RESPONSE_TIME=$((END_TIME - START_TIME))
+        echo "| /config | ${RESPONSE_TIME}ms | ${STATUS} |" >> $GITHUB_STEP_SUMMARY
+
+    # 7. Comment on PR with performance insights (only for PRs)
+    - name: Comment PR with performance report
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const comment = `## 📊 Performance Monitoring Results
+          
+          ✅ **Lighthouse audit completed!**
+          
+          ### Key Performance Metrics:
+          - **Server startup**: ~15 seconds
+          - **API endpoints**: Tested for response times
+          - **Lighthouse scores**: Available in the action artifacts
+          
+          ### Tested Endpoints:
+          - \`/api/version\` - Health check
+          - \`/api/weather/delhi\` - Weather data scraping
+          - \`/config\` - Configuration endpoint
+          
+          > 💡 **Tip**: Check the full Lighthouse report in the action artifacts for detailed performance insights.
+          
+          *Automated by GitHub Actions Performance Monitoring*`;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
+
+ 
+  load-test:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+
+    steps:
+    - name: Checkout source
+      uses: actions/checkout@v4
+
+    - name: Use Node.js 18 LTS
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18
+        cache: npm
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Start server for load testing
+      run: |
+        npm start &
+        sleep 15
+        curl -f http://localhost:3003/api/version
+
+    - name: Install Artillery for load testing
+      run: npm install -g artillery@latest
+
+    - name: Run load test
+      run: |
+        echo "config:
+          target: 'http://localhost:3003'
+          phases:
+            - duration: 60
+              arrivalRate: 5
+        scenarios:
+          - name: 'Weather API Load Test'
+            requests:
+              - get:
+                  url: '/api/version'
+              - get:
+                  url: '/api/weather/delhi'
+              - get:
+                  url: '/config'" > artillery-config.yml
+        
+        artillery run artillery-config.yml --output load-test-report.json
+        
+    - name: Generate load test summary
+      run: |
+        echo "## ⚡ Load Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "- **Test duration**: 60 seconds" >> $GITHUB_STEP_SUMMARY
+        echo "- **Request rate**: 5 requests/second" >> $GITHUB_STEP_SUMMARY
+        echo "- **Endpoints tested**: /api/version, /api/weather/delhi, /config" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "📈 **Full report available in artifacts**" >> $GITHUB_STEP_SUMMARY
+        
+    - name: Upload load test results
+      uses: actions/upload-artifact@v4
+      with:
+        name: load-test-results
+        path: load-test-report.json

@@ -595,8 +595,6 @@ app.get(
   },
 );
 
-// Removed erroneous duplicate route with unused variable and unreachable code
-
 app.get(
   "/api/weather/:city",
   CacheMiddleware.weatherCache,
@@ -885,7 +883,7 @@ const stopServer = async () => {
   });
 };
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3003;
 let server;
 
 if (process.env.NODE_ENV !== "test") {
