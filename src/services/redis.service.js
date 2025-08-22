@@ -19,10 +19,11 @@ class RedisService {
       compressionSaved: 0,
     };
 
-    this.initialize();
+    // Note: Do NOT start any async work in the constructor.
+    // Call start() explicitly after environment variables are loaded.
   }
 
-  initialize() {
+  initializeSync() {
     // Check if Redis is disabled
     if (
       process.env.REDIS_HOST === "disabled" ||
@@ -32,65 +33,99 @@ class RedisService {
       return;
     }
 
+    // Schedule async initialization for next tick to avoid blocking constructor
+    setImmediate(() => {
+      this.initializeAsync().catch(error => {
+        logger.error("Redis initialization failed", { error: error.message });
+      });
+    });
+  }
+
+  async initializeAsync() {
+    // Quick check - if we can't connect to Redis, disable it
+    await this.testConnectionAndDisable();
+  }
+
+  // Public method to start the Redis service after env has been loaded
+  start() {
+    this.initializeSync();
+  }
+
+  async testConnectionAndDisable() {
     try {
       const redisConfig = {
         host: process.env.REDIS_HOST || "localhost",
-        port: process.env.REDIS_PORT || 6379,
+        port: parseInt(process.env.REDIS_PORT) || 6379,
         password: process.env.REDIS_PASSWORD || undefined,
-        db: process.env.REDIS_DB || 0,
-        retryDelayOnFailover: 100,
-        enableReadyCheck: true,
-        maxRetriesPerRequest: 3,
+        db: parseInt(process.env.REDIS_DB) || 0,
         lazyConnect: true,
-        keepAlive: 30000,
-        connectTimeout: 10000,
-        commandTimeout: 5000,
-        family: 4, // IPv4
-        // TLS support for cloud Redis providers (Upstash, Redis Cloud, etc.)
-        tls: process.env.REDIS_TLS === "true" ? {} : undefined,
+        connectTimeout: 2000, // Very short timeout
+        commandTimeout: 1000,
+        enableOfflineQueue: false,
+        autoResendUnfulfilledCommands: false,
+        autoResubscribe: false,
+        retryStrategy: () => null, // disable auto-reconnect
+        reconnectOnError: () => false, // never reconnect on errors
+        showFriendlyErrorStack: true,
       };
 
-      // Support for Redis Cluster
-      if (process.env.REDIS_CLUSTER_NODES) {
-        const nodes = process.env.REDIS_CLUSTER_NODES.split(",").map((node) => {
-          const [host, port] = node.trim().split(":");
-          return { host, port: parseInt(port) || 6379 };
-        });
+      this.client = new Redis(redisConfig);
 
-        this.client = new Redis.Cluster(nodes, {
-          redisOptions: redisConfig,
-          enableOfflineQueue: false,
-        });
-      } else {
-        this.client = new Redis(redisConfig);
-      }
+      // Attach handlers immediately to avoid "[ioredis] Unhandled error event" logs
+      this.client.on("error", (err) => {
+        logger.warn("Redis error during initialisation", { error: err.message });
+      });
+      this.client.on("end", () => {
+        this.isConnected = false;
+      });
 
+      // Quick connection test
+      await this.client.connect();
+      await this.client.ping();
+
+      this.isConnected = true;
+      logger.info("Redis connection successful - caching enabled");
       this.setupEventHandlers();
-      this.connect();
+
     } catch (error) {
-      logger.error("Redis initialization failed", { error: error.message });
-      this.handleConnectionFailure();
+      logger.warn("Redis connection failed - disabling cache", { error: error.message });
+      if (this.client) {
+        try {
+          // Ensure the client is fully shut down to stop further events
+          this.client.disconnect();
+        } catch (disconnectError) {
+          logger.warn("Redis disconnect failed during cleanup", {
+            error: disconnectError.message,
+          });
+        }
+      }
+      this.disableRedis();
     }
   }
 
+  disableRedis() {
+    this.client = null;
+    this.isConnected = false;
+    logger.info("Redis disabled - operating without cache");
+  }
+
   setupEventHandlers() {
+    if (!this.client) return;
+    
     this.client.on("connect", () => {
       logger.info("Redis connecting...");
     });
 
     this.client.on("ready", () => {
       this.isConnected = true;
-      this.connectionAttempts = 0;
       logger.info("Redis connection established successfully");
     });
 
     this.client.on("error", (error) => {
       this.isConnected = false;
       this.stats.errors++;
-      logger.error("Redis connection error", {
-        error: error.message,
-        connectionAttempts: this.connectionAttempts,
-      });
+      logger.warn("Redis connection error - disabling cache", { error: error.message });
+      this.disableRedis();
     });
 
     this.client.on("close", () => {
@@ -98,44 +133,10 @@ class RedisService {
       logger.warn("Redis connection closed");
     });
 
-    this.client.on("reconnecting", (delay) => {
-      logger.info(`Redis reconnecting in ${delay}ms...`);
-    });
-
     this.client.on("end", () => {
       this.isConnected = false;
       logger.warn("Redis connection ended");
     });
-  }
-
-  async connect() {
-    try {
-      await this.client.connect();
-    } catch (error) {
-      logger.error("Failed to connect to Redis", {
-        error: error.message,
-        connectionAttempts: this.connectionAttempts,
-      });
-      this.handleConnectionFailure();
-    }
-  }
-
-  handleConnectionFailure() {
-    this.connectionAttempts++;
-
-    if (this.connectionAttempts >= this.maxRetries) {
-      logger.error(
-        "Redis max connection attempts reached. Operating without cache.",
-      );
-      return;
-    }
-
-    setTimeout(() => {
-      logger.info(
-        `Redis reconnection attempt ${this.connectionAttempts}/${this.maxRetries}`,
-      );
-      this.connect();
-    }, this.retryDelay * this.connectionAttempts);
   }
 
   // Compression utilities
@@ -171,7 +172,7 @@ class RedisService {
 
   // Core caching methods
   async get(key) {
-    if (!this.isConnected) {
+    if (!this.client || !this.isConnected) {
       this.stats.misses++;
       return null;
     }
@@ -186,6 +187,7 @@ class RedisService {
       return null;
     } catch (error) {
       this.stats.errors++;
+      this.isConnected = false;
       logger.error("Redis GET error", { key, error: error.message });
       return null;
     }
@@ -193,7 +195,7 @@ class RedisService {
 
   async set(key, value, ttlSeconds = 1800) {
     // Default 30 minutes TTL
-    if (!this.isConnected) {
+    if (!this.client || !this.isConnected) {
       return false;
     }
 
@@ -205,6 +207,7 @@ class RedisService {
       return true;
     } catch (error) {
       this.stats.errors++;
+      this.isConnected = false;
       logger.error("Redis SET error", {
         key,
         ttl: ttlSeconds,
@@ -215,7 +218,7 @@ class RedisService {
   }
 
   async del(key) {
-    if (!this.isConnected) {
+    if (!this.client || !this.isConnected) {
       return false;
     }
 
@@ -224,13 +227,14 @@ class RedisService {
       return true;
     } catch (error) {
       this.stats.errors++;
+      this.isConnected = false;
       logger.error("Redis DEL error", { key, error: error.message });
       return false;
     }
   }
 
   async exists(key) {
-    if (!this.isConnected) {
+    if (!this.client || !this.isConnected) {
       return false;
     }
 
@@ -239,13 +243,14 @@ class RedisService {
       return result === 1;
     } catch (error) {
       this.stats.errors++;
+      this.isConnected = false;
       logger.error("Redis EXISTS error", { key, error: error.message });
       return false;
     }
   }
 
   async ttl(key) {
-    if (!this.isConnected) {
+    if (!this.client || !this.isConnected) {
       return -1;
     }
 
@@ -253,6 +258,7 @@ class RedisService {
       return await this.client.ttl(key);
     } catch (error) {
       this.stats.errors++;
+      this.isConnected = false;
       logger.error("Redis TTL error", { key, error: error.message });
       return -1;
     }
@@ -260,7 +266,7 @@ class RedisService {
 
   // Pattern-based operations
   async keys(pattern) {
-    if (!this.isConnected) {
+    if (!this.client || !this.isConnected) {
       return [];
     }
 
@@ -268,13 +274,14 @@ class RedisService {
       return await this.client.keys(pattern);
     } catch (error) {
       this.stats.errors++;
+      this.isConnected = false;
       logger.error("Redis KEYS error", { pattern, error: error.message });
       return [];
     }
   }
 
   async deletePattern(pattern) {
-    if (!this.isConnected) {
+    if (!this.client || !this.isConnected) {
       return 0;
     }
 
@@ -287,6 +294,7 @@ class RedisService {
       return 0;
     } catch (error) {
       this.stats.errors++;
+      this.isConnected = false;
       logger.error("Redis DELETE PATTERN error", {
         pattern,
         error: error.message,
@@ -297,7 +305,7 @@ class RedisService {
 
   // Health check
   async ping() {
-    if (!this.isConnected) {
+    if (!this.client || !this.isConnected) {
       return false;
     }
 
@@ -306,6 +314,7 @@ class RedisService {
       return result === "PONG";
     } catch (error) {
       this.stats.errors++;
+      this.isConnected = false;
       logger.error("Redis PING error", { error: error.message });
       return false;
     }
