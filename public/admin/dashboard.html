@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Weather API - Admin Dashboard</title>
+    <link rel="stylesheet" href="../themes.css" />
     <style>
       * {
         margin: 0;
@@ -14,16 +15,17 @@
       body {
         font-family:
           -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        background: #f5f5f5;
-        color: #333;
+        background: var(--bg-primary);
+        color: var(--text-primary);
         line-height: 1.6;
+        transition: background-color var(--transition-speed), color var(--transition-speed);
       }
 
       .header {
-        background: #2c3e50;
-        color: white;
+        background: var(--header-bg);
+        color: var(--header-text);
         padding: 1rem 2rem;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 4px var(--shadow-color);
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -36,30 +38,94 @@
       .header-actions {
         display: flex;
         gap: 0.5rem;
+        align-items: center;
       }
 
       .refresh-btn,
       .logout-btn {
-        background: #3498db;
-        color: white;
+        background: var(--primary-color);
+        color: var(--button-text);
         border: none;
         padding: 0.5rem 1rem;
         border-radius: 4px;
         cursor: pointer;
         font-size: 0.9rem;
-        transition: background 0.3s ease;
+        transition: background-color var(--transition-speed), transform var(--transition-speed);
       }
 
       .refresh-btn:hover {
-        background: #2980b9;
+        background: var(--primary-hover);
+        transform: translateY(-1px);
       }
 
       .logout-btn {
-        background: #e74c3c;
+        background: var(--danger-color);
       }
 
       .logout-btn:hover {
-        background: #c0392b;
+        background: var(--danger-hover);
+        transform: translateY(-1px);
+      }
+
+      .theme-toggle {
+        background: var(--bg-secondary);
+        border: 2px solid var(--border-color);
+        color: var(--text-primary);
+        padding: 0.5rem;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 1.4rem;
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all var(--transition-speed);
+        box-shadow: 0 4px 12px var(--shadow-color);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .theme-toggle:hover {
+        background: var(--bg-tertiary);
+        transform: scale(1.1);
+        box-shadow: 0 6px 16px var(--shadow-hover);
+        border-color: var(--accent-primary);
+      }
+
+      .theme-toggle:active {
+        transform: scale(0.95);
+      }
+
+      .theme-toggle:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px var(--accent-primary-alpha), 0 4px 12px var(--shadow-color);
+      }
+
+      .theme-toggle .toggle-icon {
+        position: absolute;
+        transition: all var(--transition-speed);
+        font-size: 1.3rem;
+      }
+
+      .theme-toggle .moon-icon {
+        opacity: 1;
+        transform: rotate(0deg) scale(1);
+      }
+
+      .theme-toggle .sun-icon {
+        opacity: 0;
+        transform: rotate(180deg) scale(0.5);
+      }
+
+      [data-theme="dark"] .theme-toggle .moon-icon {
+        opacity: 0;
+        transform: rotate(-180deg) scale(0.5);
+      }
+
+      [data-theme="dark"] .theme-toggle .sun-icon {
+        opacity: 1;
+        transform: rotate(0deg) scale(1);
       }
 
       .container {
@@ -76,16 +142,21 @@
       }
 
       .card {
-        background: white;
+        background: var(--bg-secondary);
         border-radius: 8px;
         padding: 1.5rem;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        border-left: 4px solid #3498db;
+        box-shadow: 0 2px 8px var(--shadow-color);
+        border-left: 4px solid var(--primary-color);
+        transition: background-color var(--transition-speed), box-shadow var(--transition-speed);
+      }
+
+      .card:hover {
+        box-shadow: 0 4px 12px var(--shadow-hover);
       }
 
       .card h3 {
         margin-bottom: 1rem;
-        color: #2c3e50;
+        color: var(--text-primary);
         display: flex;
         align-items: center;
       }
@@ -95,33 +166,33 @@
         display: inline-block;
         width: 12px;
         height: 12px;
-        background: #3498db;
+        background: var(--primary-color);
         border-radius: 50%;
         margin-right: 0.5rem;
       }
 
       .health-status {
-        border-left-color: #27ae60;
+        border-left-color: var(--success-color);
       }
 
       .health-status h3::before {
-        background: #27ae60;
+        background: var(--success-color);
       }
 
       .error-card {
-        border-left-color: #e74c3c;
+        border-left-color: var(--danger-color);
       }
 
       .error-card h3::before {
-        background: #e74c3c;
+        background: var(--danger-color);
       }
 
       .performance-card {
-        border-left-color: #f39c12;
+        border-left-color: var(--warning-color);
       }
 
       .performance-card h3::before {
-        background: #f39c12;
+        background: var(--warning-color);
       }
 
       .metric {
@@ -129,7 +200,7 @@
         justify-content: space-between;
         margin-bottom: 0.5rem;
         padding: 0.25rem 0;
-        border-bottom: 1px solid #ecf0f1;
+        border-bottom: 1px solid var(--border-color);
       }
 
       .metric:last-child {
@@ -138,10 +209,11 @@
 
       .metric-label {
         font-weight: 500;
+        color: var(--text-secondary);
       }
 
       .metric-value {
-        color: #2c3e50;
+        color: var(--text-primary);
         font-weight: 600;
       }
 
@@ -154,15 +226,15 @@
       }
 
       .status-healthy {
-        background: #27ae60;
+        background: var(--success-color);
       }
 
       .status-warning {
-        background: #f39c12;
+        background: var(--warning-color);
       }
 
       .status-error {
-        background: #e74c3c;
+        background: var(--danger-color);
       }
 
       .tabs {
@@ -171,9 +243,10 @@
 
       .tab-buttons {
         display: flex;
-        background: white;
+        background: var(--bg-secondary);
         border-radius: 8px 8px 0 0;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px var(--shadow-color);
+        transition: background-color var(--transition-speed), box-shadow var(--transition-speed);
       }
 
       .tab-button {
@@ -184,19 +257,28 @@
         cursor: pointer;
         border-bottom: 3px solid transparent;
         font-weight: 500;
+        color: var(--text-secondary);
+        transition: all var(--transition-speed);
+      }
+
+      .tab-button:hover {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
       }
 
       .tab-button.active {
-        border-bottom-color: #3498db;
-        color: #3498db;
+        border-bottom-color: var(--primary-color);
+        color: var(--primary-color);
+        background: var(--bg-tertiary);
       }
 
       .tab-content {
-        background: white;
+        background: var(--bg-secondary);
         min-height: 400px;
         padding: 1.5rem;
         border-radius: 0 0 8px 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px var(--shadow-color);
+        transition: background-color var(--transition-speed), box-shadow var(--transition-speed);
       }
 
       .tab-pane {
@@ -213,32 +295,36 @@
         border-radius: 4px;
         font-family: "Courier New", monospace;
         font-size: 0.9rem;
+        transition: background-color var(--transition-speed);
       }
 
       .log-error {
-        background: #fdf2f2;
-        border-left: 4px solid #e74c3c;
+        background: var(--danger-bg);
+        border-left: 4px solid var(--danger-color);
+        color: var(--danger-text);
       }
 
       .log-warn {
-        background: #fefbf3;
-        border-left: 4px solid #f39c12;
+        background: var(--warning-bg);
+        border-left: 4px solid var(--warning-color);
+        color: var(--warning-text);
       }
 
       .log-info {
-        background: #f0f9ff;
-        border-left: 4px solid #3498db;
+        background: var(--info-bg);
+        border-left: 4px solid var(--info-color);
+        color: var(--info-text);
       }
 
       .loading {
         text-align: center;
         padding: 2rem;
-        color: #7f8c8d;
+        color: var(--text-secondary);
       }
 
       .error-message {
-        background: #fdf2f2;
-        color: #e74c3c;
+        background: var(--danger-bg);
+        color: var(--danger-color);
         padding: 1rem;
         border-radius: 4px;
         margin: 1rem 0;
@@ -249,34 +335,51 @@
       }
 
       .btn {
-        background: #3498db;
-        color: white;
+        background: var(--primary-color);
+        color: var(--button-text);
         border: none;
         padding: 0.5rem 1rem;
         border-radius: 4px;
         cursor: pointer;
         margin-right: 0.5rem;
         margin-bottom: 0.5rem;
+        transition: background-color var(--transition-speed), transform var(--transition-speed);
       }
 
       .btn:hover {
-        background: #2980b9;
+        background: var(--primary-hover);
+        transform: translateY(-1px);
       }
 
       .btn-danger {
-        background: #e74c3c;
+        background: var(--danger-color);
       }
 
       .btn-danger:hover {
-        background: #c0392b;
+        background: var(--danger-hover);
       }
 
       .btn-warning {
-        background: #f39c12;
+        background: var(--warning-color);
       }
 
       .btn-warning:hover {
-        background: #d68910;
+        background: var(--warning-hover);
+      }
+
+      select {
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+        padding: 0.5rem;
+        border-radius: 4px;
+        transition: background-color var(--transition-speed), color var(--transition-speed);
+      }
+
+      select:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px var(--primary-color-alpha);
       }
 
       @media (max-width: 768px) {
@@ -291,6 +394,16 @@
         .tab-buttons {
           flex-direction: column;
         }
+
+        .header-actions {
+          gap: 0.25rem;
+        }
+
+        .theme-toggle {
+          width: 42px;
+          height: 42px;
+          font-size: 1.2rem;
+        }
       }
     </style>
   </head>
@@ -299,6 +412,10 @@
     <header class="header">
       <h1>🌦️ Weather API Admin Dashboard</h1>
       <div class="header-actions">
+        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+          <span class="toggle-icon moon-icon">🌙</span>
+          <span class="toggle-icon sun-icon">☀️</span>
+        </button>
         <button class="refresh-btn" onclick="refreshDashboard()">
           🔄 Refresh
         </button>
@@ -391,10 +508,13 @@
             <pre
               id="metrics-content"
               style="
-                background: #f8f9fa;
+                background: var(--bg-tertiary);
+                color: var(--text-primary);
                 padding: 1rem;
                 border-radius: 4px;
                 overflow-x: auto;
+                border: 1px solid var(--border-color);
+                transition: background-color var(--transition-speed), color var(--transition-speed);
               "
             >
                         <div class="loading">Loading metrics...</div>
@@ -443,6 +563,7 @@
       </div>
     </div>
 
+    <script src="../theme-manager.js"></script>
     <script>
       // Dashboard functionality
       let dashboardData = {};
