@@ -1,11 +1,13 @@
 {
   "name": "weather-api",
   "version": "1.0.0",
-  "main": "server.js",
+  "description": "Weather API project with OAuth2 authentication",
+  "main": "src/index.js",
+  "type": "module",
   "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
     "test": "jest",
-    "start": "node server.js",
-    "dev": "nodemon server.js",
     "lint": "eslint . --ext .js,.jsx",
     "lint:fix": "eslint . --ext .js,.jsx --fix",
     "format:check": "prettier --check .",
@@ -16,11 +18,9 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
-  "description": "",
   "dependencies": {
     "@testing-library/dom": "^10.4.1",
-    "axios": "^1.8.3",
+    "axios": "^1.11.0",
     "bcrypt": "^6.0.0",
     "cheerio": "^1.0.0-rc.10",
     "cors": "^2.8.5",
@@ -28,15 +28,16 @@
     "express": "^5.1.0",
     "express-rate-limit": "^8.0.1",
     "express-winston": "^4.2.0",
+    "helmet": "^8.0.0",
     "ioredis": "^5.7.0",
+    "jose": "^5.9.3",
     "jsonwebtoken": "^9.0.2",
     "lz-string": "^1.5.0",
+    "morgan": "^1.10.0",
     "node-fetch": "^3.3.2",
     "nodemailer": "^7.0.5",
-    "nodemon": "^3.1.9",
     "pg": "^8.12.0",
     "prom-client": "^15.0.0",
-    "uuid": "^11.1.0",
     "uuid": "^9.0.1",
     "winston": "^3.11.0",
     "winston-daily-rotate-file": "^5.0.0",
@@ -50,7 +51,20 @@
     "jest": "^30.0.5",
     "jest-environment-jsdom": "^30.0.5",
     "jsdom": "^26.0.0",
+    "nodemon": "^3.1.9",
     "prettier": "^3.6.2",
     "supertest": "^7.0.0"
-  }
+  },
+  "directories": {
+    "doc": "docs",
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gaurivvv/Weather-API.git"
+  },
+  "bugs": {
+    "url": "https://github.com/gaurivvv/Weather-API/issues"
+  },
+  "homepage": "https://github.com/gaurivvv/Weather-API#readme"
 }
