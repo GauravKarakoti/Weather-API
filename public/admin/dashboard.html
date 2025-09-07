@@ -11,6 +11,10 @@
     <header class="header">
       <h1>🌦️ Weather API Admin Dashboard</h1>
       <div class="header-actions">
+        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+          <span class="toggle-icon moon-icon">🌙</span>
+          <span class="toggle-icon sun-icon">☀️</span>
+        </button>
         <button class="refresh-btn" onclick="refreshDashboard()">
           🔄 Refresh
         </button>
@@ -103,10 +107,13 @@
             <pre
               id="metrics-content"
               style="
-                background: #f8f9fa;
+                background: var(--bg-tertiary);
+                color: var(--text-primary);
                 padding: 1rem;
                 border-radius: 4px;
                 overflow-x: auto;
+                border: 1px solid var(--border-color);
+                transition: background-color var(--transition-speed), color var(--transition-speed);
               "
             >
                         <div class="loading">Loading metrics...</div>
