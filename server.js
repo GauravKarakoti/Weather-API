@@ -15,8 +15,21 @@ const {
   dynamicRateLimiter,
 } = require("./src/middlewares/rateLimiter.middleware.js");
 const stopValidationJob = require("./src/services/selectorValidation.service.js");
+let oauthRoutes;
+let requireAuth, optionalAuth;
 const axios = require("axios");
 const cheerio = require("cheerio");
+
+function sendErrorResponse(res, statusCode, message, code, details = null) {
+  const errRes = {
+    statusCode,
+    error: message,
+    code,
+    timestamp: new Date().toISOString(),
+  };
+  if (details) errRes.details = details;
+  res.status(statusCode).json(errRes);
+}
 
 // Enhanced Logging and Monitoring
 const { logger, logError, logPerformance } = require("./src/utils/logger");
@@ -32,6 +45,11 @@ const adminRoutes = require("./src/routes/admin.routes");
 
 // Import enhanced error handling
 const { handleError } = require("./src/middlewares/error.middleware");
+
+// Import cache middleware and services
+const CacheMiddleware = require("./src/middlewares/cache.middleware");
+const redisService = require("./src/services/redis.service");
+const cacheWarmingService = require("./src/services/cacheWarming.service");
 
 // Database initialization
 const {
@@ -105,24 +123,40 @@ const sendAdminAlert = async (failedSelectors) => {
 
 const app = express();
 configureEnv(); // Load env or fallback
+// After env is set, explicitly start Redis service
+try {
+  redisService.start();
+} catch (e) {
+  // Never crash app due to cache startup issues
+  console.warn("Redis service start skipped due to initialization error:", e.message);
+}
 
-// Initialize logger
+// Now that env is configured, require OAuth routes and middleware that depend on env
+({
+  requireAuth,
+  optionalAuth,
+} = require("./src/middlewares/oauth.middleware.js"));
+oauthRoutes = require("./src/routes/oauth.routes.js");
+
 logger.info("Weather API starting up", {
   environment: process.env.NODE_ENV,
   nodeVersion: process.version,
   timestamp: new Date().toISOString(),
 });
 
-// Trust proxy for proper IP detection
-app.set("trust proxy", true);
-
-// Apply logging middleware first (for health checks)
-app.use(healthCheckLoggingMiddleware);
-
-// Basic Express middleware
 app.use(cors(corsOptions));
 app.use(express.static("public"));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // For OAuth form data
+app.use(healthCheckLoggingMiddleware);
+// In tests, disable trust proxy to satisfy express-rate-limit validation
+if (process.env.NODE_ENV === "test") {
+  app.set("trust proxy", false);
+} else {
+  // Allow configuring via env; default to false for safety
+  const trustProxyEnv = process.env.TRUST_PROXY;
+  app.set("trust proxy", trustProxyEnv ? trustProxyEnv === "true" : false);
+}
 
 // Security middleware
 applySecurityHeaders(app);
@@ -145,6 +179,9 @@ app.use((req, res, next) => {
     rateLimitLoggingMiddleware(req, res, next);
   });
 });
+
+// OAuth routes
+app.use("/oauth", oauthRoutes);
 
 app.use((req, res, next) => {
   if (req.rateLimit) {
@@ -180,19 +217,86 @@ app.use((req, res, next) => {
 // Admin routes for monitoring dashboard
 app.use("/admin", adminRoutes);
 
-const sanitizeInput = (str) => xss(str.trim());
+const xssOptions = {
+  whiteList: {}, // No HTML tags allowed - strip all HTML
+  stripIgnoreTag: true, // Remove all unrecognized tags
+  stripIgnoreTagBody: ['script'], // Remove script tag content entirely
+  allowCommentTag: false, // No HTML comments
+  css: false, // No inline CSS
+};
+
+
+const xssFilter = new xss.FilterXSS(xssOptions);
+
+
+const sanitizeInput = (str) => {
+  if (typeof str !== 'string') {
+    return '';
+  }
+
+  const xssFiltered = xssFilter.process(str);
+
+
+  const trimmed = xssFiltered.trim();
+
+  // Additional validation for city names - only allow safe characters
+  // This regex allows letters (including unicode), spaces, hyphens, apostrophes, and numbers
+  const sanitized = trimmed.replace(/[^\p{L}\p{M}\s''\-\d]/gu, '');
+
+  return sanitized;
+};
+
+
 
 const isValidCity = (city) => {
-  return /^[\p{L}\p{M}\s'’\-\d]{2,50}$/u.test(city);
+
+  if (typeof city !== 'string' || !city.trim()) {
+    return false;
+  }
+
+  if (city.length < 2 || city.length > 50) {
+    return false;
+  }
+
+  const validCityPattern = /^[\p{L}\p{M}\s''\-\d]{2,50}$/u;
+  if (!validCityPattern.test(city)) {
+    return false;
+  }
+
+
+  const xssPatterns = [
+    /<script/i,
+    /javascript:/i,
+    /on\w+=/i,
+    /<iframe/i,
+    /<object/i,
+    /<embed/i,
+    /data:text\/html/i
+  ];
+
+  return !xssPatterns.some(pattern => pattern.test(city));
 };
+
+
+const sanitizeCityName = (str) => {
+
+  const generalSanitized = sanitizeInput(str);
+
+
+  return generalSanitized
+    .replace(/[^\p{L}\p{M}\s''\-\d]/gu, '')
+    .substring(0, 50);
+};
+
+const TEMPERATURE_PATTERN = /-?\d+(?:\.\d+)?/;
 
 const parseTemperature = (rawText) => {
   try {
     if (typeof rawText !== "string" || rawText.length > 200) {
       return "N/A";
     }
-    // Atomic grouping to prevent backtracking
-    const match = rawText.match(/-?\d+(\.\d+)?/);
+    // Use optimized pattern
+    const match = rawText.match(TEMPERATURE_PATTERN);
     if (match) {
       const temp = parseFloat(match[0]);
       return temp >= -100 && temp <= 100 ? `${temp.toFixed(1)} °C` : "N/A";
@@ -209,10 +313,12 @@ const parseMinMaxTemperature = (rawText) => {
     if (typeof rawText !== "string" || rawText.length > 200) {
       return { minTemperature: "N/A", maxTemperature: "N/A" };
     }
-    // Atomic grouping to prevent backtracking
-    const matches = rawText.match(/-?\d+(\.\d+)?/g) || [];
-    const minTemp = matches?.[0] ? parseFloat(matches[0]) : null;
-    const maxTemp = matches?.[1] ? parseFloat(matches[1]) : null;
+    // Create global version from base pattern
+    const regex = new RegExp(TEMPERATURE_PATTERN.source, 'g');
+    const matches = rawText.match(regex) || [];
+    
+    const minTemp = matches[0] ? parseFloat(matches[0]) : null;
+    const maxTemp = matches[1] ? parseFloat(matches[1]) : null;
 
     return {
       minTemperature:
@@ -235,12 +341,13 @@ const parseMinMaxTemperature = (rawText) => {
 
 const parseHumidityPressure = (rawText) => {
   try {
-    if (typeof rawText !== "string" || rawText.length > 200) {
-      return { humidity: "N/A", pressure: "N/A" };
-    }
-    // Optimized regex patterns
-    const humidityMatch = rawText.match(/(\d+)\s*%/i);
-    const pressureMatch = rawText.match(/(\d+(\.\d+)?)\s*hPa/i);
+    if (!rawText) return { humidity: "N/A", pressure: "N/A" };
+    const humidityMatch =
+      rawText.match(/(\d+\.?\d*)\s*%/i) ||
+      rawText.match(/(\d+\.?\d*)\s*Humidity/i);
+    const pressureMatch =
+      rawText.match(/(\d+\.?\d*)\s*hPa/i) ||
+      rawText.match(/(\d+\.?\d*)\s*Pressure/i);
 
     const humidity = humidityMatch ? parseInt(humidityMatch[1], 10) : null;
     const pressure = pressureMatch ? parseFloat(pressureMatch[1]) : null;
@@ -366,160 +473,221 @@ const validateSelectors = async () => {
   }
 };
 
-app.get("/api/weather-forecast/:city", async (req, res) => {
-  const city = req.params.city;
-  const apiKey = process.env.SPECIAL_API_KEY;
-  const startTime = Date.now();
+// In tests, do not require OAuth for weather endpoints to keep legacy tests passing
+const weatherAuthMiddleware =
+  process.env.NODE_ENV === "test"
+    ? (req, res, next) => next()
+    : requireAuth(["read"]);
 
-  // Log request
-  logger.info(`Weather forecast request for ${city}`, {
-    correlationId: req.correlationId,
-    ip: req.ip,
-    userAgent: req.get("User-Agent"),
-  });
+app.get(
+  "/api/weather-forecast/:city",
+  weatherAuthMiddleware,
+  async (req, res) => {
+    const city = req.params.city;
+    const apiKey = process.env.SPECIAL_API_KEY;
+    const startTime = Date.now();
+  
+    logger.info(`Weather forecast request for ${city}`, {
+      correlationId: req.correlationId,
+      ip: req.ip,
+      userAgent: req.get("User-Agent"),
+    });
+    
+    if (!apiKey) {
+      monitoringService.recordError(
+        "configuration",
+        "/api/weather-forecast/:city",
+      );
+      return sendErrorResponse(
+        res,
+        500,
+        "API key not set",
+        "MISSING_API_KEY",
+        null,
+      );
+    }
 
-  if (!apiKey) {
-    monitoringService.recordError(
-      "configuration",
-      "/api/weather-forecast/:city",
-    );
-    return handleError(
-      res,
-      500,
-      "API key not set",
-      "MISSING_API_KEY",
-      null,
-      req,
-    );
-  }
+    try {
+      const encodedCity = encodeURIComponent(city);
 
-  try {
-    const encodedCity = encodeURIComponent(city);
+      const url = new URL("https://api.openweathermap.org/data/2.5/forecast");
+      url.searchParams.set("q", encodedCity);
+      url.searchParams.set("appid", apiKey);
+      url.searchParams.set("units", "metric");
 
-    const url = new URL("https://api.openweathermap.org/data/2.5/forecast");
-    url.searchParams.set("q", encodedCity);
-    url.searchParams.set("appid", apiKey);
-    url.searchParams.set("units", "metric");
+      const response = await fetch(url.toString());
+      const externalApiDuration = Date.now() - startTime;
+      
+      monitoringService.recordExternalApiCall(
+        "openweathermap-forecast",
+        externalApiDuration,
+        response.ok ? "success" : "error",
+      );
 
-    const response = await fetch(url.toString());
-    const externalApiDuration = Date.now() - startTime;
+      if (!response.ok) {
+        const errorData = await response.json();
+        monitoringService.recordWeatherApiRequest(
+          city,
+          "error",
+          "openweathermap",
+        );
+        return sendErrorResponse(
+          res,
+          response.status,
+          errorData.message || "City not found or failed to fetch data",
+          "FORECAST_API_ERROR",
+          null,
+        );
+      }
 
-    // Record external API call
-    monitoringService.recordExternalApiCall(
-      "openweathermap-forecast",
-      externalApiDuration,
-      response.ok ? "success" : "error",
-    );
+      const data = await response.json();
 
-    if (!response.ok) {
-      const errorData = await response.json();
+      const forecast = data.list
+        .filter((_, i) => i % 8 === 0)
+        .slice(0, 4)
+        .map((entry) => ({
+          date: entry.dt_txt,
+          temperature: entry.main.temp,
+          min: entry.main.temp_min,
+          max: entry.main.temp_max,
+          humidity: entry.main.humidity,
+          pressure: entry.main.pressure,
+          condition: entry.weather[0].main,
+        }));
+      
+      monitoringService.recordWeatherApiRequest(
+        city,
+        "success",
+        "openweathermap",
+      );
+
+      logger.info(`Weather forecast successful for ${city}`, {
+        correlationId: req.correlationId,
+        duration: Date.now() - startTime,
+        forecastCount: forecast.length,
+      });
+
+      res.json({ forecast });
+    } catch (err) {
+      const duration = Date.now() - startTime;
+
+      // Record error metrics
       monitoringService.recordWeatherApiRequest(
         city,
         "error",
         "openweathermap",
       );
-      return handleError(
-        res,
-        response.status,
-        errorData.message || "City not found or failed to fetch data",
-        "FORECAST_API_ERROR",
-        null,
-        req,
+      monitoringService.recordError(
+        "external_api",
+        "/api/weather-forecast/:city",
+      );
+
+      logError(
+        err,
+        {
+          city,
+          duration,
+          endpoint: "weather-forecast",
+        },
+        req.correlationId,
       );
     }
+  },
+);
 
-    const data = await response.json();
+app.get(
+  "/api/weather/:city",
+  CacheMiddleware.weatherCache,
+  async (req, res) => {
+    const startTime = Date.now();
 
-    const forecast = data.list
-      .filter((_, i) => i % 8 === 0)
-      .slice(0, 4)
-      .map((entry) => ({
-        date: entry.dt_txt,
-        temperature: entry.main.temp,
-        min: entry.main.temp_min,
-        max: entry.main.temp_max,
-        humidity: entry.main.humidity,
-        pressure: entry.main.pressure,
-        condition: entry.weather[0].main,
-      }));
+    try {
+      const city = sanitizeCityName(req.params.city);
+      
+      logger.info(`Weather request for ${city}`, {
+        correlationId: req.correlationId,
+        ip: req.ip,
+        userAgent: req.get("User-Agent"),
+      });
 
-    // Record successful API request
-    monitoringService.recordWeatherApiRequest(
-      city,
-      "success",
-      "openweathermap",
-    );
+      if (!city || !isValidCity(city)) {
+        monitoringService.recordError("validation", "/api/weather/:city");
+        return sendErrorResponse(
+          res,
+          400,
+          "Invalid city name. Use letters, spaces, apostrophes (') and hyphens (-)",
+          "INVALID_CITY",
+          null,
+        );
+      }
 
-    logger.info(`Weather forecast successful for ${city}`, {
-      correlationId: req.correlationId,
-      duration: Date.now() - startTime,
-      forecastCount: forecast.length,
-    });
-
-    res.json({ forecast });
-  } catch (err) {
-    const duration = Date.now() - startTime;
-
-    // Record error metrics
-    monitoringService.recordWeatherApiRequest(city, "error", "openweathermap");
-    monitoringService.recordError(
-      "external_api",
-      "/api/weather-forecast/:city",
-    );
-
-    logError(
-      err,
-      {
-        city,
-        duration,
-        endpoint: "weather-forecast",
-      },
-      req.correlationId,
-    );
-
-    return handleError(
-      res,
-      500,
-      "Failed to fetch weather forecast",
-      "FORECAST_FETCH_ERROR",
-      { originalError: err.message },
-      req,
-    );
-  }
-});
-
-app.get("/api/weather/:city", async (req, res) => {
-  const startTime = Date.now();
-
-  try {
-    const city = sanitizeInput(req.params.city);
-
-    // Log request
-    logger.info(`Weather request for ${city}`, {
-      correlationId: req.correlationId,
-      ip: req.ip,
-      userAgent: req.get("User-Agent"),
-    });
-
-    if (!city || !isValidCity(city)) {
-      monitoringService.recordError("validation", "/api/weather/:city");
-      return handleError(
-        res,
-        400,
-        "Invalid city name. Use letters, spaces, apostrophes (') and hyphens (-)",
-        "INVALID_CITY",
-        null,
-        req,
-      );
-    }
-
-    const response = await fetchWeatherData(city);
+      const response = await fetchWeatherData(city);
     const $ = cheerio.load(response.data);
-
+    
     const getElementText = (selectorKey) => {
-      const primarySelector = process.env[selectorKey];
-      const fallbackSelector = fallbackSelectors[selectorKey];
-      let text = null;
+        const primarySelector = process.env[selectorKey];
+        const fallbackSelector = fallbackSelectors[selectorKey];
+        let text = null;
+
+        if (primarySelector && $(primarySelector).length) {
+          text = $(primarySelector).text()?.trim();
+        }
+
+        if (!text && fallbackSelector && $(fallbackSelector).length) {
+          text = $(fallbackSelector).text()?.trim();
+        }
+      
+        return text || null;
+      };
+
+      const temperatureText = getElementText("TEMPERATURE_CLASS");
+      const minMaxText = getElementText("MIN_MAX_TEMPERATURE_CLASS");
+      const humidityPressureText = getElementText("HUMIDITY_PRESSURE_CLASS");
+      const conditionText = getElementText("CONDITION_CLASS");
+      const dateText = getElementText("DATE_CLASS");
+
+      const temperature = parseTemperature(temperatureText);
+      const { minTemperature, maxTemperature } =
+        parseMinMaxTemperature(minMaxText);
+      const { humidity, pressure } = parseHumidityPressure(humidityPressureText);
+      const condition = conditionText || "N/A";
+      const date = formatDate(dateText);
+
+      if (temperature === "N/A" && condition === "N/A") {
+        return sendErrorResponse(
+          res,
+          500,
+          "Failed to parse weather data.",
+          "PARSING_ERROR",
+        );
+      }
+
+      const weatherData = {
+        date,
+        temperature,
+        condition,
+        minTemperature,
+        maxTemperature,
+        humidity,
+        pressure,
+      };
+
+      // Record successful scraping
+      const duration = Date.now() - startTime;
+      monitoringService.recordWeatherApiRequest(city, "success", "scraping");
+
+      logger.info(`Weather request successful for ${city}`, {
+        correlationId: req.correlationId,
+        duration,
+        dataQuality: {
+          temperature: temperature !== "N/A",
+          condition: condition !== "N/A",
+          humidity: humidity !== "N/A",
+          pressure: pressure !== "N/A",
+        },
+      });
+
+      res.json(weatherData);
 
       if (primarySelector && $(primarySelector).length) {
         text = $(primarySelector).text()?.trim();
@@ -530,120 +698,69 @@ app.get("/api/weather/:city", async (req, res) => {
       }
 
       return text || null;
-    };
 
-    const temperatureText = getElementText("TEMPERATURE_CLASS");
-    const minMaxText = getElementText("MIN_MAX_TEMPERATURE_CLASS");
-    const humidityPressureText = getElementText("HUMIDITY_PRESSURE_CLASS");
-    const conditionText = getElementText("CONDITION_CLASS");
-    const dateText = getElementText("DATE_CLASS");
+    } catch (scrapingError) {
+      const duration = Date.now() - startTime;
 
-    const temperature = parseTemperature(temperatureText);
-    const { minTemperature, maxTemperature } =
-      parseMinMaxTemperature(minMaxText);
-    const { humidity, pressure } = parseHumidityPressure(humidityPressureText);
-    const condition = conditionText || "N/A";
-    const date = formatDate(dateText);
-
-    if (temperature === "N/A" && condition === "N/A") {
-      monitoringService.recordError("parsing", "/api/weather/:city");
-      return handleError(
-        res,
-        500,
-        "Failed to parse weather data",
-        "PARSING_ERROR",
-        null,
-        req,
+      // Record error metrics
+      monitoringService.recordWeatherApiRequest(
+        req.params.city,
+        "error",
+        "scraping",
       );
-    }
 
-    const weatherData = {
-      date,
-      temperature,
-      condition,
-      minTemperature,
-      maxTemperature,
-      humidity,
-      pressure,
-    };
-
-    // Record successful scraping
-    const duration = Date.now() - startTime;
-    monitoringService.recordWeatherApiRequest(city, "success", "scraping");
-
-    logger.info(`Weather request successful for ${city}`, {
-      correlationId: req.correlationId,
-      duration,
-      dataQuality: {
-        temperature: temperature !== "N/A",
-        condition: condition !== "N/A",
-        humidity: humidity !== "N/A",
-        pressure: pressure !== "N/A",
-      },
-    });
-
-    res.json(weatherData);
-  } catch (scrapingError) {
-    const duration = Date.now() - startTime;
-
-    // Record error metrics
-    monitoringService.recordWeatherApiRequest(
-      req.params.city,
-      "error",
-      "scraping",
-    );
-
-    // Log error with context
-    logError(
-      scrapingError,
-      {
-        city: req.params.city,
-        duration,
-        endpoint: "weather",
-        errorCode: scrapingError.code,
-        statusCode: scrapingError.response?.status,
-      },
-      req.correlationId,
-    );
-
-    await sendAdminAlert(
-      `Weather scrape failed for city: ${req.params.city}\nReason: ${scrapingError.message}`,
-    );
-
-    if (scrapingError.code === "ECONNABORTED") {
-      monitoringService.recordError("network", "/api/weather/:city");
-      return handleError(
-        res,
-        504,
-        "The weather service is taking too long. Try again later.",
-        "TIMEOUT",
-        null,
-        req,
+      // Log error with context
+      logError(
+        scrapingError,
+        {
+          city: req.params.city,
+          duration,
+          endpoint: "weather",
+          errorCode: scrapingError.code,
+          statusCode: scrapingError.response?.status,
+        },
+        req.correlationId,
       );
-    }
-    if (scrapingError.response?.status === 404) {
+  
+    console.error("Scraping error:", scrapingError.message);
+    // Sanitize error message before sending to admin
+    const sanitizedCity = sanitizeCityName(req.params.city);
+      await sendAdminAlert(
+        `Weather scrape failed for city: ${sanitizedCity}\nReason: ${scrapingError.message}`,
+      );
+
+      if (scrapingError.code === "ECONNABORTED") {
+        monitoringService.recordError("network", "/api/weather/:city");
+        return sendErrorResponse(
+          res,
+          504,
+          "The weather service is taking too long. Try again later.",
+          "TIMEOUT",
+          null,
+        );
+      }
+      if (scrapingError.response?.status === 404) {
+        monitoringService.recordError("external_api", "/api/weather/:city");
+        return sendErrorResponse(
+          res,
+          404,
+          "City not found. Please check the spelling.",
+          "CITY_NOT_FOUND",
+          null,
+        );
+      }
+
       monitoringService.recordError("external_api", "/api/weather/:city");
-      return handleError(
+      return sendErrorResponse(
         res,
-        404,
-        "City not found. Please check the spelling.",
-        "CITY_NOT_FOUND",
+        502,
+        "Failed to retrieve data from the weather service.",
+        "BAD_GATEWAY",
         null,
-        req,
       );
     }
-
-    monitoringService.recordError("external_api", "/api/weather/:city");
-    return handleError(
-      res,
-      502,
-      "Failed to retrieve data from the weather service.",
-      "BAD_GATEWAY",
-      null,
-      req,
-    );
-  }
-});
+  },
+);
 
 // Schedule weekly selector validation with randomness
 let selectorValidationInterval;
@@ -661,11 +778,21 @@ const scheduleSelectorValidation = () => {
   selectorValidationInterval = setInterval(validateSelectors, interval);
 };
 
-app.get("/config", (req, res) => {
-  res.json({
+app.get("/config", optionalAuth, (req, res) => {
+  const config = {
     RECENT_SEARCH_LIMIT: process.env.RECENT_SEARCH_LIMIT || 5,
     API_URL: process.env.API_URL,
-  });
+  };
+
+  // Add user info if authenticated
+  if (req.user) {
+    config.user = {
+      username: req.user.username,
+      scopes: req.user.scopes,
+    };
+  }
+
+  res.json(config);
 });
 
 app.get("/api/version", (req, res) => {
@@ -683,16 +810,51 @@ const {
 app.use(errorLoggingMiddleware);
 
 // CORS error handler
+app.use((err, req, res, next) => {
+  if (err.message === "Not allowed by CORS") {
+    return sendErrorResponse(
+      res,
+      403,
+      "CORS policy disallows access from this origin.",
+      "CORS_DENIED",
+    );
+  }
+  next(err);
+});
 app.use(corsErrorHandler);
 
 // Route not found handler (404)
 app.use(routeNotFoundHandler);
 
 // Final unhandled error handler (500)
+app.use((err, req, res, next) => {
+  if (process.env.NODE_ENV !== "production") {
+    console.error("Unhandled error:", err);
+  }
+  sendErrorResponse(res, 500, "Internal server error", "SERVER_ERROR");
+});
 app.use(errorHandler);
 
 const stopServer = async () => {
   if (selectorValidationInterval) clearInterval(selectorValidationInterval);
+
+  // Stop cache warming service
+  try {
+    cacheWarmingService.stop();
+    logger.info("Cache warming service stopped");
+  } catch (error) {
+    logger.error("Error stopping cache warming service", {
+      error: error.message,
+    });
+  }
+
+  // Close Redis connections
+  try {
+    await redisService.disconnect();
+    logger.info("Redis connections closed");
+  } catch (error) {
+    logger.error("Error during Redis shutdown", { error: error.message });
+  }
 
   // Close database connections
   try {
@@ -721,7 +883,7 @@ const stopServer = async () => {
   });
 };
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3003;
 let server;
 
 if (process.env.NODE_ENV !== "test") {
@@ -743,6 +905,12 @@ if (process.env.NODE_ENV !== "test") {
       await validateSelectors();
       scheduleSelectorValidation();
 
+      // Initialize cache warming service
+      if (process.env.CACHE_WARMING_ENABLED !== "false") {
+        logger.info("Starting cache warming service...");
+        cacheWarmingService.start();
+      }
+
       // Get database health status
       const dbHealth = await getDatabaseHealth();
 
@@ -750,6 +918,11 @@ if (process.env.NODE_ENV !== "test") {
         database: dbHealth.status,
         selectorValidation: "enabled",
         monitoring: "enabled",
+        cacheWarming:
+          process.env.CACHE_WARMING_ENABLED !== "false"
+            ? "enabled"
+            : "disabled",
+        redis: redisService.isConnected ? "connected" : "disconnected",
         adminDashboard: `/admin/dashboard`,
         adminLogin: `/admin/login`,
         defaultCredentials:

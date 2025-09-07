@@ -1,9 +1,9 @@
 /** @type {import('jest').Config} */
 module.exports = {
-  testEnvironment: "jsdom", // Use jsdom environment for all tests
-  setupFilesAfterEnv: ["./jest.setup.js"],
+  testEnvironment: "node",
+  testMatch: ["<rootDir>/test/**/*.test.js"],
   transform: {
-    "^.+\\.jsx?$": "babel-jest",
+    "^.+\\.js$": "babel-jest",
   },
   transformIgnorePatterns: [
     // Ignore all node_modules except cheerio (allows jest to transpile cheerio)

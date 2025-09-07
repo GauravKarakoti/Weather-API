@@ -1,6 +1,15 @@
+
+
+
 // Use fixed app version (from package.json)
 const CACHE_VERSION = "app-cache-v1.0.0";
-const CORE_ASSETS = ["/", "/index.html", "/style.css", "/script.js"];
+const CORE_ASSETS = [
+  "/", 
+  "/index.html", 
+  "/style.css", 
+  "/script.js", 
+  "/fallback.png" // Added fallback image to core assets
+];
 
 // Install event: Cache core assets with partial success logging
 self.addEventListener("install", (event) => {
@@ -79,8 +88,6 @@ self.addEventListener("periodicsync", (event) => {
     event.waitUntil(
       (async () => {
         const cache = await caches.open(CACHE_VERSION);
-
-        // Get recent searches from storage to refresh their weather data
         const recentSearches = await getRecentSearches();
 
         if (recentSearches && recentSearches.length > 0) {
@@ -109,7 +116,6 @@ self.addEventListener("periodicsync", (event) => {
           );
         }
 
-        // Also refresh config
         try {
           const configResponse = await fetch(
             "https://weather-api-ex1z.onrender.com/config",
@@ -129,10 +135,9 @@ self.addEventListener("periodicsync", (event) => {
   }
 });
 
-// Helper function to get recent searches from clients
+// Helper: Get recent searches from clients
 async function getRecentSearches() {
   try {
-    // Try to get recent searches from clients using MessageChannel
     const clients = await self.clients.matchAll();
 
     if (clients.length > 0) {

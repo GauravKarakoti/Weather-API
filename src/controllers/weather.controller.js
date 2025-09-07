@@ -6,7 +6,7 @@ const {
   parseHumidityPressure,
   parseMinMaxTemperature,
 } = require("../utils/parser");
-const { handleError } = require("../middleware/error.middleware");
+const { handleError } = require("../middlewares/error.middleware");
 const { fallbackSelectors } = require("../constants/selectors");
 
 const getWeather = async (req, res) => {
@@ -19,9 +19,21 @@ const getWeather = async (req, res) => {
     const response = await fetchWeatherData(city);
     const $ = cheerio.load(response.data);
 
-    const getText = (primary, fallback) => {
-      const el = $(primary);
-      return el.length ? el.text().trim() : $(fallback).text()?.trim() || null;
+    // Helper function to get element text with fallback
+    const getElementText = (selectorKey) => {
+      const primarySelector = process.env[selectorKey];
+      const fallbackSelector = fallbackSelectors[selectorKey];
+      let text = null;
+
+      if (primarySelector && $(primarySelector).length) {
+        text = $(primarySelector).text()?.trim();
+      }
+
+      if (!text && fallbackSelector && $(fallbackSelector).length) {
+        text = $(fallbackSelector).text()?.trim();
+      }
+
+      return text || null;
     };
 
     const temperatureText = getElementText(
@@ -50,7 +62,7 @@ const getWeather = async (req, res) => {
     );
     const date = formatDate(dateText); // Declare date variable here
 
-    if (!temperature || !condition) {
+    if (temperature === "N/A" && condition === "N/A") {
       return handleError(
         res,
         503,
@@ -60,7 +72,7 @@ const getWeather = async (req, res) => {
     }
 
     res.json({
-      date: formatDate(date),
+      date,
       temperature,
       minTemperature,
       maxTemperature,

@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cache Management - Weather API Admin</title>
+    <link rel="stylesheet" href="../css/cache.css" />
+  </head>
+  <body>
+    <div class="container">
+      <a href="/admin/dashboard" class="back-link">← Back to Admin Dashboard</a>
+
+      <div class="header">
+        <h1>🚀 Redis Cache Management</h1>
+        <p>Monitor and manage the Weather API caching system</p>
+      </div>
+
+      <div id="alerts"></div>
+
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>Loading cache data...</p>
+      </div>
+
+      <div class="dashboard-grid" id="dashboard">
+        <!-- Cache Health Status -->
+        <div class="card">
+          <h3>🔧 Redis Health Status</h3>
+          <div id="health-status">
+            <div class="stat-grid">
+              <div class="stat-item">
+                <span class="stat-value" id="redis-status">
+                  <span class="status-indicator status-disconnected"></span>
+                  Checking...
+                </span>
+                <div class="stat-label">Redis Connection</div>
+              </div>
+              <div class="stat-item">
+                <span class="stat-value" id="cache-keys-count">-</span>
+                <div class="stat-label">Total Cache Keys</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cache Performance -->
+        <div class="card">
+          <h3>📊 Cache Performance</h3>
+          <div id="performance-stats">
+            <div class="stat-grid">
+              <div class="stat-item">
+                <span class="stat-value" id="hit-rate">-</span>
+                <div class="stat-label">Hit Rate</div>
+              </div>
+              <div class="stat-item">
+                <span class="stat-value" id="total-hits">-</span>
+                <div class="stat-label">Total Hits</div>
+              </div>
+              <div class="stat-item">
+                <span class="stat-value" id="total-misses">-</span>
+                <div class="stat-label">Total Misses</div>
+              </div>
+              <div class="stat-item">
+                <span class="stat-value" id="compression-saved">-</span>
+                <div class="stat-label">Compression Saved</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cache Management Actions -->
+        <div class="card">
+          <h3>⚡ Cache Actions</h3>
+          <div style="margin-bottom: 1rem">
+            <button class="btn btn-success" onclick="warmCache()">
+              🔥 Warm Cache
+            </button>
+            <button class="btn btn-warning" onclick="refreshData()">
+              🔄 Refresh Data
+            </button>
+          </div>
+
+          <div class="form-group">
+            <label for="city-input">Invalidate Cache for City:</label>
+            <input
+              type="text"
+              id="city-input"
+              placeholder="Enter city name (e.g., London)"
+            />
+            <button
+              class="btn btn-danger"
+              onclick="invalidateCity()"
+              style="margin-top: 0.5rem"
+            >
+              🗑️ Invalidate City
+            </button>
+          </div>
+
+          <div class="form-group">
+            <label for="pattern-input">Invalidate Cache Pattern:</label>
+            <input
+              type="text"
+              id="pattern-input"
+              placeholder="Enter pattern (e.g., weather:*)"
+            />
+            <button
+              class="btn btn-danger"
+              onclick="invalidatePattern()"
+              style="margin-top: 0.5rem"
+            >
+              🗑️ Invalidate Pattern
+            </button>
+          </div>
+        </div>
+
+        <!-- Cache Analytics -->
+        <div class="card">
+          <h3>📈 Cache Analytics (Last 7 Days)</h3>
+          <div id="analytics-data">
+            <p>Loading analytics...</p>
+          </div>
+        </div>
+
+        <!-- Popular Cities -->
+        <div class="card">
+          <h3>🌟 Popular Cities</h3>
+          <p>These cities are automatically cached with longer TTL:</p>
+          <div class="popular-cities">
+            <div class="city-tag">London</div>
+            <div class="city-tag">New York</div>
+            <div class="city-tag">Tokyo</div>
+            <div class="city-tag">Paris</div>
+            <div class="city-tag">Sydney</div>
+            <div class="city-tag">Mumbai</div>
+            <div class="city-tag">Delhi</div>
+            <div class="city-tag">Shanghai</div>
+            <div class="city-tag">Los Angeles</div>
+            <div class="city-tag">Chicago</div>
+            <div class="city-tag">Toronto</div>
+            <div class="city-tag">Berlin</div>
+            <div class="city-tag">Madrid</div>
+            <div class="city-tag">Rome</div>
+            <div class="city-tag">Amsterdam</div>
+            <div class="city-tag">Singapore</div>
+            <div class="city-tag">Hong Kong</div>
+            <div class="city-tag">Dubai</div>
+            <div class="city-tag">Moscow</div>
+            <div class="city-tag">Seoul</div>
+          </div>
+        </div>
+
+        <!-- Cache Keys Overview -->
+        <div class="card">
+          <h3>🔑 Cache Keys Breakdown</h3>
+          <div id="cache-breakdown">
+            <div class="stat-grid">
+              <div class="stat-item">
+                <span class="stat-value" id="weather-keys">-</span>
+                <div class="stat-label">Weather Keys</div>
+              </div>
+              <div class="stat-item">
+                <span class="stat-value" id="forecast-keys">-</span>
+                <div class="stat-label">Forecast Keys</div>
+              </div>
+              <div class="stat-item">
+                <span class="stat-value" id="analytics-keys">-</span>
+                <div class="stat-label">Analytics Keys</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="../js/cache.js"></script>
+  </body>
+</html>
