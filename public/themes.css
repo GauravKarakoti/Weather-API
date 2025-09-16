@@ -1,0 +1,300 @@
+/**
+ * Theme Variables for Weather API
+ * Supports both light and dark themes with CSS custom properties
+ */
+
+:root {
+  /* Light Theme Variables */
+  --bg-primary: #f8f9fa;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f3f4;
+  
+  --text-primary: #202124;
+  --text-secondary: #5f6368;
+  --text-muted: #9aa0a6;
+  
+  --accent-primary: #1a73e8;
+  --accent-secondary: #4285f4;
+  --accent-hover: #1557b0;
+  
+  --border-color: #dadce0;
+  --border-hover: #bdc1c6;
+  
+  --shadow-light: rgba(0, 0, 0, 0.1);
+  --shadow-medium: rgba(0, 0, 0, 0.15);
+  --shadow-heavy: rgba(0, 0, 0, 0.2);
+  
+  --error-color: #d93025;
+  --success-color: #137333;
+  --warning-color: #f29900;
+  
+  --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --gradient-secondary: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  
+  --transition-speed: 0.3s;
+  --transition-easing: ease-in-out;
+}
+
+/* Dark Theme Variables (current theme) */
+[data-theme="dark"] {
+  --bg-primary: #0f0f0f;
+  --bg-secondary: #1e1e1e;
+  --bg-tertiary: #2d2d2d;
+  
+  --text-primary: #ddd;
+  --text-secondary: #8a8a8a;
+  --text-muted: #6c6c6c;
+  
+  --accent-primary: #4fc3f7;
+  --accent-secondary: #29b6f6;
+  --accent-hover: #0288d1;
+  
+  --border-color: #404040;
+  --border-hover: #505050;
+  
+  --shadow-light: rgba(0, 0, 0, 0.3);
+  --shadow-medium: rgba(0, 0, 0, 0.4);
+  --shadow-heavy: rgba(0, 0, 0, 0.5);
+  
+  --error-color: #ff5252;
+  --success-color: #4caf50;
+  --warning-color: #ff9800;
+  
+  --gradient-primary: linear-gradient(135deg, #2c3e50, #3498db);
+  --gradient-secondary: linear-gradient(135deg, #833092, #6691ff);
+}
+
+/* Enhanced Theme Toggle Button Styles */
+.theme-toggle {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-color);
+  border-radius: 50%;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-speed) var(--transition-easing);
+  box-shadow: 0 4px 16px var(--shadow-light);
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+  font-size: 1.5rem;
+  overflow: hidden;
+}
+
+.theme-toggle:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px var(--shadow-medium);
+  border-color: var(--accent-primary);
+}
+
+.theme-toggle:active {
+  transform: scale(0.95);
+}
+
+.theme-toggle:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-primary), 0 4px 16px var(--shadow-light);
+}
+
+/* Enhanced toggle icons with better visibility */
+.theme-toggle .toggle-icon {
+  position: absolute;
+  transition: all var(--transition-speed) var(--transition-easing);
+  font-size: 1.4rem;
+}
+
+.theme-toggle .sun-icon {
+  opacity: 0;
+  transform: rotate(180deg) scale(0.5);
+  color: #ffd700;
+}
+
+.theme-toggle .moon-icon {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+  color: var(--accent-primary);
+}
+
+[data-theme="dark"] .theme-toggle .sun-icon {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+}
+
+[data-theme="dark"] .theme-toggle .moon-icon {
+  opacity: 0;
+  transform: rotate(-180deg) scale(0.5);
+}
+
+/* Pulse animation for better visibility */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(26, 115, 232, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(26, 115, 232, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(26, 115, 232, 0);
+  }
+}
+
+.theme-toggle:hover {
+  animation: pulse 1.5s infinite;
+}
+
+.theme-toggle:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px var(--shadow-medium);
+  border-color: var(--accent-primary);
+}
+
+.theme-toggle:active {
+  transform: scale(0.95);
+}
+
+.theme-toggle i {
+  font-size: 1.2rem;
+  color: var(--accent-primary);
+  transition: all var(--transition-speed) var(--transition-easing);
+}
+
+/* Smooth transitions for all elements */
+* {
+  transition: background-color var(--transition-speed) var(--transition-easing),
+              color var(--transition-speed) var(--transition-easing),
+              border-color var(--transition-speed) var(--transition-easing),
+              box-shadow var(--transition-speed) var(--transition-easing);
+}
+
+/* Body theme transitions */
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color var(--transition-speed) var(--transition-easing),
+              color var(--transition-speed) var(--transition-easing);
+}
+
+/* Container theming */
+.container {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 8px 30px var(--shadow-light);
+  transition: all var(--transition-speed) var(--transition-easing);
+}
+
+/* Input theming */
+input, button {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  transition: all var(--transition-speed) var(--transition-easing);
+}
+
+input:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
+}
+
+/* Button theming */
+button {
+  background: var(--accent-primary);
+  color: white;
+  border: none;
+}
+
+button:hover {
+  background: var(--accent-hover);
+  box-shadow: 0 4px 12px var(--shadow-medium);
+}
+
+/* Weather card theming */
+.weather-card {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 10px var(--shadow-light);
+}
+
+/* Recent searches theming */
+.recent-searches {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
+/* Error message theming */
+.error-message {
+  color: var(--error-color);
+  background: rgba(217, 48, 37, 0.1);
+  border: 1px solid var(--error-color);
+}
+
+/* Success message theming */
+.success-message {
+  color: var(--success-color);
+  background: rgba(19, 115, 51, 0.1);
+  border: 1px solid var(--success-color);
+}
+
+/* Admin dashboard theming */
+.admin-container {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.admin-header {
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.admin-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 8px var(--shadow-light);
+}
+
+/* Responsive theme toggle */
+@media (max-width: 768px) {
+  .theme-toggle {
+    top: 10px;
+    right: 10px;
+    width: 45px;
+    height: 45px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --border-color: #000000;
+    --text-primary: #000000;
+  }
+  
+  [data-theme="dark"] {
+    --border-color: #ffffff;
+    --text-primary: #ffffff;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
+
+/* Focus styles for accessibility */
+.theme-toggle:focus {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* Print styles */
+@media print {
+  .theme-toggle {
+    display: none;
+  }
+}
