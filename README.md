@@ -262,6 +262,130 @@ NODE_ENV=production  # Enables HTTPS requirement
 - **Token Caching**: Redis-based caching for performance
 - **Audit Logging**: Comprehensive request logging
 ---
+
+# Project Structure
+  
+  Weather-API/\
+├── 📁 .github/                          #GitHub configuration\
+│   ├── 📁 ISSUE_TEMPLATE/               # Issue templates\
+│   │   ├── bug_report.md\
+│   │   ├── documentation.md\
+│   │   ├── feature_request.md\
+│   │   └── performance.md\
+│   ├── 📁 workflows/                    # GitHub Actions workflows\
+│   │   ├── bundlewatch.yml\
+│   │   ├── dependabot.yml\
+│   │   ├── lint.yml\
+│   │   ├── performance.yml\
+│   │   ├── render-build.yml\
+│   │   ├── security.yml\
+│   │   ├── test.yml\
+│   │   └── uptime.yml\
+│   ├── dependabot.yml\
+│   └── PULL_REQUEST_TEMPLATE.md\
+├── 📁 docs/                             # Documentation\
+│   ├── MONITORING.md
+│   ├── MOST_IMPORTANT_FOR_DEVELOPERS.md\
+│   ├── OAUTH.md\
+│   └── REDIS_CACHE.md\
+├── 📁 public/                           # Frontend assets\
+│   ├── 📁 admin/                        # Admin panel\
+│   │   ├── cache.html\
+│   │   ├── dashboard.html\
+│   │   └── login.html\
+│   ├── 📁 assets/                       # Static assets\
+│   │   ├── gssoc_logo.png\
+│   │   └── WeatherBackground.jpg\
+│   ├── 📁 css/                          # Stylesheets\
+│   │   ├── cache.css\
+│   │   ├── dashboard.css\
+│   │   └── login.css\
+│   ├── 📁 Favicon/                      # Favicon files\
+│   │   └── Favicon.PNG\
+│   ├── 📁 js/                           # JavaScript files\
+│   │   ├── cache.js\
+│   │   ├── dashboard.js\
+│   │   └── login.js\
+│   ├── fallback.png\
+│   ├── index.html\
+│   ├── script.js\
+│   ├── style.css\
+│   ├── sw.js\
+│   ├── theme-manager.js\
+│   └── themes.css\
+├── 📁 scripts/                          # Utility scripts\
+│   ├── test-oauth.js\
+│   └── test-redis.js\
+├── 📁 src/                              # Source code\
+│   ├── 📁 config/                       # Configuration files\
+│   │   ├── cors.js\
+│   │   ├── database.js\
+│   │   ├── env.js\
+│   │   ├── monitoring.config.js\
+│   │   └── oauth.js\
+│   ├── 📁 constants/                    # Application constants\
+│   │   └── selectors.js\
+│   ├── 📁 controllers/                  # Route controllers\
+│   │   ├── oauth.controller.js\
+│   │   └── weather.controller.js\
+│   ├── 📁 database/                     # Database configuration\
+│   │   ├── 📁 migrations/               # Database migrations\
+│   │   │   ├── 001_initial_schema.js\
+│   │   │   └── 002_add_oauth_tables.js\
+│   │   └── init.js\
+│   ├── 📁 middlewares/                  # Express middlewares\
+│   │   ├── cache.middleware.js\
+│   │   ├── error.middleware.js\
+│   │   ├── headers.middleware.js\
+│   │   ├── logging.middleware.js\
+│   │   ├── oauth.middleware.js\
+│   │   └── rateLimiter.middleware.js\
+│   ├── 📁 routes/                       # API routes\
+│   │   ├── admin.routes.js\
+│   │   ├── configRoutes.js\
+│   │   ├── oauth.routes.js\
+│   │   └── weather.routes.js\
+│   ├── 📁 services/                     # Business logic\
+│   │   ├── cache.service.js\
+│   │   ├── cacheWarming.service.js\
+│   │   ├── email.service.js\
+│   │   ├── monitoring.service.js\
+│   │   ├── oauth.service.js\
+│   │   ├── redis.service.js\
+│   │   ├── selectorValidation.service.js\
+│   │   ├── tokenStorage.service.js\
+│   │   ├── user.service.js\
+│   │   └── weather.service.js\
+│   └── 📁 utils/                        # Utility functions\
+│       ├── ip.js\
+│       ├── logger.js\
+│       ├── parser.js\
+│       └── sanitize.js\
+├── 📁 test/                             # Test files\
+│   ├── monitoring.test.js\
+│   ├── oauth.test.js\
+│   ├── server.test.js\
+│   └── weather.test.js\
+├── .env.example                         # Environment variables template\
+├── .gitignore                          # Git ignore rules\
+├── .lighthouserc.js                    # Lighthouse configuration\
+├── babel.config.js                     # Babel configuration\
+├── Code of Conduct.md                  # Community guidelines\
+├── Contributing.md                     # Contribution guidelines\
+├── docker-compose.yaml                 # Docker compose configuration\
+├── Dockerfile                          # Docker configuration\
+├── eslint.config.js                    # ESLint configuration\
+├── jest.config.js                      # Jest configuration\
+├── jest.setup.js                       # Jest setup file\
+├── LICENSE.md                          # License information\
+├── MONITORING.md                       # Monitoring documentation\
+├── package-lock.json                   # NPM lock file\
+├── package.json                        # NPM package configuration\
+├── README.md                           # Project documentation\
+├── Security.md                         # Security policy\
+├── server.js                           # Main server file\
+└── THEME_IMPLEMENTATION.md             # Theme implementation guide\
+
 ## 📬 Contact
 
 Have ideas, feedback, or just want to say hi?
