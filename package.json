@@ -11,7 +11,8 @@
     "format:check": "prettier --check .",
     "db:migrate": "node -e \"require('./src/database/migrations').runMigrations().then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); })\"",
     "db:status": "node -e \"require('./src/database/migrations').getMigrationStatus().then(s => { console.log(JSON.stringify(s, null, 2)); process.exit(0); }).catch(e => { console.error(e); process.exit(1); })\"",
-    "db:reset": "node -e \"require('./src/database/init').resetDatabase().then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); })\""
+    "db:reset": "node -e \"require('./src/database/init').resetDatabase().then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); })\"",
+    "optimize:images": "node scripts/optimize-images.js"
   },
   "keywords": [],
   "author": "",
@@ -36,7 +37,6 @@
     "nodemon": "^3.1.9",
     "pg": "^8.12.0",
     "prom-client": "^15.0.0",
-    "uuid": "^11.1.0",
     "uuid": "^13.0.0",
     "winston": "^3.11.0",
     "winston-daily-rotate-file": "^5.0.0",
@@ -47,10 +47,12 @@
     "@babel/preset-env": "^7.28.0",
     "babel-jest": "^30.0.5",
     "eslint": "^9.31.0",
+    "glob": "^11.0.3",
     "jest": "^30.0.5",
     "jest-environment-jsdom": "^30.0.5",
     "jsdom": "^27.0.0",
     "prettier": "^3.6.2",
+    "sharp": "^0.34.4",
     "supertest": "^7.0.0"
   }
 }
