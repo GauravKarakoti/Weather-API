@@ -13,7 +13,9 @@
       crossorigin="anonymous"
       referrerpolicy="no-referrer"
     />
-    <link rel="icon" href="Favicon/favicon.png" type="image/png" />
+  <link rel="icon" href="optimized/Favicon/Favicon.webp" type="image/webp" />
+  <!-- Fallback for browsers that don't support WebP -->
+  <link rel="alternate icon" href="Favicon/Favicon.PNG" />
     <style>
       /* Music player styles */
       .music-player {
@@ -135,6 +137,8 @@
   </head>
 
   <body>
+    <!-- Preload background for faster painting -->
+    <link rel="preload" href="optimized/assets/WeatherBackground.webp" as="image">
     <main class="container">
       <div class="header-section">
         <h1><i class="fas fa-cloud-sun"></i>Weather Information</h1>

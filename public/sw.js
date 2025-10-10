@@ -4,11 +4,14 @@
 // Use fixed app version (from package.json)
 const CACHE_VERSION = "app-cache-v1.0.0";
 const CORE_ASSETS = [
-  "/", 
-  "/index.html", 
-  "/style.css", 
-  "/script.js", 
-  "/fallback.png" // Added fallback image to core assets
+  "/",
+  "/index.html",
+  "/style.css",
+  "/script.js",
+  // Prefer optimized WebP assets where available
+  "/optimized/assets/WeatherBackground.webp",
+  "/optimized/Favicon/Favicon.webp",
+  "/optimized/fallback.webp",
 ];
 
 // Install event: Cache core assets with partial success logging
@@ -59,22 +62,26 @@ self.addEventListener("fetch", (event) => {
         if (cached) return cached;
 
         return fetch(event.request).then((response) => {
-          if (
-            event.request.method === "GET" &&
-            response.status === 200 &&
-            (event.request.url.includes("/images/") ||
-              event.request.url.includes("/fonts/"))
-          ) {
-            caches
-              .open(CACHE_VERSION)
-              .then((cache) => cache.put(event.request, response.clone()));
+          if (event.request.method === "GET" && response.status === 200) {
+            // Cache optimized assets and common static folders
+            if (
+              event.request.url.includes("/optimized/") ||
+              event.request.url.includes("/images/") ||
+              event.request.url.includes("/assets/") ||
+              event.request.url.includes("/fonts/")
+            ) {
+              caches.open(CACHE_VERSION).then((cache) =>
+                cache.put(event.request, response.clone()),
+              );
+            }
           }
           return response;
         });
       })
       .catch(() => {
         if (event.request.destination === "image") {
-          return caches.match("/fallback.png");
+          // Prefer optimized WebP fallback
+          return caches.match("/optimized/fallback.webp") || caches.match("/fallback.png");
         }
         return caches.match("/index.html");
       }),
