@@ -220,6 +220,21 @@ fix/service-worker-scope
     const mockStorage = {};
     scriptModule.storageManager.setItem = jest.fn((key, value) => {
       mockStorage[key] = value;
+    });
+    scriptModule.storageManager.getItem = jest.fn(
+      (key) => mockStorage[key] || null,
+    );
+
+    // Call addToRecentSearches
+    scriptModule.addToRecentSearches("Tokyo");
+
+    // Should store the city
+    expect(scriptModule.storageManager.setItem).toHaveBeenCalledWith(
+      "recentSearches",
+      ["Tokyo"],
+    );
+  });
+
   test("should fetch weather, display it, and add to recent searches on form submission", async () => {
     const cityInput = document.getElementById("city");
     const weatherDataContainer = document.getElementById("weather-data");

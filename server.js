@@ -344,13 +344,14 @@ if (envResult.error) {
 }
 
 // Nodemailer transporter configuration
-const transporter = nodemailer.createTransporter({
-  service: "gmail",
-  auth: {
-    user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS,
-  },
-});
+    // Fixed code
+     const transporter = nodemailer.createTransport({
+       service: "gmail",
+       auth: {
+         user: process.env.MAIL_USER,
+         pass: process.env.MAIL_PASS
+       }
+     });
 
 // Enhanced admin alert function with failure management
 const sendAdminAlert = async (failedSelectors) => {

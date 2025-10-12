@@ -162,3 +162,12 @@ global.console = {
   warn: jest.fn(),
   error: jest.fn(),
 };
+    // Polyfill for TextEncoder/TextDecoder (Node <18 or jsdom)
+    // Already declared and assigned at the top of the file, so this is not needed.
+
+     // Optional: Mock DOM globals if needed
+     global.fetch = require('jest-fetch-mock');
+
+     // Jest DOM extensions (if using @testing-library)
+     require('@testing-library/jest-dom');
+     
