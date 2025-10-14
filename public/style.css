@@ -433,21 +433,6 @@ button {
   box-shadow: 0 0 12px rgba(255, 77, 109, 0.7);
 }
 
-#weather-data {
-  display: flex;
-  flex-direction: row;
-  background: var(--weather-data-bg-color);
-  padding: 10px;
-  border-radius: 10px;
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(79, 195, 247, 0.3);
-  text-align: left;
-  margin-top: 1em;
-  margin-bottom: 1em;
-  max-height: 300px;
-  overflow-y: auto;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
-}
 
 #weather-data p {
   margin: 8px 7px;

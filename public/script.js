@@ -220,7 +220,7 @@ function cacheElements() {
      const voiceBtn = document.getElementById('voiceBtn');
      if (!voiceBtn) return console.warn('Voice button not found');
 
-     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+     const SpeechRecognition = globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition;
      if (!SpeechRecognition) {
        voiceBtn.style.display = 'none';  // Hide if unsupported
        return console.warn('Voice not supported in this browser');
@@ -243,14 +243,16 @@ function cacheElements() {
        console.log('Voice transcript:', transcript);
 
        // Parse city name (e.g., "weather in mysore" -> "mysore")
-       let city = transcript;
-       const match = transcript.match(/in\s+([a-zA-Z\s,.-]+)/i);  // Looks for "in [city]"
-       if (match) {
-         city = match[1].trim();
-       } else {
-         // Fallback: First word or whole phrase
-         city = transcript.split(/\s+/)[0] || transcript;
-       }
+const match = transcript.match(/in\s+([a-zA-Z\s,.\-]+)/i);
+  // Looks for "in [city]"
+let city;
+
+if (match) {
+  city = match[1].trim();
+} else {
+  // Fallback: First word or whole phrase
+  city = transcript.split(/\s+/)[0] || transcript;
+}
 
        if (cityInput) {
          cityInput.value = city.charAt(0).toUpperCase() + city.slice(1);  // Capitalize
@@ -415,8 +417,8 @@ function toggleLoading(isLoading) {
   if (spinner) spinner.classList.toggle("hidden", !isLoading);
 }
 
-   function displayWeather(data) {
-  console.log('displayWeather called with data:', data);  // Debug – confirm data arrives
+function displayWeather(data) {
+  console.log('displayWeather called with data:', data);
 
   if (!data) {
     console.error('No data to display');
@@ -424,79 +426,84 @@ function toggleLoading(isLoading) {
     return;
   }
 
-  const weatherDataEl = document.getElementById("weather-data");  // Your results div ID
+  const weatherDataEl = document.getElementById("weather-data");
   if (!weatherDataEl) {
     console.error('Weather element not found – check HTML <div id="weather-data">');
     return;
   }
 
-  weatherDataEl.innerHTML = ""; // Clear previous
-  weatherDataEl.classList.remove("hidden");  // Show div
+  weatherDataEl.innerHTML = "";
+  weatherDataEl.classList.remove("hidden");
 
-  // Handle backend flat object (e.g., { temperature: '26.0 °C', condition: 'Rain' })
-  if (data.temperature !== undefined) {
-    // Flat backend format
-    console.log('Using flat backend format');  // Debug
+  // Helper to safely parse numbers with default
+  const parseNumber = (value, defaultValue = 0) => {
+    const num = parseFloat(value);
+    return isNaN(num) ? defaultValue : num;
+  };
 
-    const temp = parseFloat(data.temperature) || 0;  // Parse '26.0 °C' to 26.0
-    const condition = data.condition || 'Unknown';
-    const minTemp = parseFloat(data.minTemperature) || temp - 5;
-    const maxTemp = parseFloat(data.maxTemperature) || temp + 5;
-    const humidity = parseFloat(data.humidity) || 60;
-    const pressure = parseFloat(data.pressure) || 1013;
-    const date = data.date || new Date().toDateString();
-    const day = new Date(date).toLocaleDateString("en-US", { weekday: "long" });
-
+  // Helper to render a weather card
+  const renderCard = (info) => {
     const template = `
       <div class="weather-card">
         <div class="weather-details">
-          <p><strong>Day:</strong> ${day}</p>
-          <p><strong>Temp:</strong> ${temp.toFixed(1)}°C</p>
-          <p><strong>Date:</strong> ${date}</p>
-          <p><strong>Condition:</strong> ${condition}</p>
-          <p><strong>Min Temp:</strong> ${minTemp.toFixed(1)}°C</p>
-          <p><strong>Max Temp:</strong> ${maxTemp.toFixed(1)}°C</p>
-          <p><strong>Humidity:</strong> ${humidity}%</p>
-          <p><strong>Pressure:</strong> ${pressure} hPa</p>
+          <p><strong>Day:</strong> ${info.day}</p>
+          <p><strong>Temp:</strong> ${info.temp}°C</p>
+          <p><strong>Date:</strong> ${info.date}</p>
+          <p><strong>Condition:</strong> ${info.condition}</p>
+          <p><strong>Min Temp:</strong> ${info.minTemp}°C</p>
+          <p><strong>Max Temp:</strong> ${info.maxTemp}°C</p>
+          <p><strong>Humidity:</strong> ${info.humidity}%</p>
+          <p><strong>Pressure:</strong> ${info.pressure} hPa</p>
         </div>
       </div>
     `;
+    weatherDataEl.insertAdjacentHTML(
+      "beforeend",
+      DOMPurify ? DOMPurify.sanitize(template) : template
+    );
+  };
 
-    weatherDataEl.insertAdjacentHTML("beforeend", DOMPurify ? DOMPurify.sanitize(template) : template);
+  if (data.temperature !== undefined) {
+    // Flat format
+    console.log('Using flat backend format');
+    const temp = parseNumber(data.temperature);
+    renderCard({
+      day: new Date(data.date || new Date()).toLocaleDateString("en-US", { weekday: "long" }),
+      date: data.date || new Date().toDateString(),
+      temp: temp.toFixed(1),
+      condition: data.condition || 'Unknown',
+      minTemp: parseNumber(data.minTemperature, temp - 5).toFixed(1),
+      maxTemp: parseNumber(data.maxTemperature, temp + 5).toFixed(1),
+      humidity: parseNumber(data.humidity, 60),
+      pressure: parseNumber(data.pressure, 1013)
+    });
   } else if (data.list) {
-    // Nested format (OpenWeatherMap fallback)
-    console.log('Using nested format');  // Debug
+    // Nested format
+    console.log('Using nested format');
     const dates = new Set();
-    let cnt = 0;
+    let count = 0;
 
-    for (let item of data.list) {
-      if (!item.main) continue;  // Skip if no main
+    for (const item of data.list) {
+      if (!item.main) continue;
 
-      const date = item.dt_txt ? item.dt_txt.split(" ")[0] : new Date().toDateString();
-      const day = new Date(item.dt_txt || date).toLocaleDateString("en-US", { weekday: "long" });
+      const date = item.dt_txt?.split(" ")[0] || new Date().toDateString();
+      if (dates.has(date)) continue;
 
-      if (!dates.has(date)) {
-        dates.add(date);
-        cnt++;
+      dates.add(date);
+      count++;
 
-        const template = `
-          <div class="weather-card">
-            <div class="weather-details">
-              <p><strong>Day:</strong> ${day}</p>
-              <p><strong>Temp:</strong> ${item.main.temp ? item.main.temp.toFixed(1) : 'N/A'}°C</p>
-              <p><strong>Date:</strong> ${date}</p>
-              <p><strong>Condition:</strong> ${item.weather && item.weather[0] ? item.weather[0].main : 'Unknown'}</p>
-              <p><strong>Min Temp:</strong> ${item.main.temp_min ? item.main.temp_min.toFixed(1) : 'N/A'}°C</p>
-              <p><strong>Max Temp:</strong> ${item.main.temp_max ? item.main.temp_max.toFixed(1) : 'N/A'}°C</p>
-              <p><strong>Humidity:</strong> ${item.main.humidity || 'N/A'}%</p>
-              <p><strong>Pressure:</strong> ${item.main.pressure || 'N/A'}</p>
-            </div>
-          </div>
-        `;
+      renderCard({
+        day: new Date(item.dt_txt || date).toLocaleDateString("en-US", { weekday: "long" }),
+        date,
+        temp: item.main.temp?.toFixed(1) ?? 'N/A',
+        condition: item.weather?.[0]?.main ?? 'Unknown',
+        minTemp: item.main.temp_min?.toFixed(1) ?? 'N/A',
+        maxTemp: item.main.temp_max?.toFixed(1) ?? 'N/A',
+        humidity: item.main.humidity ?? 'N/A',
+        pressure: item.main.pressure ?? 'N/A'
+      });
 
-        weatherDataEl.insertAdjacentHTML("beforeend", DOMPurify ? DOMPurify.sanitize(template) : template);
-        if (cnt === 4) break;
-      }
+      if (count === 4) break;
     }
   } else {
     console.error('Unknown data format:', data);
@@ -504,17 +511,18 @@ function toggleLoading(isLoading) {
     return;
   }
 
-  console.log('displayWeather complete – UI updated');  // Debug
+  console.log('displayWeather complete – UI updated');
 
-
-  weatherDataEl.classList.remove("hidden");
-  if ('speechSynthesis' in window) {
-       const utterance = new SpeechSynthesisUtterance(`Weather in ${data.city || 'the city'} is ${data.condition || 'unknown'} with temperature ${data.temperature || 'unknown'} degrees.`);
-       utterance.lang = 'en-US';
-       utterance.rate = 0.9;  // Slower for clarity
-       speechSynthesis.speak(utterance);
-     }
+  if ('speechSynthesis' in globalThis) {
+    const utterance = new SpeechSynthesisUtterance(
+      `Weather in ${data.city || 'the city'} is ${data.condition || 'unknown'} with temperature ${data.temperature || 'unknown'} degrees.`
+    );
+    utterance.lang = 'en-US';
+    utterance.rate = 0.9;
+    speechSynthesis.speak(utterance);
+  }
 }
+
 
 function isValidInput(city) {
   return /^[\p{L}\p{M}\s''.-]{2,50}$/u.test(city);
@@ -899,7 +907,7 @@ function showUpdateNotification() {
  */
 
           // Fixed: Browser-safe init (no process.env)
-     if (typeof window !== 'undefined') {  // Detect browser
+     if (typeof globalThis !== 'undefined') {  // Detect browser
        window.addEventListener("DOMContentLoaded", initialize);
      }
      

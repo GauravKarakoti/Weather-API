@@ -166,7 +166,7 @@ global.console = {
     // Already declared and assigned at the top of the file, so this is not needed.
 
      // Optional: Mock DOM globals if needed
-     global.fetch = require('jest-fetch-mock');
+     globalThis.fetch = require('jest-fetch-mock');
 
      // Jest DOM extensions (if using @testing-library)
      require('@testing-library/jest-dom');
