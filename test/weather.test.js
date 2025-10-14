@@ -92,7 +92,7 @@ fix/service-worker-scope
     });
 
     // Set up a new JSDOM instance for each test to ensure isolation
- main
+ main();
     const dom = new JSDOM(html, {
       url: "http://localhost",
       runScripts: "dangerously",
