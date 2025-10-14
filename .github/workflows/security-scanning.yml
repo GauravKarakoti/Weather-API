@@ -159,7 +159,7 @@ jobs:
       run: npm ci
 
     - name: Run Snyk to check for vulnerabilities
-      uses: snyk/actions/node@v1.148.0
+      uses: snyk/actions/node@e2221410bff24446ba09102212d8bc75a567237d
 
       continue-on-error: true
       env:

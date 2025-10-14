@@ -89,7 +89,7 @@ describe("Weather App Client-Side Tests", () => {
       if (element.textContent !== undefined) element.textContent = "";
       if (element.innerHTML !== undefined) element.innerHTML = "";
       if (element.children) element.children = [];
-    });
+    }
 
     // Set up a new JSDOM instance for each test to ensure isolation
  main();
