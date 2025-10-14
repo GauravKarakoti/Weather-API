@@ -375,15 +375,16 @@ function setupMessageListener() {
          // Mock fallback (no API call – for demo)
          await new Promise(resolve => setTimeout(resolve, 1000));  // Simulate delay
          return {
-           city: city,
-           temperature: Math.floor(Math.random() * 20) + 15,  // Random 15-35°C
-           condition: ['Sunny', 'Cloudy', 'Rainy', 'Foggy'][Math.floor(Math.random() * 4)],
-           humidity: Math.floor(Math.random() * 40) + 50,  // 50-90%
-           minTemp: Math.floor(Math.random() * 5) + 10,
-           maxTemp: Math.floor(Math.random() * 5) + 20,
-           pressure: 1013,
-           forecast: []  // Empty for single
-         };
+  city: city,
+  temperature: Math.floor((crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296) * 20) + 15,  // Secure random 15-35°C
+  condition: ['Sunny', 'Cloudy', 'Rainy', 'Foggy'][Math.floor((crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296) * 4)],  // Secure random index
+  humidity: Math.floor((crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296) * 40) + 50,  // Secure random 50-90%
+  minTemp: Math.floor((crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296) * 5) + 10,
+  maxTemp: Math.floor((crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296) * 5) + 20,
+  pressure: 1013,
+  forecast: []  // Empty for single
+};
+
        }
 
        console.log('Local API success - Status:', response.status);  // Debug
