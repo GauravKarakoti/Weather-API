@@ -1,5 +1,46 @@
 # Weather API Dark Mode Theme Implementation
 
+- [Weather API Dark Mode Theme Implementation](#weather-api-dark-mode-theme-implementation)
+  * [Overview](#overview)
+  * [Features Implemented](#features-implemented)
+    + [✅ Core Features](#--core-features)
+    + [✅ Technical Implementation](#--technical-implementation)
+  * [Files Modified/Created](#files-modified-created)
+    + [New Files](#new-files)
+    + [Updated Files](#updated-files)
+  * [Usage Guide](#usage-guide)
+    + [For Users](#for-users)
+    + [For Developers](#for-developers)
+      - [Adding Theme Support to New Components](#adding-theme-support-to-new-components)
+      - [Available CSS Variables](#available-css-variables)
+      - [JavaScript API](#javascript-api)
+  * [Browser Compatibility](#browser-compatibility)
+    + [✅ Supported Browsers](#--supported-browsers)
+    + [✅ Features Tested](#--features-tested)
+  * [Accessibility Features](#accessibility-features)
+    + [✅ ARIA Implementation](#--aria-implementation)
+    + [✅ Keyboard Navigation](#--keyboard-navigation)
+    + [✅ Reduced Motion Support](#--reduced-motion-support)
+  * [Testing Checklist](#testing-checklist)
+    + [✅ Manual Testing Completed](#--manual-testing-completed)
+    + [✅ Automated Testing](#--automated-testing)
+  * [Performance Impact](#performance-impact)
+    + [✅ Optimizations](#--optimizations)
+    + [Metrics](#metrics)
+  * [Troubleshooting](#troubleshooting)
+    + [Common Issues](#common-issues)
+      - [Theme not persisting](#theme-not-persisting)
+      - [CSS variables not working](#css-variables-not-working)
+      - [Admin dashboard not themed](#admin-dashboard-not-themed)
+    + [Debug Mode](#debug-mode)
+  * [Future Enhancements](#future-enhancements)
+    + [Planned Features](#planned-features)
+    + [API Extensions](#api-extensions)
+  * [Contributing](#contributing)
+  * [Support](#support)
+
+<small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
+
 ## Overview
 This document provides comprehensive documentation for the dark/light mode theme system implemented in the Weather API project as part of GSSOC'25.
 

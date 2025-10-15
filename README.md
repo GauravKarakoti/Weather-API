@@ -1,5 +1,41 @@
 # Weather-API
 
+- [Weather-API](#weather-api)
+  * [✨ Features That Shine](#--features-that-shine)
+  * [OAuth 2.0 Implementation](#oauth-20-implementation)
+    + [Endpoints](#endpoints)
+      - [1. Token Introspection (`POST /oauth/introspect`)](#1-token-introspection---post--oauth-introspect--)
+      - [2. Token Refresh (`POST /oauth/token`)](#2-token-refresh---post--oauth-token--)
+      - [3. Client Credentials (`POST /oauth/token`)](#3-client-credentials---post--oauth-token--)
+      - [4. Token Revocation (`POST /oauth/revoke`)](#4-token-revocation---post--oauth-revoke--)
+      - [5. Demo Token Issuance (`POST /oauth/demo/issue`)](#5-demo-token-issuance---post--oauth-demo-issue--)
+    + [Authentication Methods](#authentication-methods)
+      - [HTTP Basic Authentication](#http-basic-authentication)
+      - [Bearer Token Authentication](#bearer-token-authentication)
+      - [Form Data Authentication](#form-data-authentication)
+    + [Protected Routes](#protected-routes)
+    + [Middleware Usage](#middleware-usage)
+      - [Basic Authentication](#basic-authentication)
+      - [Optional Authentication](#optional-authentication)
+      - [Enhanced Token Validation](#enhanced-token-validation)
+    + [Configuration](#configuration)
+    + [Security Features](#security-features)
+  * [📬 Contact](#---contact)
+  * [📜 Code of Conduct](#---code-of-conduct)
+  * [📄 License](#---license)
+  * [💡 Suggestions & Feedback](#---suggestions---feedback)
+    + [Error Codes](#error-codes)
+    + [Testing](#testing)
+    + [Performance](#performance)
+    + [Production Deployment](#production-deployment)
+  * [API Endpoints](#api-endpoints)
+    + [Weather Data](#weather-data)
+    + [Configuration](#configuration-1)
+  * [Contributing](#contributing)
+  * [License](#license)
+
+<small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
+
 ![GSSoC Logo](https://github.com/GauravKarakoti/Weather-API/blob/main/public/assets/gssoc%20logo.png)
 
 <tr>
