@@ -448,13 +448,6 @@ const sendAdminAlert = async (failedSelectors) => {
 const app = express();
 configureEnv(); // Load env or fallback
 
-// After env is set, explicitly start Redis service
-try {
-  redisService.start();
-} catch (e) {
-  console.warn("Redis service start skipped due to initialization error:", e.message);
-}
-
 // Now that env is configured, require OAuth routes and middleware that depend on env
 ({
   requireAuth,
@@ -1236,13 +1229,16 @@ if (process.env.NODE_ENV !== "test") {
       enableMetrics: process.env.ENABLE_METRICS,
     });
 
-    // Initialize database and system components
     try {
       // Initialize database first
       logger.info("Initializing database...");
       await initializeApp();
 
-      // Initialize monitoring and validation with failure management
+      // Connect to Redis BEFORE starting services that depend on it
+      logger.info("Connecting to Redis...");
+      await redisService.connect(); // ADD THIS LINE
+
+      // Initialize monitoring and validation
       await validateSelectors();
       scheduleSelectorValidation();
 
