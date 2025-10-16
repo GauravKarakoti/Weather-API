@@ -39,7 +39,6 @@
 
 <small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
 
-![GSSoC Logo](https://github.com/GauravKarakoti/Weather-API/blob/main/public/assets/gssoc%20logo.png)
 </div>
 <div style="margin: 15px 0;" align="center">
     <img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&pause=1000&color=FF0000&width=435&lines=Welcome+to+Weather-API"/></a>" 
@@ -51,9 +50,9 @@
 <img src="https://github.com/GauravKarakoti/Weather-API/blob/main/public/assets/gssoc%20logo.png" width="500" height="200">
 </div>
 <tr>
-<td align="center">
+<div align="center">
 <a href="https://s2apertre.resourcio.in"><img src="https://s2apertre.resourcio.in/Logo_primary.svg" height="140px" width="180px" alt="Apertre 2025"></a>
-</td>
+</div>
 </tr>
 
 <div align="Center">
