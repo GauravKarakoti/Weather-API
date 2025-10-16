@@ -7,14 +7,13 @@ const dotenv = require("dotenv");
 const xss = require("xss");
 const fs = require("fs");
 const { configureEnv } = require("./src/config/env.js");
-const corsOptions = require("./src/config/cors.js");
+const { corsOptions } = require("./src/config/cors.js");
 const {
   applySecurityHeaders,
 } = require("./src/middlewares/headers.middleware.js");
 const {
   dynamicRateLimiter,
 } = require("./src/middlewares/rateLimiter.middleware.js");
-const stopValidationJob = require("./src/services/selectorValidation.service.js");
 let oauthRoutes;
 let requireAuth, optionalAuth;
 const axios = require("axios");
