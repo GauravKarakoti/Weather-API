@@ -1,19 +1,13 @@
 /** @type {import('jest').Config} */
-module.exports = {
-  testEnvironment: "node",
-  testMatch: ["<rootDir>/test/**/*.test.js"],
-  transform: {
-    "^.+\\.js$": "babel-jest",
-  },
-  transformIgnorePatterns: [
-    // Ignore all node_modules except cheerio (allows jest to transpile cheerio)
-    "node_modules/(?!(cheerio)/)",
-  ],
-  testEnvironmentOptions: {
-    // Configure JSDOM to allow external resource loading in tests
-    resources: "usable",
-    url: "http://localhost:3000",
-  },
-  // Increase timeout for async operations
-  testTimeout: 10000,
-};
+     module.exports = {
+       testEnvironment: 'jsdom',  // Enables browser APIs like TextEncoder
+       setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],  // If exists
+       transform: {
+         '^.+\\.js$': 'babel-jest',  // For ES6+
+       },
+       moduleNameMapper: {
+         '\\.(css|less|scss|sass)$': 'identity-obj-proxy',  // Mock styles if needed
+       },
+       testMatch: ['**/test/**/*.test.js'],  // Match test files
+     };
+     

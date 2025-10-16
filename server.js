@@ -344,14 +344,15 @@ if (envResult.error) {
 }
 
 // Nodemailer transporter configuration
-const transporter = nodemailer.createTransporter({
+    // Fixed code
+    const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
     user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS,
+    pass: process.env.MAIL_PASS
   },
+  secure: true // ensures SSL/TLS is used
 });
-
 // Enhanced admin alert function with failure management
 const sendAdminAlert = async (failedSelectors) => {
   if (process.env.NODE_ENV === "test") return;
@@ -583,48 +584,7 @@ app.post("/admin/reset-selector-failures", requireAuth(["admin"]), (req, res) =>
   }
 });
 
-const xssOptions = {
-  whiteList: {},
-  stripIgnoreTag: true,
-  stripIgnoreTagBody: ['script'],
-  allowCommentTag: false,
-  css: false,
-};
-
-const xssFilter = new xss.FilterXSS(xssOptions);
-
-const sanitizeInput = (str) => {
-  if (typeof str !== 'string') {
-    return '';
-  }
-  const xssFiltered = xssFilter.process(str);
-  const trimmed = xssFiltered.trim();
-  const sanitized = trimmed.replace(/[^\p{L}\p{M}\s''\-\d]/gu, '');
-  return sanitized;
-};
-
-const isValidCity = (city) => {
-  if (typeof city !== 'string' || !city.trim()) {
-    return false;
-  }
-  if (city.length < 2 || city.length > 50) {
-    return false;
-  }
-  const validCityPattern = /^[\p{L}\p{M}\s''\-\d]{2,50}$/u;
-  if (!validCityPattern.test(city)) {
-    return false;
-  }
-  const xssPatterns = [
-    /<script/i,
-    /javascript:/i,
-    /on\w+=/i,
-    /<iframe/i,
-    /<object/i,
-    /<embed/i,
-    /data:text\/html/i
-  ];
-  return !xssPatterns.some(pattern => pattern.test(city));
-};
+const { sanitizeInput, isValidCity } = require('./src/utils/sanitize');
 
 const sanitizeCityName = (str) => {
   const generalSanitized = sanitizeInput(str);

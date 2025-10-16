@@ -1,8 +1,8 @@
 /**
  * @jest-environment jsdom
  */
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 const { JSDOM } = require("jsdom");
 const { waitFor } = require("@testing-library/dom");
 
@@ -12,8 +12,8 @@ const html = fs.readFileSync(
 );
 
 // Global mocks
-global.fetch = jest.fn();
-global.DOMPurify = { sanitize: (str) => str };
+globalThis.fetch = jest.fn();
+globalThis.DOMPurify = { sanitize: (str) => str };
 
 // Mock DOM elements that the script needs
 const mockElements = {
@@ -36,7 +36,7 @@ const mockElements = {
 };
 
 // Mock document.getElementById
-global.document = {
+globalThis.document = {
   getElementById: jest.fn((id) => mockElements[id] || null),
   createElement: jest.fn((tag) => ({
     textContent: "",
@@ -60,14 +60,14 @@ global.localStorage = {
 };
 
 // Mock window
-global.window = {
+globalThis.window = {
   alert: jest.fn(),
   addEventListener: jest.fn(),
   location: { reload: jest.fn() },
 };
 
 // Mock navigator
-global.navigator = {
+globalThis.navigator = {
   serviceWorker: {
     addEventListener: jest.fn(),
     register: jest.fn(() => Promise.resolve({ scope: "test" })),
@@ -82,17 +82,17 @@ describe("Weather App Client-Side Tests", () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-fix/service-worker-scope
+//fix/service-worker-scope
 
     // Reset mock elements
-    Object.values(mockElements).forEach((element) => {
+    for (const element of Object.values(mockElements)) {
       if (element.textContent !== undefined) element.textContent = "";
       if (element.innerHTML !== undefined) element.innerHTML = "";
       if (element.children) element.children = [];
-    });
+    }
 
     // Set up a new JSDOM instance for each test to ensure isolation
- main
+ main();
     const dom = new JSDOM(html, {
       url: "http://localhost",
       runScripts: "dangerously",
@@ -101,13 +101,13 @@ fix/service-worker-scope
 
     window = dom.window;
     document = window.document;
-    global.window = window;
-    global.document = document;
-    global.Event = window.Event;
+    globalThis.window = window;
+    globalThis.document = document;
+    globalThis.Event = window.Event;
 
     // Mock localStorage
     const mockStorage = {};
-    global.localStorage = {
+    globalThis.localStorage = {
       getItem: jest.fn((key) => mockStorage[key] || null),
       setItem: jest.fn((key, value) => {
         mockStorage[key] = value;
@@ -116,12 +116,15 @@ fix/service-worker-scope
         delete mockStorage[key];
       }),
       clear: jest.fn(() => {
-        Object.keys(mockStorage).forEach((key) => delete mockStorage[key]);
+        for (const key of Object.keys(mockStorage)) {
+  delete mockStorage[key];
+}
+
       }),
     };
 
     // Prevent blocking alerts
-    global.window.alert = jest.fn();
+    globalThis.window.alert = jest.fn();
 
     // Reload script fresh each test
     jest.resetModules();
@@ -142,11 +145,11 @@ fix/service-worker-scope
                 {
                   dt_txt: "2025-07-28 12:00:00",
                   main: {
-                    temp: 22.0,
-                    temp_min: 18.0,
-                    temp_max: 26.0,
+                    temp: 22,
+                    temp_min: 18,
+                    temp_max: 26,
                     humidity: 75,
-                    pressure: 1010.0,
+                    pressure: 1010,
                   },
                   weather: [{ main: "Cloudy" }],
                 },
@@ -220,6 +223,21 @@ fix/service-worker-scope
     const mockStorage = {};
     scriptModule.storageManager.setItem = jest.fn((key, value) => {
       mockStorage[key] = value;
+    });
+    scriptModule.storageManager.getItem = jest.fn(
+      (key) => mockStorage[key] || null,
+    );
+
+    // Call addToRecentSearches
+    scriptModule.addToRecentSearches("Tokyo");
+
+    // Should store the city
+    expect(scriptModule.storageManager.setItem).toHaveBeenCalledWith(
+      "recentSearches",
+      ["Tokyo"],
+    );
+  });
+
   test("should fetch weather, display it, and add to recent searches on form submission", async () => {
     const cityInput = document.getElementById("city");
     const weatherDataContainer = document.getElementById("weather-data");
@@ -274,8 +292,8 @@ fix/service-worker-scope
     mockElements["weather-data"].innerHTML = "<div>Weather data</div>";
 
     // Mock the global variables that handleClear uses
-    global.cityInput = mockElements["city"];
-    global.weatherData = mockElements["weather-data"];
+    globalThis.cityInput = mockElements["city"];
+    globalThis.weatherData = mockElements["weather-data"];
 
     // Call handleClear
     scriptModule.handleClear(mockEvent);
