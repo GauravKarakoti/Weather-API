@@ -1,7 +1,6 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-const nodemailer = require("nodemailer");
 const crypto = require("crypto");
 const dotenv = require("dotenv");
 const xss = require("xss");
@@ -50,6 +49,8 @@ const { handleError } = require("./src/middlewares/error.middleware");
 const CacheMiddleware = require("./src/middlewares/cache.middleware");
 const redisService = require("./src/services/redis.service");
 const cacheWarmingService = require("./src/services/cacheWarming.service");
+// Centralized email service - use the shared implementation to avoid duplicated templates
+const { sendAdminAlert } = require("./src/services/email.service");
 
 // Database initialization
 const {
@@ -348,119 +349,10 @@ if (envResult.error) {
   }
 }
 
-// Nodemailer transporter: only create when credentials are provided
-let transporter = null;
-function getTransporter() {
-  if (transporter) return transporter;
-  if (!process.env.MAIL_USER || !process.env.MAIL_PASS) return null;
-  transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.MAIL_USER,
-      pass: process.env.MAIL_PASS,
-    },
-  });
-  return transporter;
-}
+// Email transporter is provided by the centralized email service in
+// `src/services/email.service.js` (use sendAdminAlert / sendErrorAlert helpers).
 
-// Enhanced admin alert function with failure management
-const sendAdminAlert = async (failedSelectors) => {
-  if (process.env.NODE_ENV === "test") return;
-
-  const adminEmail = process.env.ADMIN_EMAIL;
-  if (!adminEmail) {
-    console.error("Admin email not configured. Cannot send alert.");
-    return;
-  }
-  if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
-    console.warn(
-      "Email notifications disabled: Missing required email configuration in environment variables.",
-    );
-    return;
-  }
-
-  // Handle both string and array inputs
-  const selectorsArray = Array.isArray(failedSelectors) ? failedSelectors : [failedSelectors];
-
-  // Check if we should send notification based on failure management
-  if (!failureManager.shouldSendNotification(selectorsArray)) {
-    return; // Skip notification due to cooldown or backoff
-  }
-
-  const failureSummary = failureManager.getFailureSummary();
-  const alertMessage = Array.isArray(failedSelectors)
-    ? `The following selectors failed validation: ${failedSelectors.join(", ")}. Please update the environment variables or fallback selectors.`
-    : failedSelectors;
-
-  console.error(`Admin Alert: ${alertMessage}`);
-
-  // Enhanced email content with failure context
-  const emailHtml = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #d32f2f;">⚠️ Weather API Selector Failure Alert</h2>
-
-      <div style="background: #ffebee; padding: 15px; border-radius: 5px; margin: 20px 0;">
-        <h3>Current Issue</h3>
-        <p><strong>${alertMessage}</strong></p>
-      </div>
-
-      <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
-        <h3>Failure Statistics</h3>
-        <ul>
-          <li><strong>Consecutive Failures:</strong> ${failureSummary.globalState.consecutiveFailures}</li>
-          <li><strong>Notification Level:</strong> ${failureSummary.globalState.notificationLevel}</li>
-          <li><strong>Last Success:</strong> ${failureSummary.globalState.lastSuccessTime ?
-      failureSummary.globalState.lastSuccessTime.toLocaleString() : 'Never'}</li>
-          <li><strong>System Status:</strong> ${failureSummary.systemHealth.hasCriticalFailures ?
-      'CRITICAL - Immediate attention required' : 'DEGRADED - Monitor closely'}</li>
-        </ul>
-      </div>
-
-      <div style="background: #e3f2fd; padding: 15px; border-radius: 5px; margin: 20px 0;">
-        <h3>Recommended Actions</h3>
-        <ol>
-          <li>Check target website for structural changes</li>
-          <li>Verify CSS selectors in environment variables</li>
-          <li>Test fallback selectors functionality</li>
-          <li>Monitor admin dashboard: <a href="${process.env.API_URL}/admin/dashboard">Dashboard</a></li>
-          ${failureSummary.systemHealth.recommendsManualCheck ?
-      '<li><strong>URGENT:</strong> Manual investigation required - failure count exceeds threshold</li>' : ''}
-        </ol>
-      </div>
-
-      <p style="color: #666; font-size: 12px; margin-top: 30px;">
-        Next notification will be sent after ${Math.round(failureSummary.globalState.nextNotificationDelay / (1000 * 60))} minutes (exponential backoff active).
-        <br>This is notification #${failureSummary.globalState.notificationLevel + 1} for the current failure sequence.
-      </p>
-    </div>
-  `;
-
-  try {
-    const t = getTransporter();
-    if (!t) {
-      console.warn('Transporter not configured. Skipping email alert.');
-      return;
-    }
-
-    await t.sendMail({
-      from: `"Weather API Alert" <${process.env.MAIL_USER}>`,
-      to: adminEmail,
-      subject: `🚨 Weather API Alert - ${failureSummary.systemHealth.hasCriticalFailures ? 'CRITICAL' : 'WARNING'} (Level ${failureSummary.globalState.notificationLevel + 1})`,
-      text: `${alertMessage}\n\nConsecutive Failures: ${failureSummary.globalState.consecutiveFailures}\nLast Success: ${failureSummary.globalState.lastSuccessTime}\n\nPlease check the target website selectors or update fallback selectors.\n\nAdmin Dashboard: ${process.env.API_URL}/admin/dashboard`,
-      html: emailHtml
-    });
-
-    // Mark notification as sent
-    failureManager.markNotificationSent(selectorsArray);
-    console.log("Email alert sent successfully with exponential backoff tracking");
-
-  } catch (error) {
-    console.error(
-      "Email alert failed to send. Check your mail configuration.",
-      error,
-    );
-  }
-};
+// Use centralized email service (sendAdminAlert) from src/services/email.service.js
 
 const app = express();
 configureEnv(); // Load env or fallback
