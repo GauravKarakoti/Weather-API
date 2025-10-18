@@ -81,9 +81,6 @@ describe("Weather App Client-Side Tests", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-
-fix/service-worker-scope
-
     // Reset mock elements
     Object.values(mockElements).forEach((element) => {
       if (element.textContent !== undefined) element.textContent = "";
@@ -92,7 +89,6 @@ fix/service-worker-scope
     });
 
     // Set up a new JSDOM instance for each test to ensure isolation
- main
     const dom = new JSDOM(html, {
       url: "http://localhost",
       runScripts: "dangerously",
@@ -220,42 +216,7 @@ fix/service-worker-scope
     const mockStorage = {};
     scriptModule.storageManager.setItem = jest.fn((key, value) => {
       mockStorage[key] = value;
-  test("should fetch weather, display it, and add to recent searches on form submission", async () => {
-    const cityInput = document.getElementById("city");
-    const weatherDataContainer = document.getElementById("weather-data");
-    const recentList = document.getElementById("recent-list");
-
-    cityInput.value = "London";
-    const mockEvent = { preventDefault: jest.fn() };
-    await scriptModule.handleSubmit(mockEvent);
-
-    await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining("/api/weather-forecast/London")
-      );
-      expect(weatherDataContainer.innerHTML).toContain(
-        "<strong>Temp:</strong> 22.0°C"
-      );
-      expect(recentList.children.length).toBe(1);
-      expect(recentList.textContent).toContain("London");
     });
-  });
-
-  test("should add a city to recent searches and update the UI", async () => {
-    const recentList = document.getElementById("recent-list");
-
-    scriptModule.addToRecentSearches("Tokyo");
-
-    await waitFor(() => {
-      expect(recentList.children.length).toBe(1);
-      expect(recentList.textContent).toContain("Tokyo");
-    });
-    scriptModule.storageManager.getItem = jest.fn(
-      (key) => mockStorage[key] || null,
-    );
-
-    // Call addToRecentSearches
-    scriptModule.addToRecentSearches("Tokyo");
 
     // Should store the city
     expect(scriptModule.storageManager.setItem).toHaveBeenCalledWith(

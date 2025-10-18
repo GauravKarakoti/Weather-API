@@ -4,10 +4,10 @@
 // Use fixed app version (from package.json)
 const CACHE_VERSION = "app-cache-v1.0.0";
 const CORE_ASSETS = [
-  "/", 
-  "/index.html", 
-  "/style.css", 
-  "/script.js", 
+  "/",
+  "/index.html",
+  "/style.css",
+  "/script.js",
   "/fallback.png" // Added fallback image to core assets
 ];
 
@@ -131,6 +131,56 @@ self.addEventListener("periodicsync", (event) => {
         }
       })(),
     );
+  }
+});
+
+// Message-based fallback: trigger the same update flow when client requests a navigation sync
+self.addEventListener("message", (event) => {
+  try {
+    if (event.data && event.data.type === "NAVIGATION_SYNC") {
+      // Reuse the same update logic as periodicsync
+      event.waitUntil(
+        (async () => {
+          const cache = await caches.open(CACHE_VERSION);
+          const recentSearches = await getRecentSearches();
+
+          if (recentSearches && recentSearches.length > 0) {
+            await Promise.all(
+              recentSearches.slice(0, 3).map(async (city) => {
+                try {
+                  const encodedCity = encodeURIComponent(city);
+                  const url = `https://weather-api-ex1z.onrender.com/api/weather/${encodedCity}`;
+                  const response = await fetch(url);
+                  if (response.ok) {
+                    await cache.put(url, response.clone());
+                    console.log(`✅ Updated weather cache for ${city} (nav)`);
+                  }
+                } catch (err) {
+                  console.error(`Network error while updating weather for ${city} (nav)`, err);
+                }
+              }),
+            );
+          }
+
+          try {
+            const configResponse = await fetch(
+              "https://weather-api-ex1z.onrender.com/config",
+            );
+            if (configResponse.ok) {
+              await cache.put(
+                "https://weather-api-ex1z.onrender.com/config",
+                configResponse.clone(),
+              );
+              console.log("✅ Updated config cache (nav)");
+            }
+          } catch (err) {
+            console.error("Failed to update config cache (nav)", err);
+          }
+        })(),
+      );
+    }
+  } catch (err) {
+    console.error("Error handling NAVIGATION_SYNC message", err);
   }
 });
 
