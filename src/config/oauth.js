@@ -1,9 +1,12 @@
-const crypto = require("crypto");
+// Fail fast if JWT_SECRET is missing
+if (!process.env.JWT_SECRET) {
+  throw new Error("FATAL: JWT_SECRET is not set in environment variables.");
+}
 
 const oauthConfig = {
   // JWT Configuration
   jwt: {
-    secret: process.env.JWT_SECRET || crypto.randomBytes(64).toString("hex"),
+    secret: process.env.JWT_SECRET,
     accessTokenExpiry: parseInt(process.env.JWT_ACCESS_TOKEN_EXPIRY) || 3600, // 1 hour
     refreshTokenExpiry:
       parseInt(process.env.JWT_REFRESH_TOKEN_EXPIRY) || 604800, // 7 days
