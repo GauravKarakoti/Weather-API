@@ -5,6 +5,9 @@ const {
   parseTemperature,
   parseHumidityPressure,
   parseMinMaxTemperature,
+  parseWind,
+  parseUvIndex,
+  parsePollenCount,
 } = require("../utils/parser");
 const { handleError } = require("../middlewares/error.middleware");
 const { fallbackSelectors } = require("../constants/selectors");
@@ -50,6 +53,21 @@ const getWeather = async (req, res) => {
       const condition = getElementText("CONDITION_CLASS");
       const dateText = getElementText("DATE_CLASS");
       const date = formatDate(dateText);
+      
+      const windText = getElementText(
+        process.env.WIND_CLASS,
+      );
+      const { windSpeed, windDirection } = parseWind(windText);
+
+      const uvIndexText = getElementText(
+        process.env.UV_INDEX_CLASS,
+      );
+      const uvIndex = parseUvIndex(uvIndexText);
+
+      const pollenCountText = getElementText(
+        process.env.POLLEN_COUNT_CLASS,
+      );
+      const pollenCount = parsePollenCount(pollenCountText);
 
       if (temperature === "N/A" && condition === "N/A") {
         throw new Error("PARSING_ERROR");
@@ -63,6 +81,10 @@ const getWeather = async (req, res) => {
         condition,
         humidity,
         pressure,
+        windSpeed,
+        windDirection,
+        uvIndex,
+        pollenCount,
       };
     });
 
