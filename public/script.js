@@ -617,7 +617,7 @@ function displayRecentSearches() {
           <button class="recent-item" data-city="${sanitizeHTML(city)}">
             ${sanitizeHTML(city)}
           </button>
-        </li>`,
+        </li>`
       )
       .join("");
 
@@ -625,6 +625,7 @@ function displayRecentSearches() {
     list.style.flexWrap = "wrap";
     list.style.listStyle = "none";
 
+    // Click/Enter events already handled by <button>
     document.querySelectorAll(".recent-item").forEach((button) => {
       button.addEventListener("click", function () {
         if (cityInput) {
@@ -632,6 +633,21 @@ function displayRecentSearches() {
           handleSubmit(new Event("submit"));
         }
       });
+    });
+
+    // Optional: arrow key navigation
+    list.addEventListener("keydown", (e) => {
+      const focused = document.activeElement;
+      if (!focused.classList.contains("recent-item")) return;
+
+      if (e.key === "ArrowDown" && focused.parentElement.nextElementSibling) {
+        e.preventDefault();
+        focused.parentElement.nextElementSibling.querySelector(".recent-item").focus();
+      }
+      if (e.key === "ArrowUp" && focused.parentElement.previousElementSibling) {
+        e.preventDefault();
+        focused.parentElement.previousElementSibling.querySelector(".recent-item").focus();
+      }
     });
   } else {
     console.warn("Recent list element not found");
