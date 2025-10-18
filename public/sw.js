@@ -1,13 +1,14 @@
 
 
 
+
 // Use fixed app version (from package.json)
 const CACHE_VERSION = "app-cache-v1.0.0";
 const CORE_ASSETS = [
-  "/", 
-  "/index.html", 
-  "/style.css", 
-  "/script.js", 
+  "/",
+  "/index.html",
+  "/style.css",
+  "/script.js",
   "/fallback.png" // Added fallback image to core assets
 ];
 

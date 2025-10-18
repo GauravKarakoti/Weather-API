@@ -672,6 +672,9 @@ function setupServiceWorker() {
           // Optional: register periodic sync if supported
           setupPeriodicSync(registration);
 
+          // Navigation-based fallback when Periodic Background Sync is not available
+          triggerNavigationSyncFallback(registration);
+
           // Listen for updates
           registration.onupdatefound = () => {
             const newSW = registration.installing;
@@ -713,6 +716,36 @@ async function setupPeriodicSync(registration) {
     }
   } catch (error) {
     console.error("Failed to register periodic sync:", error);
+  }
+}
+
+// Send NAVIGATION_SYNC message to service worker when periodicSync isn't available
+function triggerNavigationSyncFallback(registration) {
+  try {
+    // If registration supports periodicSync, prefer that
+    if (registration && registration.periodicSync) return;
+
+    const COOLDOWN_MS = 12 * 60 * 60 * 1000; // 12 hours
+    const last = sessionStorage.getItem('lastNavSync');
+    if (last && Date.now() - Number(last) < COOLDOWN_MS) return;
+
+    const msg = { type: 'NAVIGATION_SYNC' };
+    // Try to post message to the active controller
+    if (navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage(msg);
+      sessionStorage.setItem('lastNavSync', String(Date.now()));
+      console.log('Navigation sync fallback triggered');
+      return;
+    }
+
+    // Fallback: use registration.active or waiting
+    if (registration && registration.active) {
+      registration.active.postMessage(msg);
+      sessionStorage.setItem('lastNavSync', String(Date.now()));
+      console.log('Navigation sync fallback triggered via registration.active');
+    }
+  } catch (e) {
+    console.warn('Failed to trigger navigation sync fallback', e);
   }
 }
 
