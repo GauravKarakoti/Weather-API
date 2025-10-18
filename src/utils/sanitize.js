@@ -1,21 +1,24 @@
 const xss = require("xss");
 
-const sanitizeInput = (input) => {
-    if (input == null) return ""; // handle null/undefined
-    const str = String(input).trim(); // coerce to string
-    const options = {
-        whiteList: {}, // remove all HTML tags
-        stripIgnoreTag: true, // remove ignored tags
-        stripIgnoreTagBody: ["script"], // remove script body
-        onTagAttr: (tag, name, value) => {
-            // remove any event handlers (onerror, onclick, etc.)
-            if (/^on/i.test(name)) return "";
-            // remove dangerous protocols
-            if ((name === "href" || name === "src") && /^(javascript:|data:)/i.test(value)) return "";
-            return name + '="' + xss.escapeAttrValue(value) + '"';
-        },
-    };
-    return xss(str, options);
+// Configure a shared FilterXSS instance so the whole app uses the same policy
+const xssOptions = {
+	whiteList: {},
+	stripIgnoreTag: true,
+	stripIgnoreTagBody: ['script'],
+	allowCommentTag: false,
+	css: false,
+};
+
+const xssFilter = new xss.FilterXSS(xssOptions);
+
+const sanitizeInput = (str) => {
+	if (typeof str !== 'string') return '';
+	// Run through the configured FilterXSS instance
+	const xssFiltered = xssFilter.process(str);
+	const trimmed = xssFiltered.trim();
+	// Additional character-level cleaning to match existing behavior
+	const sanitized = trimmed.replace(/[^^\p{L}\p{M}\s'’\-\d]/gu, '');
+	return sanitized;
 };
 
 const isValidCity = (city) => /^[\p{L}\p{M}\s'’\-\d]{2,50}$/u.test(city);
