@@ -120,19 +120,24 @@ class SelectorFailureManager {
 
   // Save failure state to persistent storage
   saveState() {
-    try {
-      const dataToSave = {
-        failureStates: Object.fromEntries(this.failureStates),
-        globalFailureState: {
-          ...this.globalFailureState,
-          lastFailureTime: this.globalFailureState.lastFailureTime?.toISOString(),
-          lastSuccessTime: this.globalFailureState.lastSuccessTime?.toISOString(),
-          cooldownUntil: this.globalFailureState.cooldownUntil?.toISOString()
-        },
-        savedAt: new Date().toISOString()
-      };
+    const dataToSave = {
+      failureStates: Object.fromEntries(this.failureStates),
+      globalFailureState: {
+        ...this.globalFailureState,
+        lastFailureTime: this.globalFailureState.lastFailureTime?.toISOString(),
+        lastSuccessTime: this.globalFailureState.lastSuccessTime?.toISOString(),
+        cooldownUntil: this.globalFailureState.cooldownUntil?.toISOString()
+      },
+      savedAt: new Date().toISOString()
+    };
 
-      fs.writeFileSync(this.persistencePath, JSON.stringify(dataToSave, null, 2));
+    this._writePersistence(dataToSave);
+  }
+
+  // Helper to write persistence safely (reduces duplicated try/catch logic)
+  _writePersistence(obj) {
+    try {
+      fs.writeFileSync(this.persistencePath, JSON.stringify(obj, null, 2));
     } catch (error) {
       logger.error('Error saving failure state to persistence', {
         error: error.message,
@@ -343,14 +348,20 @@ if (envResult.error) {
   }
 }
 
-// Nodemailer transporter configuration
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS,
-  },
-});
+// Nodemailer transporter: only create when credentials are provided
+let transporter = null;
+function getTransporter() {
+  if (transporter) return transporter;
+  if (!process.env.MAIL_USER || !process.env.MAIL_PASS) return null;
+  transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.MAIL_USER,
+      pass: process.env.MAIL_PASS,
+    },
+  });
+  return transporter;
+}
 
 // Enhanced admin alert function with failure management
 const sendAdminAlert = async (failedSelectors) => {
@@ -425,7 +436,13 @@ const sendAdminAlert = async (failedSelectors) => {
   `;
 
   try {
-    await transporter.sendMail({
+    const t = getTransporter();
+    if (!t) {
+      console.warn('Transporter not configured. Skipping email alert.');
+      return;
+    }
+
+    await t.sendMail({
       from: `"Weather API Alert" <${process.env.MAIL_USER}>`,
       to: adminEmail,
       subject: `🚨 Weather API Alert - ${failureSummary.systemHealth.hasCriticalFailures ? 'CRITICAL' : 'WARNING'} (Level ${failureSummary.globalState.notificationLevel + 1})`,
