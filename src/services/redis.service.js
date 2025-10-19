@@ -23,35 +23,15 @@ class RedisService {
     // Call start() explicitly after environment variables are loaded.
   }
 
-  initializeSync() {
-    // Check if Redis is disabled
-    if (
-      process.env.REDIS_HOST === "disabled" ||
-      process.env.CACHE_WARMING_ENABLED === "false"
-    ) {
-      logger.info("Redis caching disabled via environment configuration");
+  async connect() {
+    if (this.client) {
+      return;
+    }
+    if (process.env.REDIS_HOST === "disabled") {
+      this.disableRedis();
       return;
     }
 
-    // Schedule async initialization for next tick to avoid blocking constructor
-    setImmediate(() => {
-      this.initializeAsync().catch(error => {
-        logger.error("Redis initialization failed", { error: error.message });
-      });
-    });
-  }
-
-  async initializeAsync() {
-    // Quick check - if we can't connect to Redis, disable it
-    await this.testConnectionAndDisable();
-  }
-
-  // Public method to start the Redis service after env has been loaded
-  start() {
-    this.initializeSync();
-  }
-
-  async testConnectionAndDisable() {
     try {
       const redisConfig = {
         host: process.env.REDIS_HOST || "localhost",
@@ -59,27 +39,19 @@ class RedisService {
         password: process.env.REDIS_PASSWORD || undefined,
         db: parseInt(process.env.REDIS_DB) || 0,
         lazyConnect: true,
-        connectTimeout: 2000, // Very short timeout
-        commandTimeout: 1000,
+        connectTimeout: 5000, // Increased for reliability
+        commandTimeout: 3000,
         enableOfflineQueue: false,
-        autoResendUnfulfilledCommands: false,
-        autoResubscribe: false,
-        retryStrategy: () => null, // disable auto-reconnect
-        reconnectOnError: () => false, // never reconnect on errors
-        showFriendlyErrorStack: true,
+        retryStrategy: () => null, // No auto-reconnect on initial failure
       };
 
       this.client = new Redis(redisConfig);
-
-      // Attach handlers immediately to avoid "[ioredis] Unhandled error event" logs
+      
       this.client.on("error", (err) => {
-        logger.warn("Redis error during initialisation", { error: err.message });
-      });
-      this.client.on("end", () => {
-        this.isConnected = false;
+        logger.warn("Redis Client Error", { error: err.message });
+        this.disableRedis(); // Disable on subsequent errors
       });
 
-      // Quick connection test
       await this.client.connect();
       await this.client.ping();
 
@@ -88,18 +60,21 @@ class RedisService {
       this.setupEventHandlers();
 
     } catch (error) {
-      logger.warn("Redis connection failed - disabling cache", { error: error.message });
+      logger.warn("Redis connection failed on startup - disabling cache", { error: error.message });
       if (this.client) {
-        try {
-          // Ensure the client is fully shut down to stop further events
-          this.client.disconnect();
-        } catch (disconnectError) {
-          logger.warn("Redis disconnect failed during cleanup", {
-            error: disconnectError.message,
-          });
-        }
+        this.client.disconnect();
       }
       this.disableRedis();
+    }
+  }
+
+  start() {
+    // The new `connect` method should be called from server.js instead.
+    // This method is kept for compatibility but should no longer be the primary entry point.
+    if (!this.client && !this.connectionAttempts) {
+        this.connect().catch(err => {
+            logger.error('Background Redis connection failed', { error: err.message });
+        });
     }
   }
 

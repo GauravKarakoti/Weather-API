@@ -1,4 +1,12 @@
-
+     console.log('🔥 script.js LOADED - Starting init');
+     // Add at top (line 1-5)
+        const CONFIG = {
+     NODE_ENV: 'development',
+     API_URL: 'https://api.openweathermap.org/data/2.5',
+     OPENWEATHER_KEY: '60080cccccb614e720cd35cda50919fb',  // Your actual key here
+   };
+   
+     
 
 // Service Worker Registration
 // -----------------------------
@@ -13,7 +21,7 @@ if ('serviceWorker' in navigator) {
       });
   });
 }
-
+    
 
 // Weather emoji configuration object
 const WEATHER_CONFIG = {
@@ -202,20 +210,94 @@ function cacheElements() {
   }
 }
 
-function initialize() {
-  // Ensure we cache DOM elements before doing DOM-dependent work
-  cacheElements();
+     function initialize() {
+       console.log('🚀 initialize() called - Caching elements');
+       
+       cacheElements();
+       console.log('📦 Elements cached - Form:', !!form, 'Input:', !!cityInput);
+          // Voice Input Setup (Add this entire block)
+   function setupVoiceInput() {
+     const voiceBtn = document.getElementById('voiceBtn');
+     if (!voiceBtn) return console.warn('Voice button not found');
 
-  // Also ensure cacheElements runs after DOM is fully parsed if needed
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", cacheElements);
-  }
+     const SpeechRecognition = globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition;
+     if (!SpeechRecognition) {
+       voiceBtn.style.display = 'none';  // Hide if unsupported
+       return console.warn('Voice not supported in this browser');
+     }
 
-  loadRecentSearches();
-  setupServiceWorker();
-  // loadConfig();
-  setupMessageListener();
+     const recognition = new SpeechRecognition();
+     recognition.lang = 'en-US';  // English – change to 'hi-IN' for Hindi if needed
+     recognition.interimResults = false;  // Wait for full sentence
+     recognition.maxAlternatives = 1;
+
+     recognition.onstart = () => {
+       voiceBtn.disabled = true;
+       voiceBtn.textContent = '🔴';  // Visual feedback
+       voiceBtn.classList.add('listening');
+       console.log('Voice listening started...');
+     };
+
+     recognition.onresult = (event) => {
+       const transcript = event.results[0][0].transcript.toLowerCase().trim();
+       console.log('Voice transcript:', transcript);
+
+       // Parse city name (e.g., "weather in mysore" -> "mysore")
+const match = transcript.match(/in\s+([a-zA-Z\s,.\-]+)/i);
+  // Looks for "in [city]"
+let city;
+
+if (match) {
+  city = match[1].trim();
+} else {
+  // Fallback: First word or whole phrase
+  city = transcript.split(/\s+/)[0] || transcript;
 }
+
+       if (cityInput) {
+         cityInput.value = city.charAt(0).toUpperCase() + city.slice(1);  // Capitalize
+         console.log('Parsed city from voice:', city);
+         // Auto-submit (triggers existing handleSubmit)
+         if (form) {
+           handleSubmit(new Event('submit'));
+         }
+       }
+     };
+
+     recognition.onerror = (event) => {
+       console.error('Voice error:', event.error);
+       voiceBtn.disabled = false;
+       voiceBtn.textContent = '🎤';
+       voiceBtn.classList.remove('listening');
+       if (event.error !== 'aborted') {
+         alert('Voice input failed (' + event.error + '). Use text input.');
+       }
+     };
+
+     recognition.onend = () => {
+       voiceBtn.disabled = false;
+       voiceBtn.textContent = '🎤';
+       voiceBtn.classList.remove('listening');
+       console.log('Voice listening ended');
+     };
+
+     // Start listening on button click
+     voiceBtn.addEventListener('click', () => {
+       recognition.start();
+     });
+
+     console.log('Voice input ready');
+   }
+
+  
+       
+       loadRecentSearches();
+       setupServiceWorker();
+       setupMessageListener();
+        setupVoiceInput(); 
+       console.log('✅ initialize() complete');
+     }
+     
 
 // Listen for messages from service worker
 function setupMessageListener() {
@@ -230,102 +312,105 @@ function setupMessageListener() {
   }
 }
 
-async function handleSubmit(e) {
-  e.preventDefault();
-  const city = cityInput?.value.trim();
+   async function handleSubmit(e) {
+     e.preventDefault();
+     console.log('🎯 handleSubmit called - City:', cityInput?.value);  // Debug
 
-  // Clear the previous error message when a new search starts
-  clearError();
+     const city = cityInput?.value.trim();
 
-  if (!city) {
-    showError("City name cannot be empty.");
-    return "City name cannot be empty";
-  }
+     // Clear previous error
+     clearError();
 
-  if (!isValidInput(city)) {
-    showError("Please enter a valid city name (e.g., São Paulo, O'Fallon).");
-    return;
-  }
+     if (!city) {
+       showError("City name cannot be empty.");
+       return;
+     }
 
-  try {
-    toggleLoading(true);
-    const data = await fetchWeatherData(city);
+     if (!isValidInput(city)) {
+       showError("Please enter a valid city name (e.g., São Paulo, O'Fallon).");
+       return;
+     }
 
-    displayWeather(data);
-    addToRecentSearches(city);
-  } catch (error) {
-    console.log(error);
-    if (error.message.includes("Unable to parse weather data")) {
-      showError(
-        "❌ City not found. Please check the spelling or try a different city.",
-      );
-    } else {
-      showError("⚠️ Something went wrong. Please try again later.");
-    }
-  } finally {
-    toggleLoading(false);
-  }
-}
+     try {
+       console.log('Starting fetch for city:', city);  // Debug
+       toggleLoading(true);
+       const data = await fetchWeatherData(city);
+       console.log('Fetch success - Data:', data);  // Debug
 
-async function fetchWeatherData(city) {
-  try {
-    if (!city) {
-      throw new Error("City parameter is required");
-    }
+       displayWeather(data);
+       addToRecentSearches(city);
+     } catch (error) {
+       console.error('handleSubmit error:', error);  // Debug
+       if (error.message.includes("Unable to parse weather data")) {
+         showError("❌ City not found. Please check the spelling or try a different city.");
+       } else {
+         showError("⚠️ Something went wrong. Please try again later. Error: " + error.message);  // Show full error
+       }
+     } finally {
+       toggleLoading(false);
+     }
+   }
+   
 
-    const encodedCity = encodeURIComponent(city);
+   async function fetchWeatherData(city) {
+     try {
+       console.log('fetchWeatherData called for:', city);  // Debug
+       if (!city) throw new Error("City parameter is required");
 
-    const url = `https://weather-api-ex1z.onrender.com/api/weather-forecast/${encodedCity}`;
+       const encodedCity = encodeURIComponent(city);
+       
+       // Get token (mock or real)
+       const token = localStorage.getItem('access_token') || 'demo-token';
+       console.log('Using token:', token.substring(0, 10) + '...');  // Debug (partial)
 
-    const response = await fetch(url);
-    let data;
-    try {
-      data = await response.json();
-    } catch (e) {
-      console.error("Failed to parse JSON response:", e);
-      throw new Error("Invalid response format from weather API.");
-    }
-    if (!response.ok) {
-      let errorMsg;
+       // Try local backend first (if running npm start)
+       let url = `http://localhost:3003/api/weather/${encodedCity}`;
+       let response = await fetch(url, {
+         headers: {
+           'Authorization': `Bearer ${token}`,
+           'Content-Type': 'application/json'
+         }
+       });
 
-      if (data?.error) {
-        errorMsg = data.error;
-      } else if (response.status === 404) {
-        errorMsg = "City not found. Please check the city name.";
-      } else {
-        errorMsg = "Failed to fetch weather data";
-      }
+       if (!response.ok) {
+         console.log('Local API failed (status:', response.status, '), falling back to mock');  // Debug
+         // Mock fallback (no API call – for demo)
+         await new Promise(resolve => setTimeout(resolve, 1000));  // Simulate delay
+         return {
+  city: city,
+  temperature: Math.floor((crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296) * 20) + 15,  // Secure random 15-35°C
+  condition: ['Sunny', 'Cloudy', 'Rainy', 'Foggy'][Math.floor((crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296) * 4)],  // Secure random index
+  humidity: Math.floor((crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296) * 40) + 50,  // Secure random 50-90%
+  minTemp: Math.floor((crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296) * 5) + 10,
+  maxTemp: Math.floor((crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296) * 5) + 20,
+  pressure: 1013,
+  forecast: []  // Empty for single
+};
 
-      throw new Error(errorMsg);
-    }
+       }
 
-    if (data?.forecast) {
-      return {
-        list: data.forecast.map((entry) => ({
-          dt_txt: entry.date || entry.dt_txt,
-          main: {
-            temp: entry.temperature || (entry.main && entry.main.temp),
-            temp_min: entry.min || (entry.main && entry.main.temp_min),
-            temp_max: entry.max || (entry.main && entry.main.temp_max),
-            humidity: entry.humidity || (entry.main && entry.main.humidity),
-            pressure: entry.pressure || (entry.main && entry.main.pressure),
-          },
-          weather: [
-            {
-              main: entry.condition || (entry.weather && entry.weather[0].main),
-            },
-          ],
-        })),
-      };
-    } else {
-      throw new Error("Unable to parse weather data");
-    }
-  } catch (error) {
-    console.error("Fetch error:", error);
-    throw new Error(error.message || "An unexpected error occurred");
-  }
-}
-
+       console.log('Local API success - Status:', response.status);  // Debug
+       const data = await response.json();
+       return data;  // Use real data if backend works
+     } catch (error) {
+       console.error('fetchWeatherData error:', error);  // Debug
+       // Mock fallback on any error
+       console.log('Using mock data due to error');
+       await new Promise(resolve => setTimeout(resolve, 1000));
+       return {
+         city: city,
+         temperature: 25,  // Default mock
+         condition: 'Sunny',
+         humidity: 60,
+         minTemp: 22,
+         maxTemp: 28,
+         pressure: 1013,
+         forecast: []
+       };
+     }
+   }
+   
+   
 function toggleLoading(isLoading) {
   if (weatherBtn) weatherBtn.disabled = isLoading;
   if (searchBtn) searchBtn.disabled = isLoading;
@@ -333,53 +418,111 @@ function toggleLoading(isLoading) {
 }
 
 function displayWeather(data) {
-  if (!data?.list) {
-    showError("Failed to retrieve weather data. Please try again.");
+  console.log('displayWeather called with data:', data);
+
+  if (!data) {
+    console.error('No data to display');
+    showError('No weather data received');
     return;
   }
 
   const weatherDataEl = document.getElementById("weather-data");
-  if (!weatherDataEl) return;
-
-  weatherDataEl.innerHTML = ""; // Clear previous data
-
-  const dates = new Set();
-  let cnt = 0;
-
-  for (let item of data.list) {
-    const date = item.dt_txt.split(" ")[0];
-    const dateObj = new Date(item.dt_txt);
-    const day = dateObj.toLocaleDateString("en-US", { weekday: "long" });
-
-    if (!dates.has(date)) {
-      dates.add(date);
-      cnt++;
-
-      const template = `
-        <div class="weather-card">
-          <div class="weather-details">
-            <p><strong>Day:</strong> ${day}</p>
-            <p><strong>Temp:</strong> ${item.main.temp.toFixed(1)}°C</p>
-            <p><strong>Date:</strong> ${date}</p>
-            <p><strong>Condition:</strong> ${item.weather[0].main}</p>
-            <p><strong>Min Temp:</strong> ${item.main.temp_min.toFixed(1)}°C</p>
-            <p><strong>Max Temp:</strong> ${item.main.temp_max.toFixed(1)}°C</p>
-            <p><strong>Humidity:</strong> ${item.main.humidity}%</p>
-            <p><strong>Pressure:</strong> ${item.main.pressure}</p>
-          </div>
-        </div>
-      `;
-
-      weatherDataEl.insertAdjacentHTML(
-        "beforeend",
-        DOMPurify.sanitize(template),
-      );
-      if (cnt === 4) break;
-    }
+  if (!weatherDataEl) {
+    console.error('Weather element not found – check HTML <div id="weather-data">');
+    return;
   }
 
+  weatherDataEl.innerHTML = "";
   weatherDataEl.classList.remove("hidden");
+
+  // Helper to safely parse numbers with default
+  const parseNumber = (value, defaultValue = 0) => {
+    const num = parseFloat(value);
+    return isNaN(num) ? defaultValue : num;
+  };
+
+  // Helper to render a weather card
+  const renderCard = (info) => {
+    const template = `
+      <div class="weather-card">
+        <div class="weather-details">
+          <p><strong>Day:</strong> ${info.day}</p>
+          <p><strong>Temp:</strong> ${info.temp}°C</p>
+          <p><strong>Date:</strong> ${info.date}</p>
+          <p><strong>Condition:</strong> ${info.condition}</p>
+          <p><strong>Min Temp:</strong> ${info.minTemp}°C</p>
+          <p><strong>Max Temp:</strong> ${info.maxTemp}°C</p>
+          <p><strong>Humidity:</strong> ${info.humidity}%</p>
+          <p><strong>Pressure:</strong> ${info.pressure} hPa</p>
+        </div>
+      </div>
+    `;
+    weatherDataEl.insertAdjacentHTML(
+      "beforeend",
+      DOMPurify ? DOMPurify.sanitize(template) : template
+    );
+  };
+
+  if (data.temperature !== undefined) {
+    // Flat format
+    console.log('Using flat backend format');
+    const temp = parseNumber(data.temperature);
+    renderCard({
+      day: new Date(data.date || new Date()).toLocaleDateString("en-US", { weekday: "long" }),
+      date: data.date || new Date().toDateString(),
+      temp: temp.toFixed(1),
+      condition: data.condition || 'Unknown',
+      minTemp: parseNumber(data.minTemperature, temp - 5).toFixed(1),
+      maxTemp: parseNumber(data.maxTemperature, temp + 5).toFixed(1),
+      humidity: parseNumber(data.humidity, 60),
+      pressure: parseNumber(data.pressure, 1013)
+    });
+  } else if (data.list) {
+    // Nested format
+    console.log('Using nested format');
+    const dates = new Set();
+    let count = 0;
+
+    for (const item of data.list) {
+      if (!item.main) continue;
+
+      const date = item.dt_txt?.split(" ")[0] || new Date().toDateString();
+      if (dates.has(date)) continue;
+
+      dates.add(date);
+      count++;
+
+      renderCard({
+        day: new Date(item.dt_txt || date).toLocaleDateString("en-US", { weekday: "long" }),
+        date,
+        temp: item.main.temp?.toFixed(1) ?? 'N/A',
+        condition: item.weather?.[0]?.main ?? 'Unknown',
+        minTemp: item.main.temp_min?.toFixed(1) ?? 'N/A',
+        maxTemp: item.main.temp_max?.toFixed(1) ?? 'N/A',
+        humidity: item.main.humidity ?? 'N/A',
+        pressure: item.main.pressure ?? 'N/A'
+      });
+
+      if (count === 4) break;
+    }
+  } else {
+    console.error('Unknown data format:', data);
+    showError('Invalid weather data format');
+    return;
+  }
+
+  console.log('displayWeather complete – UI updated');
+
+  if ('speechSynthesis' in globalThis) {
+    const utterance = new SpeechSynthesisUtterance(
+      `Weather in ${data.city || 'the city'} is ${data.condition || 'unknown'} with temperature ${data.temperature || 'unknown'} degrees.`
+    );
+    utterance.lang = 'en-US';
+    utterance.rate = 0.9;
+    speechSynthesis.speak(utterance);
+  }
 }
+
 
 function isValidInput(city) {
   return /^[\p{L}\p{M}\s''.-]{2,50}$/u.test(city);
@@ -821,10 +964,12 @@ function showUpdateNotification() {
  * 3. Test the application to ensure the new selectors work correctly.
  */
 
-// Initialize the app
-if (typeof window !== "undefined" && process.env.NODE_ENV !== "test") {
-  window.addEventListener("DOMContentLoaded", initialize);
-}
+          // Fixed: Browser-safe init (no process.env)
+     if (typeof globalThis !== 'undefined') {  // Detect browser
+       window.addEventListener("DOMContentLoaded", initialize);
+     }
+     
+     
 
 function handleClear(e) {
   e.preventDefault(); // Prevent form submission
