@@ -1,6 +1,3 @@
-
-
-
 // Use fixed app version (from package.json)
 const CACHE_VERSION = "app-cache-v1.0.0";
 const CORE_ASSETS = [
@@ -8,7 +5,7 @@ const CORE_ASSETS = [
   "/index.html",
   "/style.css",
   "/script.js",
-  "/fallback.png" // Added fallback image to core assets
+  "/fallback.png"
 ];
 
 // Install event: Cache core assets with partial success logging
@@ -22,8 +19,6 @@ self.addEventListener("install", (event) => {
             fetch(url)
               .then((response) => {
                 if (response.ok) return cache.put(url, response);
-                // Clone response before caching
-                const responseClone = response.clone();
                 console.warn(`Skipped caching: ${url} - ${response.status}`);
               })
               .catch((err) => console.warn(`Fetch failed for: ${url}`, err)),
@@ -57,7 +52,6 @@ self.addEventListener("fetch", (event) => {
       .match(event.request)
       .then((cached) => {
         if (cached) return cached;
-
         return fetch(event.request).then((response) => {
           if (
             event.request.method === "GET" &&
@@ -81,56 +75,59 @@ self.addEventListener("fetch", (event) => {
   );
 });
 
+// ===== REFACTORED: Extracted duplicate logic into shared function =====
+
+// Helper: Update weather cache for recent searches
+async function updateWeatherCache(source = "") {
+  const cache = await caches.open(CACHE_VERSION);
+  const recentSearches = await getRecentSearches();
+  const logSuffix = source ? ` (${source})` : "";
+  
+  if (recentSearches && recentSearches.length > 0) {
+    await Promise.all(
+      recentSearches.slice(0, 3).map(async (city) => {
+        try {
+          const encodedCity = encodeURIComponent(city);
+          const url = `https://weather-api-ex1z.onrender.com/api/weather/${encodedCity}`;
+          const response = await fetch(url);
+          if (response.ok) {
+            await cache.put(url, response.clone());
+            console.log(`✅ Updated weather cache for ${city}${logSuffix}`);
+          } else {
+            console.warn(
+              `Failed to update weather for ${city} - Status: ${response.status}`
+            );
+          }
+        } catch (err) {
+          console.error(
+            `Network error while updating weather for ${city}${logSuffix}`,
+            err
+          );
+        }
+      })
+    );
+  }
+  
+  try {
+    const configResponse = await fetch(
+      "https://weather-api-ex1z.onrender.com/config"
+    );
+    if (configResponse.ok) {
+      await cache.put(
+        "https://weather-api-ex1z.onrender.com/config",
+        configResponse.clone()
+      );
+      console.log(`✅ Updated config cache${logSuffix}`);
+    }
+  } catch (err) {
+    console.error(`Failed to update config cache${logSuffix}`, err);
+  }
+}
+
 // Periodic Sync: Refresh dynamic content (not core assets)
 self.addEventListener("periodicsync", (event) => {
   if (event.tag === "weather-sync") {
-    event.waitUntil(
-      (async () => {
-        const cache = await caches.open(CACHE_VERSION);
-        const recentSearches = await getRecentSearches();
-
-        if (recentSearches && recentSearches.length > 0) {
-          await Promise.all(
-            recentSearches.slice(0, 3).map(async (city) => {
-              // Limit to 3 most recent
-              try {
-                const encodedCity = encodeURIComponent(city);
-                const url = `https://weather-api-ex1z.onrender.com/api/weather/${encodedCity}`;
-                const response = await fetch(url);
-                if (response.ok) {
-                  await cache.put(url, response.clone());
-                  console.log(`✅ Updated weather cache for ${city}`);
-                } else {
-                  console.warn(
-                    `Failed to update weather for ${city} - Status: ${response.status}`,
-                  );
-                }
-              } catch (err) {
-                console.error(
-                  `Network error while updating weather for ${city}`,
-                  err,
-                );
-              }
-            }),
-          );
-        }
-
-        try {
-          const configResponse = await fetch(
-            "https://weather-api-ex1z.onrender.com/config",
-          );
-          if (configResponse.ok) {
-            await cache.put(
-              "https://weather-api-ex1z.onrender.com/config",
-              configResponse.clone(),
-            );
-            console.log("✅ Updated config cache");
-          }
-        } catch (err) {
-          console.error("Failed to update config cache", err);
-        }
-      })(),
-    );
+    event.waitUntil(updateWeatherCache("sync"));
   }
 });
 
@@ -138,46 +135,7 @@ self.addEventListener("periodicsync", (event) => {
 self.addEventListener("message", (event) => {
   try {
     if (event.data && event.data.type === "NAVIGATION_SYNC") {
-      // Reuse the same update logic as periodicsync
-      event.waitUntil(
-        (async () => {
-          const cache = await caches.open(CACHE_VERSION);
-          const recentSearches = await getRecentSearches();
-
-          if (recentSearches && recentSearches.length > 0) {
-            await Promise.all(
-              recentSearches.slice(0, 3).map(async (city) => {
-                try {
-                  const encodedCity = encodeURIComponent(city);
-                  const url = `https://weather-api-ex1z.onrender.com/api/weather/${encodedCity}`;
-                  const response = await fetch(url);
-                  if (response.ok) {
-                    await cache.put(url, response.clone());
-                    console.log(`✅ Updated weather cache for ${city} (nav)`);
-                  }
-                } catch (err) {
-                  console.error(`Network error while updating weather for ${city} (nav)`, err);
-                }
-              }),
-            );
-          }
-
-          try {
-            const configResponse = await fetch(
-              "https://weather-api-ex1z.onrender.com/config",
-            );
-            if (configResponse.ok) {
-              await cache.put(
-                "https://weather-api-ex1z.onrender.com/config",
-                configResponse.clone(),
-              );
-              console.log("✅ Updated config cache (nav)");
-            }
-          } catch (err) {
-            console.error("Failed to update config cache (nav)", err);
-          }
-        })(),
-      );
+      event.waitUntil(updateWeatherCache("nav"));
     }
   } catch (err) {
     console.error("Error handling NAVIGATION_SYNC message", err);
@@ -188,33 +146,25 @@ self.addEventListener("message", (event) => {
 async function getRecentSearches() {
   try {
     const clients = await self.clients.matchAll();
-
     if (clients.length > 0) {
-      const client = clients[0]; // Use the first available client
-
+      const client = clients[0];
       return new Promise((resolve) => {
         const messageChannel = new MessageChannel();
-
         messageChannel.port1.onmessage = (event) => {
           if (event.data && event.data.recentSearches) {
             resolve(event.data.recentSearches);
           } else {
-            resolve(["London", "New York", "Tokyo"]); // Fallback
+            resolve(["London", "New York", "Tokyo"]);
           }
         };
-
         client.postMessage({ type: "GET_RECENT_SEARCHES" }, [
           messageChannel.port2,
         ]);
-
-        // Timeout after 5 seconds
         setTimeout(() => {
           resolve(["London", "New York", "Tokyo"]);
         }, 5000);
       });
     }
-
-    // Fallback: return some default cities if no clients
     return ["London", "New York", "Tokyo"];
   } catch (err) {
     console.error("Failed to get recent searches", err);
