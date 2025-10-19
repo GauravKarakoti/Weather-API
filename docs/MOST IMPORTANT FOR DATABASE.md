@@ -1,5 +1,37 @@
 # Weather API Database Setup Guide
 
+- [Weather API Database Setup Guide](#weather-api-database-setup-guide)
+  * [Prerequisites](#prerequisites)
+  * [Quick Setup](#quick-setup)
+    + [1. Install Dependencies](#1-install-dependencies)
+    + [2. Configure Database Connection](#2-configure-database-connection)
+    + [3. Initialize Database](#3-initialize-database)
+    + [4. Access Admin Dashboard](#4-access-admin-dashboard)
+  * [Database Schema](#database-schema)
+    + [Admin Users Table](#admin-users-table)
+  * [Features](#features)
+    + [🔐 **Enhanced Security**](#-----enhanced-security--)
+    + [📊 **Admin Management**](#-----admin-management--)
+    + [🔍 **Database Monitoring**](#-----database-monitoring--)
+  * [API Endpoints](#api-endpoints)
+    + [Authentication](#authentication)
+    + [New Database Management Endpoints](#new-database-management-endpoints)
+  * [Environment Variables](#environment-variables)
+  * [Development Commands](#development-commands)
+  * [Production Deployment](#production-deployment)
+    + [1. Environment Setup](#1-environment-setup)
+    + [2. Security Checklist](#2-security-checklist)
+    + [3. Database Backup](#3-database-backup)
+  * [Troubleshooting](#troubleshooting)
+    + [Connection Issues](#connection-issues)
+    + [Migration Issues](#migration-issues)
+    + [Authentication Issues](#authentication-issues)
+  * [Support](#support)
+  * [Migration from Environment Variables](#migration-from-environment-variables)
+  * [What's New](#what-s-new)
+
+<small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
+
 This guide will help you set up PostgreSQL database integration using Neon for the Weather API.
 
 ## Prerequisites
