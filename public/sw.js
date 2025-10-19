@@ -133,6 +133,12 @@ self.addEventListener("periodicsync", (event) => {
 
 // Message-based fallback: trigger the same update flow when client requests a navigation sync
 self.addEventListener("message", (event) => {
+  // Verify the origin of the received message
+  if (!event.origin || event.origin !== self.location.origin) {
+    console.warn(`Rejected message from unauthorized origin: ${event.origin}`);
+    return;
+  }
+  
   try {
     if (event.data && event.data.type === "NAVIGATION_SYNC") {
       event.waitUntil(updateWeatherCache("nav"));
