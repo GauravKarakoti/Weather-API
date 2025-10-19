@@ -142,10 +142,14 @@
     <main class="container">
       <div class="header-section">
         <h1><i class="fas fa-cloud-sun"></i>Weather Information</h1>
-        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
-          <span class="toggle-icon moon-icon">🌙</span>
-          <span class="toggle-icon sun-icon">☀️</span>
-        </button>
+        <div class="theme-controls">
+          <select id="theme-selector" class="theme-selector" aria-label="Select theme">
+            <!-- Options will be populated by JavaScript -->
+          </select>
+          <button class="customize-theme-btn" id="customize-theme-btn" aria-label="Customize theme">
+            🎨
+          </button>
+        </div>
       </div>
       <form id="weather-form" class="weather-form">
         <div class="form-group">
@@ -375,6 +379,11 @@
       <h2><i class="fas fa-clock-rotate-left"></i>Recent Searches</h2>
       <ul id="recent-list" role="list"></ul>
     </section>
+
+    <!-- Theme Customization Panel -->
+    <div id="theme-customization" class="theme-customization-panel hidden">
+      <!-- Panel content will be populated by JavaScript -->
+    </div>
   </main>
 
   <div class="music-player">

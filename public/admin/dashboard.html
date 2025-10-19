@@ -11,10 +11,14 @@
     <header class="header">
       <h1>🌦️ Weather API Admin Dashboard</h1>
       <div class="header-actions">
-        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
-          <span class="toggle-icon moon-icon">🌙</span>
-          <span class="toggle-icon sun-icon">☀️</span>
-        </button>
+        <div class="theme-controls">
+          <select id="theme-selector" class="theme-selector" aria-label="Select theme">
+            <!-- Options will be populated by JavaScript -->
+          </select>
+          <button class="customize-theme-btn" id="customize-theme-btn" aria-label="Customize theme">
+            🎨
+          </button>
+        </div>
         <button class="refresh-btn" onclick="refreshDashboard()">
           🔄 Refresh
         </button>

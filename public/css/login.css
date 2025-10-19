@@ -30,6 +30,7 @@ body {
     color: white;
     padding: 2rem;
     text-align: center;
+    position: relative;
 }
 
 .login-header h1 {
@@ -47,6 +48,15 @@ body {
     font-size: 3rem;
     margin-bottom: 1rem;
     display: block;
+}
+
+.theme-controls {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .login-form {
