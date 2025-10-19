@@ -81,9 +81,6 @@ describe("Weather App Client-Side Tests", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-
-//fix/service-worker-scope
-
     // Reset mock elements
     for (const element of Object.values(mockElements)) {
       if (element.textContent !== undefined) element.textContent = "";
@@ -257,23 +254,6 @@ describe("Weather App Client-Side Tests", () => {
       expect(recentList.children.length).toBe(1);
       expect(recentList.textContent).toContain("London");
     });
-  });
-
-  test("should add a city to recent searches and update the UI", async () => {
-    const recentList = document.getElementById("recent-list");
-
-    scriptModule.addToRecentSearches("Tokyo");
-
-    await waitFor(() => {
-      expect(recentList.children.length).toBe(1);
-      expect(recentList.textContent).toContain("Tokyo");
-    });
-    scriptModule.storageManager.getItem = jest.fn(
-      (key) => mockStorage[key] || null,
-    );
-
-    // Call addToRecentSearches
-    scriptModule.addToRecentSearches("Tokyo");
 
     // Should store the city
     expect(scriptModule.storageManager.setItem).toHaveBeenCalledWith(

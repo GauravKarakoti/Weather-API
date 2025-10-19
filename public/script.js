@@ -760,7 +760,7 @@ function displayRecentSearches() {
           <button class="recent-item" data-city="${sanitizeHTML(city)}">
             ${sanitizeHTML(city)}
           </button>
-        </li>`,
+        </li>`
       )
       .join("");
 
@@ -768,6 +768,7 @@ function displayRecentSearches() {
     list.style.flexWrap = "wrap";
     list.style.listStyle = "none";
 
+    // Click/Enter events already handled by <button>
     document.querySelectorAll(".recent-item").forEach((button) => {
       button.addEventListener("click", function () {
         if (cityInput) {
@@ -775,6 +776,21 @@ function displayRecentSearches() {
           handleSubmit(new Event("submit"));
         }
       });
+    });
+
+    // Optional: arrow key navigation
+    list.addEventListener("keydown", (e) => {
+      const focused = document.activeElement;
+      if (!focused.classList.contains("recent-item")) return;
+
+      if (e.key === "ArrowDown" && focused.parentElement.nextElementSibling) {
+        e.preventDefault();
+        focused.parentElement.nextElementSibling.querySelector(".recent-item").focus();
+      }
+      if (e.key === "ArrowUp" && focused.parentElement.previousElementSibling) {
+        e.preventDefault();
+        focused.parentElement.previousElementSibling.querySelector(".recent-item").focus();
+      }
     });
   } else {
     console.warn("Recent list element not found");
@@ -814,6 +830,10 @@ function setupServiceWorker() {
 
           // Optional: register periodic sync if supported
           setupPeriodicSync(registration);
+
+          // Navigation-based fallback: if periodicSync isn't supported, ask the SW to refresh caches
+          // Throttle this to at most once per 12 hours using sessionStorage
+          triggerNavigationSyncFallback(registration);
 
           // Listen for updates
           registration.onupdatefound = () => {
@@ -856,6 +876,44 @@ async function setupPeriodicSync(registration) {
     }
   } catch (error) {
     console.error("Failed to register periodic sync:", error);
+  }
+}
+
+/**
+ * Trigger a message-based navigation sync fallback when Periodic Background Sync is unavailable.
+ * Uses sessionStorage to avoid calling the SW too frequently (12 hour cooldown).
+ */
+function triggerNavigationSyncFallback(registration) {
+  try {
+    const COOLDOWN_MS = 12 * 60 * 60 * 1000; // 12 hours
+    const lastTriggered = parseInt(sessionStorage.getItem("lastNavSync"), 10) || 0;
+    const now = Date.now();
+
+    // If periodicSync is supported, we prefer that and skip the manual trigger
+    if (registration && "periodicSync" in registration) return;
+
+    if (now - lastTriggered < COOLDOWN_MS) {
+      // Throttled
+      return;
+    }
+
+    if (navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: "NAVIGATION_SYNC" });
+      sessionStorage.setItem("lastNavSync", String(now));
+      console.log("Requested NAVIGATION_SYNC from service worker (fallback)");
+    } else if (registration && registration.waiting) {
+      // In case a SW is installed but not controlling yet, send message to registration
+      registration.waiting.postMessage({ type: "NAVIGATION_SYNC" });
+      sessionStorage.setItem("lastNavSync", String(now));
+      console.log("Requested NAVIGATION_SYNC to waiting service worker (fallback)");
+    } else {
+      // As a last resort, try to get the active worker from registration
+      registration.active?.postMessage({ type: "NAVIGATION_SYNC" });
+      sessionStorage.setItem("lastNavSync", String(now));
+      console.log("Requested NAVIGATION_SYNC to active service worker (fallback)");
+    }
+  } catch (err) {
+    console.error("Failed to trigger navigation sync fallback:", err);
   }
 }
 
