@@ -1,24 +1,10 @@
-
-
-// Service Worker Registration
-// -----------------------------
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js', { scope: '/' })
-      .then((registration) => {
-        console.log('Service Worker registered with scope:', registration.scope);
-      })
-      .catch((error) => {
-        console.error('Service Worker registration failed:', error);
-      });
-  });
-}
-
+// Constants
+const API_BASE_URL = "https://weather-api-ex1z.onrender.com";
+const DEFAULT_SEARCH_LIMIT = 5;
 
 // Weather emoji configuration object
 const WEATHER_CONFIG = {
   emojis: {
-    // Primary conditions (exact matches first)
     sunny: "☀️",
     clear: "☀️",
     rain: "🌧️",
@@ -45,11 +31,8 @@ const WEATHER_CONFIG = {
     hot: "🌡️",
     cold: "🥶",
     freezing: "🧊",
-    // Fallback
     default: "🌈",
   },
-
-  // Priority order for checking conditions (higher priority first)
   priority: [
     "thunderstorm",
     "storm",
@@ -88,33 +71,29 @@ function getWeatherEmoji(condition) {
 
   const normalizedCondition = condition.toLowerCase().trim();
 
-  // Check for exact matches first
   if (WEATHER_CONFIG.emojis[normalizedCondition]) {
     return WEATHER_CONFIG.emojis[normalizedCondition];
   }
 
-  // Check for partial matches using priority order
   for (const keyword of WEATHER_CONFIG.priority) {
     if (normalizedCondition.includes(keyword)) {
       return WEATHER_CONFIG.emojis[keyword];
     }
   }
 
-  // Return default emoji if no match found
   return WEATHER_CONFIG.emojis.default;
 }
 
 // Function to log selector failures
 function logSelectorFailure(selector) {
-  //console.error(`Selector failure: ${selector}`);
-  if (
-    typeof window !== "undefined" &&
-    typeof window.alert === "function" &&
-    process.env.NODE_ENV !== "test"
-  ) {
-    window.alert(
-      `Failed to find element with selector: ${selector}. Please check the selector or update it if the target website has changed.`,
-    );
+  console.error(`Selector failure: ${selector}`);
+  if (typeof window !== "undefined" && typeof window.alert === "function") {
+    const isTest = typeof process !== "undefined" && process.env && process.env.NODE_ENV === "test";
+    if (!isTest) {
+      window.alert(
+        `Failed to find element with selector: ${selector}. Please check the selector or update it if the target website has changed.`
+      );
+    }
   }
 }
 
@@ -142,6 +121,7 @@ function getElement(selector) {
   return element;
 }
 
+// DOM element cache
 let form;
 let cityInput;
 let weatherData;
@@ -151,10 +131,7 @@ let clearBtn;
 let spinner;
 let errorElement;
 
-let recentSearches = [];
-
 function cacheElements() {
-  // Query DOM elements once DOM is available
   form = getElement("#weather-form");
   cityInput = getElement("#city");
   weatherData = getElement("#weather-data");
@@ -164,28 +141,27 @@ function cacheElements() {
   spinner = getElement(".spinner");
   errorElement = getElement("#city-error");
 
-  // If recent-list isn't present (tests or env), create a fallback so displayRecentSearches won't fail
   if (!document.getElementById("recent-list")) {
     const ul = document.createElement("ul");
     ul.id = "recent-list";
-    // Keep it out of the way if body isn't built as expected
     try {
       document.body.appendChild(ul);
     } catch (e) {
-      // ignore if body doesn't exist yet
+      console.warn("Could not append recent-list to body");
     }
   }
 
-  // Convert submit-type buttons to plain buttons at runtime to avoid jsdom requestSubmit issues.
-  // This does not change behavior in a normal browser because we attach our own click handlers.
   try {
     if (weatherBtn && weatherBtn.type === "submit") weatherBtn.type = "button";
     if (searchBtn && searchBtn.type === "submit") searchBtn.type = "button";
   } catch (e) {
-    // ignore
+    console.warn("Could not convert button types");
   }
 
-  // Attach listeners now that elements exist (if they exist)
+  attachEventListeners();
+}
+
+function attachEventListeners() {
   if (form) {
     form.addEventListener("submit", handleSubmit);
   }
@@ -193,6 +169,7 @@ function cacheElements() {
   if (weatherBtn) {
     weatherBtn.addEventListener("click", handleSubmit);
   }
+  
   if (searchBtn) {
     searchBtn.addEventListener("click", handleSubmit);
   }
@@ -203,18 +180,20 @@ function cacheElements() {
 }
 
 function initialize() {
-  // Ensure we cache DOM elements before doing DOM-dependent work
-  cacheElements();
-
-  // Also ensure cacheElements runs after DOM is fully parsed if needed
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", cacheElements);
+    document.addEventListener("DOMContentLoaded", () => {
+      cacheElements();
+      loadRecentSearches();
+      setupMessageListener();
+    });
+  } else {
+    cacheElements();
+    loadRecentSearches();
+    setupMessageListener();
   }
-
-  loadRecentSearches();
+  
   setupServiceWorker();
-  // loadConfig();
-  setupMessageListener();
+  loadConfig();
 }
 
 // Listen for messages from service worker
@@ -222,9 +201,10 @@ function setupMessageListener() {
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.addEventListener("message", (event) => {
       if (event.data && event.data.type === "GET_RECENT_SEARCHES") {
-        // Send recent searches back to service worker
         const recentSearches = storageManager.getItem("recentSearches") || [];
-        event.ports[0]?.postMessage({ recentSearches });
+        if (event.ports[0]) {
+          event.ports[0].postMessage({ recentSearches });
+        }
       }
     });
   }
@@ -234,12 +214,11 @@ async function handleSubmit(e) {
   e.preventDefault();
   const city = cityInput?.value.trim();
 
-  // Clear the previous error message when a new search starts
   clearError();
 
   if (!city) {
     showError("City name cannot be empty.");
-    return "City name cannot be empty";
+    return;
   }
 
   if (!isValidInput(city)) {
@@ -250,14 +229,13 @@ async function handleSubmit(e) {
   try {
     toggleLoading(true);
     const data = await fetchWeatherData(city);
-
     displayWeather(data);
     addToRecentSearches(city);
   } catch (error) {
-    console.log(error);
+    console.error(error);
     if (error.message.includes("Unable to parse weather data")) {
       showError(
-        "❌ City not found. Please check the spelling or try a different city.",
+        "❌ City not found. Please check the spelling or try a different city."
       );
     } else {
       showError("⚠️ Something went wrong. Please try again later.");
@@ -274,17 +252,18 @@ async function fetchWeatherData(city) {
     }
 
     const encodedCity = encodeURIComponent(city);
-
-    const url = `https://weather-api-ex1z.onrender.com/api/weather-forecast/${encodedCity}`;
+    const url = `${API_BASE_URL}/api/weather-forecast/${encodedCity}`;
 
     const response = await fetch(url);
     let data;
+    
     try {
       data = await response.json();
     } catch (e) {
       console.error("Failed to parse JSON response:", e);
       throw new Error("Invalid response format from weather API.");
     }
+    
     if (!response.ok) {
       let errorMsg;
 
@@ -338,12 +317,12 @@ function displayWeather(data) {
     return;
   }
 
-  const weatherDataEl = document.getElementById("weather-data");
-  if (!weatherDataEl) return;
+  if (!weatherData) return;
 
-  weatherDataEl.innerHTML = ""; // Clear previous data
+  weatherData.innerHTML = "";
 
   const dates = new Set();
+  const cards = [];
   let cnt = 0;
 
   for (let item of data.list) {
@@ -355,30 +334,37 @@ function displayWeather(data) {
       dates.add(date);
       cnt++;
 
+      const emoji = getWeatherEmoji(item.weather[0].main);
+
       const template = `
         <div class="weather-card">
           <div class="weather-details">
             <p><strong>Day:</strong> ${day}</p>
-            <p><strong>Temp:</strong> ${item.main.temp.toFixed(1)}°C</p>
+            <p><strong>Temp:</strong> ${item.main.temp.toFixed(1)}°C ${emoji}</p>
             <p><strong>Date:</strong> ${date}</p>
             <p><strong>Condition:</strong> ${item.weather[0].main}</p>
             <p><strong>Min Temp:</strong> ${item.main.temp_min.toFixed(1)}°C</p>
             <p><strong>Max Temp:</strong> ${item.main.temp_max.toFixed(1)}°C</p>
             <p><strong>Humidity:</strong> ${item.main.humidity}%</p>
-            <p><strong>Pressure:</strong> ${item.main.pressure}</p>
+            <p><strong>Pressure:</strong> ${item.main.pressure} hPa</p>
           </div>
         </div>
       `;
 
-      weatherDataEl.insertAdjacentHTML(
-        "beforeend",
-        DOMPurify.sanitize(template),
-      );
+      cards.push(template);
       if (cnt === 4) break;
     }
   }
 
-  weatherDataEl.classList.remove("hidden");
+  // Check if DOMPurify is available
+  const htmlContent = cards.join("");
+  if (typeof DOMPurify !== "undefined") {
+    weatherData.innerHTML = DOMPurify.sanitize(htmlContent);
+  } else {
+    weatherData.innerHTML = htmlContent;
+  }
+
+  weatherData.classList.remove("hidden");
 }
 
 function isValidInput(city) {
@@ -387,17 +373,17 @@ function isValidInput(city) {
 
 function showError(message) {
   if (errorElement) {
-    errorElement.textContent = message;
+    errorElement.innerHTML = "";
     errorElement.classList.add("visible");
 
+    const textNode = document.createTextNode(message);
     const closeBtn = document.createElement("button");
-    closeBtn.textContent = "x";
+    closeBtn.textContent = "×";
     closeBtn.classList.add("close-btn");
     closeBtn.setAttribute("aria-label", "Close error message");
-    closeBtn.onclick = () => clearError();
+    closeBtn.addEventListener("click", clearError);
 
-    errorElement.innerHTML = "";
-    errorElement.appendChild(document.createTextNode(message));
+    errorElement.appendChild(textNode);
     errorElement.appendChild(closeBtn);
 
     errorElement.setAttribute("tabindex", "-1");
@@ -414,42 +400,32 @@ function clearError() {
   }
 }
 
-function sanitizeHTML(str) {
-  return DOMPurify.sanitize(str);
-}
-
+// Storage Manager Class
 class StorageManager {
   constructor() {
     this.storageMethod = this.getAvailableStorage();
-    if (!this.storageMethod) {
-      this.memoryStorage = { recentSearches: [] };
-    }
     this.memoryStorage = { recentSearches: [] };
     this.hasWarnedUser = false;
 
-    // Setup warning for in-memory storage
     if (!this.storageMethod) {
       this.setupInMemoryWarnings();
     }
   }
 
   getAvailableStorage() {
-    // Try localStorage first
     if (this.checkStorageAvailability(localStorage)) {
       return localStorage;
     }
 
-    // Fallback to sessionStorage
     if (this.checkStorageAvailability(sessionStorage)) {
       console.warn(
-        "⚠️ localStorage not available. Using sessionStorage fallback.",
+        "⚠️ localStorage not available. Using sessionStorage fallback."
       );
       return sessionStorage;
     }
 
-    // Last resort: in-memory storage
     console.warn(
-      "⚠️ No persistent storage available. Using in-memory fallback.",
+      "⚠️ No persistent storage available. Using in-memory fallback."
     );
     return null;
   }
@@ -466,10 +442,8 @@ class StorageManager {
   }
 
   setupInMemoryWarnings() {
-    // Show user notification about limited storage
     this.showStorageWarning();
 
-    // Setup beforeunload warning
     window.addEventListener("beforeunload", (e) => {
       if (
         this.memoryStorage.recentSearches &&
@@ -486,23 +460,27 @@ class StorageManager {
   showStorageWarning() {
     if (this.hasWarnedUser) return;
 
-    // Wait for DOM to be ready
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", () =>
-        this.showStorageWarning(),
+        this.showStorageWarning()
       );
       return;
     }
 
-    // Create a subtle notification
     const notification = document.createElement("div");
     notification.className = "storage-warning";
-    notification.innerHTML = `
-      <span>⚠️ Recent searches won't persist after page reload</span>
-      <button onclick="this.parentElement.remove()" aria-label="Close notification">×</button>
-    `;
+    
+    const messageSpan = document.createElement("span");
+    messageSpan.textContent = "⚠️ Recent searches won't persist after page reload";
+    
+    const closeButton = document.createElement("button");
+    closeButton.textContent = "×";
+    closeButton.setAttribute("aria-label", "Close notification");
+    closeButton.addEventListener("click", () => notification.remove());
 
-    // Add styles
+    notification.appendChild(messageSpan);
+    notification.appendChild(closeButton);
+
     notification.style.cssText = `
       position: fixed;
       top: 10px;
@@ -516,20 +494,23 @@ class StorageManager {
       z-index: 1000;
       max-width: 300px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      gap: 10px;
     `;
 
-    notification.querySelector("button").style.cssText = `
+    closeButton.style.cssText = `
       background: none;
       border: none;
       color: #856404;
-      font-size: 16px;
+      font-size: 20px;
       cursor: pointer;
-      margin-left: 10px;
+      padding: 0;
+      line-height: 1;
     `;
 
     document.body.appendChild(notification);
 
-    // Auto-remove after 10 seconds
     setTimeout(() => {
       if (notification.parentElement) {
         notification.remove();
@@ -573,7 +554,6 @@ class StorageManager {
 
 const storageManager = new StorageManager();
 
-// Debug: Log storage initialization
 console.log("🔧 Storage system initialized:", {
   storageType: storageManager.getStorageType(),
   available: !!storageManager.storageMethod,
@@ -581,7 +561,7 @@ console.log("🔧 Storage system initialized:", {
 
 function addToRecentSearches(city) {
   const normalizedCity = city.trim().toLowerCase();
-  const limit = parseInt(storageManager.getItem("recentSearchLimit"), 10) || 5;
+  const limit = parseInt(storageManager.getItem("recentSearchLimit"), 10) || DEFAULT_SEARCH_LIMIT;
 
   let recent = storageManager.getItem("recentSearches") || [];
   recent = recent.filter((c) => c.toLowerCase() !== normalizedCity);
@@ -591,7 +571,7 @@ function addToRecentSearches(city) {
     storageManager.setItem("recentSearches", recent);
   } catch (error) {
     if (error.name === "QuotaExceededError") {
-      console.warn("LocalStorage quota exceeded. Removing oldest search.");
+      console.warn("Storage quota exceeded. Removing oldest search.");
       recent.pop();
       try {
         storageManager.setItem("recentSearches", recent);
@@ -609,33 +589,38 @@ function addToRecentSearches(city) {
 function displayRecentSearches() {
   const recent = storageManager.getItem("recentSearches") || [];
   const list = document.getElementById("recent-list");
-  if (list) {
-    list.innerHTML = recent
-      .map(
-        (city) => `
-        <li role="listitem">
-          <button class="recent-item" data-city="${sanitizeHTML(city)}">
-            ${sanitizeHTML(city)}
-          </button>
-        </li>`,
-      )
-      .join("");
-
-    list.style.display = "flex";
-    list.style.flexWrap = "wrap";
-    list.style.listStyle = "none";
-
-    document.querySelectorAll(".recent-item").forEach((button) => {
-      button.addEventListener("click", function () {
-        if (cityInput) {
-          cityInput.value = this.dataset.city;
-          handleSubmit(new Event("submit"));
-        }
-      });
-    });
-  } else {
+  
+  if (!list) {
     console.warn("Recent list element not found");
+    return;
   }
+
+  // Remove old event listeners by clearing and rebuilding
+  list.innerHTML = "";
+
+  recent.forEach((city) => {
+    const li = document.createElement("li");
+    li.setAttribute("role", "listitem");
+
+    const button = document.createElement("button");
+    button.className = "recent-item";
+    button.textContent = city;
+    button.dataset.city = city;
+    
+    button.addEventListener("click", function () {
+      if (cityInput) {
+        cityInput.value = this.dataset.city;
+        handleSubmit(new Event("submit"));
+      }
+    });
+
+    li.appendChild(button);
+    list.appendChild(li);
+  });
+
+  list.style.display = "flex";
+  list.style.flexWrap = "wrap";
+  list.style.listStyle = "none";
 }
 
 function loadRecentSearches() {
@@ -644,68 +629,63 @@ function loadRecentSearches() {
 
 async function loadConfig() {
   try {
-    const response = await fetch(
-      "https://weather-api-ex1z.onrender.com/config",
-    );
+    const response = await fetch(`${API_BASE_URL}/config`);
     if (!response.ok) throw new Error("Failed to load config");
 
     const config = await response.json();
 
-    const limit = parseInt(config.RECENT_SEARCH_LIMIT, 10) || 5;
+    const limit = parseInt(config.RECENT_SEARCH_LIMIT, 10) || DEFAULT_SEARCH_LIMIT;
     storageManager.setItem("recentSearchLimit", limit);
     console.log(`Recent search limit: ${limit}`);
 
     return limit;
   } catch (error) {
     console.error("Failed to load environment config:", error);
-    return 5;
+    storageManager.setItem("recentSearchLimit", DEFAULT_SEARCH_LIMIT);
+    return DEFAULT_SEARCH_LIMIT;
   }
 }
 
 function setupServiceWorker() {
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js', { scope: '/' })
-        .then((registration) => {
-          console.log('Service Worker registered with scope:', registration.scope);
+  if (!("serviceWorker" in navigator)) return;
 
-          // Optional: register periodic sync if supported
-          setupPeriodicSync(registration);
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("/sw.js", { scope: "/" })
+      .then((registration) => {
+        console.log("Service Worker registered with scope:", registration.scope);
 
-          // Navigation-based fallback when Periodic Background Sync is not available
-          triggerNavigationSyncFallback(registration);
+        setupPeriodicSync(registration);
+        triggerNavigationSyncFallback(registration);
 
-          // Listen for updates
-          registration.onupdatefound = () => {
-            const newSW = registration.installing;
-            newSW.onstatechange = () => {
-              if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
-                console.log('New content is available, please refresh.');
+        registration.addEventListener("updatefound", () => {
+          const newSW = registration.installing;
+          if (newSW) {
+            newSW.addEventListener("statechange", () => {
+              if (newSW.state === "installed" && navigator.serviceWorker.controller) {
+                console.log("New content is available, please refresh.");
                 showUpdateNotification();
               }
-            };
-          };
-        })
-        .catch((error) =>
-          console.error('Service Worker registration failed:', error),
-        );
-    });
-  }
+            });
+          }
+        });
+      })
+      .catch((error) =>
+        console.error("Service Worker registration failed:", error)
+      );
+  });
 }
 
 async function setupPeriodicSync(registration) {
   try {
-    // Check if Periodic Background Sync is supported
     if ("periodicSync" in registration) {
-      // Request permission for background sync
       const status = await navigator.permissions.query({
         name: "periodic-background-sync",
       });
 
       if (status.state === "granted") {
-        // Register periodic sync
         await registration.periodicSync.register("weather-sync", {
-          minInterval: 12 * 60 * 60 * 1000, // 12 hours
+          minInterval: 12 * 60 * 60 * 1000,
         });
         console.log("✅ Periodic sync registered successfully");
       } else {
@@ -719,107 +699,124 @@ async function setupPeriodicSync(registration) {
   }
 }
 
-// Send NAVIGATION_SYNC message to service worker when periodicSync isn't available
 function triggerNavigationSyncFallback(registration) {
   try {
-    // If registration supports periodicSync, prefer that
     if (registration && registration.periodicSync) return;
 
-    const COOLDOWN_MS = 12 * 60 * 60 * 1000; // 12 hours
-    const last = sessionStorage.getItem('lastNavSync');
+    const COOLDOWN_MS = 12 * 60 * 60 * 1000;
+    
+    // Use in-memory storage for test environments
+    const getLastSync = () => {
+      if (typeof sessionStorage !== "undefined") {
+        return sessionStorage.getItem("lastNavSync");
+      }
+      return null;
+    };
+    
+    const setLastSync = (value) => {
+      if (typeof sessionStorage !== "undefined") {
+        sessionStorage.setItem("lastNavSync", value);
+      }
+    };
+
+    const last = getLastSync();
     if (last && Date.now() - Number(last) < COOLDOWN_MS) return;
 
-    const msg = { type: 'NAVIGATION_SYNC' };
-    // Try to post message to the active controller
+    const msg = { type: "NAVIGATION_SYNC" };
+    
     if (navigator.serviceWorker.controller) {
       navigator.serviceWorker.controller.postMessage(msg);
-      sessionStorage.setItem('lastNavSync', String(Date.now()));
-      console.log('Navigation sync fallback triggered');
+      setLastSync(String(Date.now()));
+      console.log("Navigation sync fallback triggered");
       return;
     }
 
-    // Fallback: use registration.active or waiting
     if (registration && registration.active) {
       registration.active.postMessage(msg);
-      sessionStorage.setItem('lastNavSync', String(Date.now()));
-      console.log('Navigation sync fallback triggered via registration.active');
+      setLastSync(String(Date.now()));
+      console.log("Navigation sync fallback triggered via registration.active");
     }
   } catch (e) {
-    console.warn('Failed to trigger navigation sync fallback', e);
+    console.warn("Failed to trigger navigation sync fallback", e);
   }
 }
 
 function showUpdateNotification() {
   const updateBanner = document.createElement("div");
-  updateBanner.classList.add("update-banner");
-  updateBanner.innerHTML = `
-        <p>New version available. <button id="reload-btn">Reload</button></p>
-    `;
+  updateBanner.className = "update-banner";
 
+  const paragraph = document.createElement("p");
+  paragraph.textContent = "New version available. ";
+
+  const reloadBtn = document.createElement("button");
+  reloadBtn.id = "reload-btn";
+  reloadBtn.textContent = "Reload";
+  reloadBtn.addEventListener("click", () => {
+    window.location.reload();
+  });
+
+  paragraph.appendChild(reloadBtn);
+  updateBanner.appendChild(paragraph);
   document.body.appendChild(updateBanner);
-
-  const reloadBtn = document.getElementById("reload-btn");
-  if (reloadBtn) {
-    reloadBtn.addEventListener("click", () => {
-      window.location.reload();
-    });
-  }
 
   const style = document.createElement("style");
   style.textContent = `
-        .update-banner {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: #0078D7;
-            color: white;
-            padding: 15px;
-            text-align: center;
-            z-index: 9999;
-        }
-        .update-banner button {
-            margin-left: 10px;
-            padding: 5px 10px;
-            cursor: pointer;
-        }
-    `;
+    .update-banner {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #0078D7;
+      color: white;
+      padding: 15px;
+      text-align: center;
+      z-index: 9999;
+    }
+    .update-banner button {
+      margin-left: 10px;
+      padding: 5px 10px;
+      cursor: pointer;
+      background: white;
+      color: #0078D7;
+      border: none;
+      border-radius: 3px;
+    }
+  `;
   document.head.appendChild(style);
 }
 
-// Documentation for updating CSS selectors
-/**
- * If the target website changes its structure, the CSS selectors used in this script may need to be updated.
- * To update the selectors:
- * 1. Identify the new structure of the target website.
- * 2. Update the selectors in the getElement function calls.
- * 3. Test the application to ensure the new selectors work correctly.
- */
+function handleClear(e) {
+  e.preventDefault();
+
+  if (cityInput) cityInput.value = "";
+  clearError();
+  if (weatherData) weatherData.innerHTML = "";
+}
 
 // Initialize the app
-if (typeof window !== "undefined" && process.env.NODE_ENV !== "test") {
-  window.addEventListener("DOMContentLoaded", initialize);
+if (typeof window !== "undefined") {
+  const isTest = typeof process !== "undefined" && process.env && process.env.NODE_ENV === "test";
+  if (!isTest) {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initialize);
+    } else {
+      initialize();
+    }
+  }
 }
 
-function handleClear(e) {
-  e.preventDefault(); // Prevent form submission
-
-  if (cityInput) cityInput.value = ""; // Clear the input field
-  clearError(); // Clear error messages
-  const weatherDataEl = document.getElementById("weather-data");
-  if (weatherDataEl) weatherDataEl.innerHTML = ""; // Clear weather data display
-}
-
+// Exports for testing
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     isValidInput,
     addToRecentSearches,
     handleSubmit,
     handleClear,
-    initialize, // Add this
-    displayRecentSearches, // Add this
-    storageManager, // Add this for testing
-    getElement, // Add this for testing
-    cacheElements, // Add this for testing
+    initialize,
+    displayRecentSearches,
+    storageManager,
+    getElement,
+    cacheElements,
+    getWeatherEmoji,
   };
 }
