@@ -11,6 +11,46 @@ const DEFAULT_SEARCH_LIMIT = 5;
    
      
 
+// WebP detection and background fallback
+// Ensures browsers that don't support WebP get a compatible background image
+function detectWebPAndSetBackground() {
+  function setBackground(url) {
+    try {
+      document.documentElement.style.setProperty('--background-image', `url("${url}")`);
+      // Also set on body as inline style to override CSS if needed
+      if (document.body) document.body.style.backgroundImage = `linear-gradient(rgba(10,10,10,0.8), rgba(10,10,10,0.8)), url(${url})`;
+    } catch (e) {
+      // ignore in non-browser contexts
+    }
+  }
+
+  // Tiny WebP probe
+  const webpProbe = "data:image/webp;base64,UklGRiIAAABXRUJQVlA4TBEAAAAvAAAAAAfQ//73v/+BiOh/AAA=";
+  const img = new Image();
+  img.onload = function () {
+    if (img.width > 0 && img.height > 0) {
+      // WebP supported
+      setBackground('/optimized/assets/WeatherBackground.webp');
+    } else {
+      setBackground('/optimized/assets/WeatherBackground-1024.jpg');
+    }
+  };
+  img.onerror = function () {
+    // Fallback to jpg
+    setBackground('/optimized/assets/WeatherBackground-1024.jpg');
+  };
+  img.src = webpProbe;
+}
+
+// Run detection early
+if (typeof window !== 'undefined') {
+  try {
+    window.addEventListener('DOMContentLoaded', detectWebPAndSetBackground);
+  } catch (e) {
+    // ignore
+  }
+}
+
 // Service Worker Registration
 // -----------------------------
 if ('serviceWorker' in navigator) {

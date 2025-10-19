@@ -5,7 +5,10 @@ const CORE_ASSETS = [
   "/index.html",
   "/style.css",
   "/script.js",
-  "/fallback.png"
+  // Prefer optimized WebP assets where available
+  "/optimized/assets/WeatherBackground.webp",
+  "/optimized/Favicon/Favicon.webp",
+  "/optimized/fallback.webp",
 ];
 
 // Install event: Cache core assets with partial success logging
@@ -45,37 +48,44 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// Fetch event: Cache-first strategy, with network fallback and dynamic caching
 self.addEventListener("fetch", (event) => {
-  event.respondWith(
-    caches
-      .match(event.request)
-      .then((cached) => {
-        if (cached) return cached;
-        return fetch(event.request).then((response) => {
-          if (
-            event.request.method === "GET" &&
-            response.status === 200 &&
-            (event.request.url.includes("/images/") ||
-              event.request.url.includes("/fonts/"))
-          ) {
-            caches
-              .open(CACHE_VERSION)
-              .then((cache) => cache.put(event.request, response.clone()));
-          }
-          return response;
-        });
-      })
-      .catch(() => {
-        if (event.request.destination === "image") {
-          return caches.match("/fallback.png");
-        }
-        return caches.match("/index.html");
-      }),
-  );
+  event.respondWith(
+    caches
+      .match(event.request)
+      .then((cached) => {
+        if (cached) return cached;
+        return fetch(event.request).then((response) => {
+          if (event.request.method === "GET" && response.status === 200) {
+            // Cache optimized assets and common static folders
+            if (
+              event.request.url.includes("/optimized/") ||
+              event.request.url.includes("/images/") ||
+              event.request.url.includes("/assets/") ||
+              event.request.url.includes("/fonts/")
+            ) {
+              caches.open(CACHE_VERSION).then((cache) =>
+                cache.put(event.request, response.clone()),
+              );
+            }
+          }
+          return response;
+        });
+      })
+      .catch(() => {
+        if (event.request.destination === "image") {
+          // ===== FIX: Chain the promises properly =====
+          return caches.match("/optimized/fallback.webp").then((response) => {
+            // If the WebP response exists, return it.
+            // Otherwise, return the promise for the PNG fallback.
+            return response || caches.match("/fallback.png");
+          });
+          // ==============================================
+        }
+        // For non-image requests (like navigation), return index.html
+        return caches.match("/index.html");
+      }),
+  );
 });
-
-// ===== REFACTORED: Extracted duplicate logic into shared function =====
 
 // Helper: Update weather cache for recent searches
 async function updateWeatherCache(source = "") {
