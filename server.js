@@ -346,10 +346,17 @@ if (envResult.error) {
 // Nodemailer transporter configuration
 const transporter = nodemailer.createTransport({
   service: "gmail",
+  secure: true,
+  pool: true, // Use connection pooling
+  maxConnections: 5, // Limit concurrent connections
   auth: {
     user: process.env.MAIL_USER,
     pass: process.env.MAIL_PASS,
   },
+  tls: {
+    rejectUnauthorized: true,
+    minVersion: 'TLSv1.2'
+  }
 });
 
 // Enhanced admin alert function with failure management
