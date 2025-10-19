@@ -1,5 +1,45 @@
 # OAuth 2.0 Implementation Guide
 
+- [OAuth 2.0 Implementation Guide](#oauth-20-implementation-guide)
+  * [Table of Contents](#table-of-contents)
+  * [Quick Start](#quick-start)
+    + [1. Environment Setup](#1-environment-setup)
+    + [2. Install Dependencies](#2-install-dependencies)
+    + [3. Start the Server](#3-start-the-server)
+  * [Authentication Flows](#authentication-flows)
+    + [Client Credentials Flow](#client-credentials-flow)
+    + [Refresh Token Flow](#refresh-token-flow)
+  * [API Endpoints](#api-endpoints)
+    + [Token Introspection (RFC 7662)](#token-introspection--rfc-7662-)
+    + [Token Endpoint](#token-endpoint)
+    + [Token Revocation](#token-revocation)
+    + [Demo Token Issuance](#demo-token-issuance)
+    + [Token Info](#token-info)
+  * [Token Management](#token-management)
+    + [Access Tokens](#access-tokens)
+    + [Refresh Tokens](#refresh-tokens)
+    + [Storage Options](#storage-options)
+  * [Security Features](#security-features)
+    + [Token Rotation](#token-rotation)
+    + [Rate Limiting](#rate-limiting)
+    + [Client Authentication](#client-authentication)
+    + [Scope Validation](#scope-validation)
+    + [Token Limits](#token-limits)
+  * [Error Handling](#error-handling)
+    + [Standard OAuth 2.0 Errors](#standard-oauth-20-errors)
+    + [Custom Errors](#custom-errors)
+  * [Examples](#examples)
+    + [Complete Authentication Flow](#complete-authentication-flow)
+    + [Demo Token Flow (Development)](#demo-token-flow--development-)
+    + [JavaScript Client Example](#javascript-client-example)
+  * [Testing](#testing)
+  * [Production Considerations](#production-considerations)
+  * [Troubleshooting](#troubleshooting)
+    + [Common Issues](#common-issues)
+    + [Debug Mode](#debug-mode)
+
+<small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
+
 This Weather API implements OAuth 2.0 with Token Introspection (RFC 7662) for secure API access. The system supports JWT access tokens, opaque refresh tokens, and comprehensive token management.
 
 ## Table of Contents

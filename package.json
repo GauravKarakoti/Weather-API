@@ -20,7 +20,6 @@
   "type": "commonjs",
   "description": "",
   "dependencies": {
-    "@testing-library/dom": "^10.4.1",
     "axios": "^1.8.3",
     "bcrypt": "^6.0.0",
     "cheerio": "^1.0.0-rc.10",
@@ -46,11 +45,13 @@
   "devDependencies": {
     "@babel/core": "^7.28.0",
     "@babel/preset-env": "^7.28.0",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
     "babel-jest": "^30.0.5",
     "eslint": "^9.31.0",
     "glob": "^11.0.3",
     "jest": "^30.0.5",
-    "jest-environment-jsdom": "^30.0.5",
+    "jest-environment-jsdom": "^30.2.0",
     "jsdom": "^27.0.0",
     "prettier": "^3.6.2",
     "sharp": "^0.34.4",

@@ -3,6 +3,42 @@
       
 # Weather-API
 
+- [Weather-API](#weather-api)
+  * [✨ Features That Shine](#--features-that-shine)
+  * [OAuth 2.0 Implementation](#oauth-20-implementation)
+    + [Endpoints](#endpoints)
+      - [1. Token Introspection (`POST /oauth/introspect`)](#1-token-introspection---post--oauth-introspect--)
+      - [2. Token Refresh (`POST /oauth/token`)](#2-token-refresh---post--oauth-token--)
+      - [3. Client Credentials (`POST /oauth/token`)](#3-client-credentials---post--oauth-token--)
+      - [4. Token Revocation (`POST /oauth/revoke`)](#4-token-revocation---post--oauth-revoke--)
+      - [5. Demo Token Issuance (`POST /oauth/demo/issue`)](#5-demo-token-issuance---post--oauth-demo-issue--)
+    + [Authentication Methods](#authentication-methods)
+      - [HTTP Basic Authentication](#http-basic-authentication)
+      - [Bearer Token Authentication](#bearer-token-authentication)
+      - [Form Data Authentication](#form-data-authentication)
+    + [Protected Routes](#protected-routes)
+    + [Middleware Usage](#middleware-usage)
+      - [Basic Authentication](#basic-authentication)
+      - [Optional Authentication](#optional-authentication)
+      - [Enhanced Token Validation](#enhanced-token-validation)
+    + [Configuration](#configuration)
+    + [Security Features](#security-features)
+  * [📬 Contact](#---contact)
+  * [📜 Code of Conduct](#---code-of-conduct)
+  * [📄 License](#---license)
+  * [💡 Suggestions & Feedback](#---suggestions---feedback)
+    + [Error Codes](#error-codes)
+    + [Testing](#testing)
+    + [Performance](#performance)
+    + [Production Deployment](#production-deployment)
+  * [API Endpoints](#api-endpoints)
+    + [Weather Data](#weather-data)
+    + [Configuration](#configuration-1)
+  * [Contributing](#contributing)
+  * [License](#license)
+
+<small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
+
 </div>
 <div style="margin: 15px 0;" align="center">
     <img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&pause=1000&color=FF0000&width=435&lines=Welcome+to+Weather-API"/></a>" 
@@ -14,9 +50,9 @@
 <img src="https://github.com/GauravKarakoti/Weather-API/blob/main/public/assets/gssoc%20logo.png" width="500" height="200">
 </div>
 <tr>
-<td align="center">
+<div align="center">
 <a href="https://s2apertre.resourcio.in"><img src="https://s2apertre.resourcio.in/Logo_primary.svg" height="140px" width="180px" alt="Apertre 2025"></a>
-</td>
+</div>
 </tr>
 
 <div align="Center">
