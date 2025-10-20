@@ -344,7 +344,7 @@ if (envResult.error) {
 }
 
 // Nodemailer transporter configuration
-const transporter = nodemailer.createTransporter({
+const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
     user: process.env.MAIL_USER,
@@ -399,9 +399,9 @@ const sendAdminAlert = async (failedSelectors) => {
           <li><strong>Consecutive Failures:</strong> ${failureSummary.globalState.consecutiveFailures}</li>
           <li><strong>Notification Level:</strong> ${failureSummary.globalState.notificationLevel}</li>
           <li><strong>Last Success:</strong> ${failureSummary.globalState.lastSuccessTime ?
-            failureSummary.globalState.lastSuccessTime.toLocaleString() : 'Never'}</li>
+      failureSummary.globalState.lastSuccessTime.toLocaleString() : 'Never'}</li>
           <li><strong>System Status:</strong> ${failureSummary.systemHealth.hasCriticalFailures ?
-            'CRITICAL - Immediate attention required' : 'DEGRADED - Monitor closely'}</li>
+      'CRITICAL - Immediate attention required' : 'DEGRADED - Monitor closely'}</li>
         </ul>
       </div>
 
@@ -413,7 +413,7 @@ const sendAdminAlert = async (failedSelectors) => {
           <li>Test fallback selectors functionality</li>
           <li>Monitor admin dashboard: <a href="${process.env.API_URL}/admin/dashboard">Dashboard</a></li>
           ${failureSummary.systemHealth.recommendsManualCheck ?
-            '<li><strong>URGENT:</strong> Manual investigation required - failure count exceeds threshold</li>' : ''}
+      '<li><strong>URGENT:</strong> Manual investigation required - failure count exceeds threshold</li>' : ''}
         </ol>
       </div>
 
@@ -1186,9 +1186,11 @@ app.get("/api/version", (req, res) => {
 // Import enhanced error handlers
 const {
   corsErrorHandler,
+  handleDatabaseError,
+  handleCacheError,
   routeNotFoundHandler,
-  errorHandler,
-} = require("./src/middlewares/error.middleware");
+  errorHandler
+} = require('./src/middlewares/error.middleware');
 
 // Add error logging middleware first
 app.use(errorLoggingMiddleware);
@@ -1206,17 +1208,9 @@ app.use((err, req, res, next) => {
   next(err);
 });
 app.use(corsErrorHandler);
-
-// Route not found handler (404)
+app.use(handleDatabaseError);
+app.use(handleCacheError);
 app.use(routeNotFoundHandler);
-
-// Final unhandled error handler (500)
-app.use((err, req, res, next) => {
-  if (process.env.NODE_ENV !== "production") {
-    console.error("Unhandled error:", err);
-  }
-  sendErrorResponse(res, 500, "Internal server error", "SERVER_ERROR");
-});
 app.use(errorHandler);
 
 const stopServer = async () => {
