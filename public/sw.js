@@ -49,42 +49,41 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  event.respondWith(
-    caches
-      .match(event.request)
-      .then((cached) => {
-        if (cached) return cached;
-        return fetch(event.request).then((response) => {
-          if (event.request.method === "GET" && response.status === 200) {
-            // Cache optimized assets and common static folders
-            if (
-              event.request.url.includes("/optimized/") ||
-              event.request.url.includes("/images/") ||
-              event.request.url.includes("/assets/") ||
-              event.request.url.includes("/fonts/")
-            ) {
-              caches.open(CACHE_VERSION).then((cache) =>
-                cache.put(event.request, response.clone()),
-              );
-            }
-          }
-          return response;
-        });
-      })
-      .catch(() => {
-        if (event.request.destination === "image") {
-          // ===== FIX: Chain the promises properly =====
-          return caches.match("/optimized/fallback.webp").then((response) => {
-            // If the WebP response exists, return it.
-            // Otherwise, return the promise for the PNG fallback.
-            return response || caches.match("/fallback.png");
-          });
-          // ==============================================
-        }
-        // For non-image requests (like navigation), return index.html
-        return caches.match("/index.html");
-      }),
-  );
+  event.respondWith(
+    caches
+      .match(event.request)
+      .then((cached) => {
+        if (cached) return cached;
+        return fetch(event.request).then((response) => {
+          if (event.request.method === "GET" && response.status === 200) {
+            // Cache optimized assets and common static folders
+            if (
+              event.request.url.includes("/optimized/") ||
+              event.request.url.includes("/images/") ||
+              event.request.url.includes("/assets/") ||
+              event.request.url.includes("/fonts/")
+            ) {
+              caches.open(CACHE_VERSION).then((cache) =>
+                cache.put(event.request, response.clone()),
+              );
+            }
+          }
+          return response;
+        });
+      })
+      .catch(() => {
+        if (event.request.destination === "image") {
+          // ===== FIX: Chain the promises properly =====
+          return caches.match("/optimized/fallback.webp").then((response) => {
+            if (response) return response;
+            return caches.match("/fallback.png");
+          });
+          // ==============================================
+        }
+        // For non-image requests (like navigation), return index.html
+        return caches.match("/index.html");
+      })
+  );
 });
 
 // Helper: Update weather cache for recent searches

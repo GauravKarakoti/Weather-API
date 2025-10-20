@@ -148,6 +148,12 @@ function getWeatherEmoji(condition) {
   return WEATHER_CONFIG.emojis.default;
 }
 
+// Function to sanitize HTML
+function sanitizeHTML(str) {
+  if (typeof str !== 'string') return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '<').replace(/>/g, '>').replace(/"/g, '"').replace(/'/g, '&#39;');
+}
+
 // Function to log selector failures
 function logSelectorFailure(selector) {
   console.error(`Selector failure: ${selector}`);
@@ -249,98 +255,93 @@ function attachEventListeners() {
         cacheElements();
         loadRecentSearches();
         setupMessageListener();
+        setupVoiceInput();
       });
     } else {
       cacheElements();
       loadRecentSearches();
       setupMessageListener();
+      setupVoiceInput();
     }
 
     setupServiceWorker();
     loadConfig();
+    console.log('✅ initialize() complete');
   }
-          // Voice Input Setup (Add this entire block)
-   function setupVoiceInput() {
-     const voiceBtn = document.getElementById('voiceBtn');
-     if (!voiceBtn) return console.warn('Voice button not found');
 
-     const SpeechRecognition = globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition;
-     if (!SpeechRecognition) {
-       voiceBtn.style.display = 'none';  // Hide if unsupported
-       return console.warn('Voice not supported in this browser');
-     }
+  // Voice Input Setup (Add this entire block)
+  function setupVoiceInput() {
+    const voiceBtn = document.getElementById('voiceBtn');
+    if (!voiceBtn) return console.warn('Voice button not found');
 
-     const recognition = new SpeechRecognition();
-     recognition.lang = 'en-US';  // English – change to 'hi-IN' for Hindi if needed
-     recognition.interimResults = false;  // Wait for full sentence
-     recognition.maxAlternatives = 1;
+    const SpeechRecognition = globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      voiceBtn.style.display = 'none';  // Hide if unsupported
+      return console.warn('Voice not supported in this browser');
+    }
 
-     recognition.onstart = () => {
-       voiceBtn.disabled = true;
-       voiceBtn.textContent = '🔴';  // Visual feedback
-       voiceBtn.classList.add('listening');
-       console.log('Voice listening started...');
-     };
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';  // English – change to 'hi-IN' for Hindi if needed
+    recognition.interimResults = false;  // Wait for full sentence
+    recognition.maxAlternatives = 1;
 
-     recognition.onresult = (event) => {
-       const transcript = event.results[0][0].transcript.toLowerCase().trim();
-       console.log('Voice transcript:', transcript);
+    recognition.onstart = () => {
+      voiceBtn.disabled = true;
+      voiceBtn.textContent = '🔴';  // Visual feedback
+      voiceBtn.classList.add('listening');
+      console.log('Voice listening started...');
+    };
 
-       // Parse city name (e.g., "weather in mysore" -> "mysore")
-const match = transcript.match(/in\s+([a-zA-Z\s,.\-]+)/i);
-  // Looks for "in [city]"
-let city;
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript.toLowerCase().trim();
+      console.log('Voice transcript:', transcript);
 
-if (match) {
-  city = match[1].trim();
-} else {
-  // Fallback: First word or whole phrase
-  city = transcript.split(/\s+/)[0] || transcript;
-}
+      // Parse city name (e.g., "weather in mysore" -> "mysore")
+      const match = transcript.match(/in\s+([a-zA-Z\s,.\-]+)/i);
+      // Looks for "in [city]"
+      let city;
 
-       if (cityInput) {
-         cityInput.value = city.charAt(0).toUpperCase() + city.slice(1);  // Capitalize
-         console.log('Parsed city from voice:', city);
-         // Auto-submit (triggers existing handleSubmit)
-         if (form) {
-           handleSubmit(new Event('submit'));
-         }
-       }
-     };
+      if (match) {
+        city = match[1].trim();
+      } else {
+        // Fallback: First word or whole phrase
+        city = transcript.split(/\s+/)[0] || transcript;
+      }
 
-     recognition.onerror = (event) => {
-       console.error('Voice error:', event.error);
-       voiceBtn.disabled = false;
-       voiceBtn.textContent = '🎤';
-       voiceBtn.classList.remove('listening');
-       if (event.error !== 'aborted') {
-         alert('Voice input failed (' + event.error + '). Use text input.');
-       }
-     };
+      if (cityInput) {
+        cityInput.value = city.charAt(0).toUpperCase() + city.slice(1);  // Capitalize
+        console.log('Parsed city from voice:', city);
+        // Auto-submit (triggers existing handleSubmit)
+        if (form) {
+          handleSubmit(new Event('submit'));
+        }
+      }
+    };
 
-     recognition.onend = () => {
-       voiceBtn.disabled = false;
-       voiceBtn.textContent = '🎤';
-       voiceBtn.classList.remove('listening');
-       console.log('Voice listening ended');
-     };
+    recognition.onerror = (event) => {
+      console.error('Voice error:', event.error);
+      voiceBtn.disabled = false;
+      voiceBtn.textContent = '🎤';
+      voiceBtn.classList.remove('listening');
+      if (event.error !== 'aborted') {
+        alert('Voice input failed (' + event.error + '). Use text input.');
+      }
+    };
 
-     // Start listening on button click
-     voiceBtn.addEventListener('click', () => {
-       recognition.start();
-     });
+    recognition.onend = () => {
+      voiceBtn.disabled = false;
+      voiceBtn.textContent = '🎤';
+      voiceBtn.classList.remove('listening');
+      console.log('Voice listening ended');
+    };
 
-     console.log('Voice input ready');
-   }
+    // Start listening on button click
+    voiceBtn.addEventListener('click', () => {
+      recognition.start();
+    });
 
-  
-       
-       loadRecentSearches();
-       setupServiceWorker();
-       setupMessageListener();
-        setupVoiceInput(); 
-       console.log('✅ initialize() complete');
-     }
+    console.log('Voice input ready');
+  }
      
 
 // Listen for messages from service worker
@@ -546,21 +547,6 @@ function displayWeather(data) {
       
       const emoji = getWeatherEmoji(item.weather[0].main);
 
-      const template = `
-        <div class="weather-card">
-          <div class="weather-details">
-            <p><strong>Day:</strong> ${day}</p>
-            <p><strong>Temp:</strong> ${item.main.temp.toFixed(1)}°C ${emoji}</p>
-            <p><strong>Date:</strong> ${date}</p>
-            <p><strong>Condition:</strong> ${item.weather[0].main}</p>
-            <p><strong>Min Temp:</strong> ${item.main.temp_min.toFixed(1)}°C</p>
-            <p><strong>Max Temp:</strong> ${item.main.temp_max.toFixed(1)}°C</p>
-            <p><strong>Humidity:</strong> ${item.main.humidity}%</p>
-            <p><strong>Pressure:</strong> ${item.main.pressure} hPa</p>
-          </div>
-        </div>
-      `;
-      
       renderCard({
         day: new Date(item.dt_txt || date).toLocaleDateString("en-US", { weekday: "long" }),
         date,
@@ -937,10 +923,9 @@ function setupServiceWorker() {
           newSW.onstatechange = () => {
             if (newSW.state === "installed" && navigator.serviceWorker.controller) {
               console.log("New content is available, please refresh.");
-                showUpdateNotification();
-              }
-            });
-          }
+              showUpdateNotification();
+            }
+          };
         });
       })
       .catch((error) =>
@@ -1061,24 +1046,6 @@ function handleClear(e) {
   clearError();
   if (weatherData) weatherData.innerHTML = "";
 }
-          // Fixed: Browser-safe init (no process.env)
-     if (typeof globalThis !== 'undefined') {  // Detect browser
-       window.addEventListener("DOMContentLoaded", initialize);
-     }
-     
-     
-
-// Initialize the app
-if (typeof window !== "undefined") {
-  const isTest = typeof process !== "undefined" && process.env && process.env.NODE_ENV === "test";
-  if (!isTest) {
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", initialize);
-    } else {
-      initialize();
-    }
-  }
-}
 
 // Exports for testing
 if (typeof module !== "undefined" && module.exports) {
@@ -1094,4 +1061,9 @@ if (typeof module !== "undefined" && module.exports) {
     cacheElements,
     getWeatherEmoji,
   };
+}
+
+// Fixed: Browser-safe init (no process.env)
+if (typeof globalThis !== 'undefined') {  // Detect browser
+  window.addEventListener("DOMContentLoaded", initialize);
 }
