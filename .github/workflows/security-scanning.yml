@@ -143,7 +143,7 @@ jobs:
   snyk-security:
     runs-on: ubuntu-latest
     name: Snyk Vulnerability Scan
-    if: ${{ vars.SNYK_TOKEN != '' || secrets.SNYK_TOKEN != '' }}
+    if: ${{secrets.SNYK_TOKEN != '' }}
 
     steps:
     - name: Checkout source
@@ -159,7 +159,8 @@ jobs:
       run: npm ci
 
     - name: Run Snyk to check for vulnerabilities
-      uses: snyk/actions/node@master
+      uses: snyk/actions/node@e2221410bff24446ba09102212d8bc75a567237d
+
       continue-on-error: true
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
@@ -185,4 +186,4 @@ jobs:
       uses: actions/dependency-review-action@v4
       with:
         fail-on-severity: moderate
-        comment-summary-in
+        

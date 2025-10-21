@@ -1,7 +1,17 @@
-const express = require("express");
-const { getWeather } = require("../controllers/weather.controller");
+const fetchWeather = require("../utils/fetchWeather"); // existing function
+const { getOrSetCache } = require("../utils/cache");  // caching helper
 
-const router = express.Router();
-router.get("/:city", getWeather);
+const getWeather = async (req, res) => {
+    const city = req.params.city;
 
-module.exports = router;
+    try {
+        // Use Redis cache
+        const data = await getOrSetCache(city.toLowerCase(), () => fetchWeather(city));
+        res.json(data);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to fetch weather" });
+    }
+};
+
+module.exports = { getWeather };
