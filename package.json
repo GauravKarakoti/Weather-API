@@ -11,7 +11,8 @@
     "format:check": "prettier --check .",
     "db:migrate": "node -e \"require('./src/database/migrations').runMigrations().then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); })\"",
     "db:status": "node -e \"require('./src/database/migrations').getMigrationStatus().then(s => { console.log(JSON.stringify(s, null, 2)); process.exit(0); }).catch(e => { console.error(e); process.exit(1); })\"",
-    "db:reset": "node -e \"require('./src/database/init').resetDatabase().then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); })\""
+    "db:reset": "node -e \"require('./src/database/init').resetDatabase().then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); })\"",
+    "optimize:images": "node scripts/optimize-images.js"
   },
   "keywords": [],
   "author": "",
@@ -48,10 +49,12 @@
     "@testing-library/jest-dom": "^6.9.1",
     "babel-jest": "^30.0.5",
     "eslint": "^9.31.0",
+    "glob": "^11.0.3",
     "jest": "^30.0.5",
     "jest-environment-jsdom": "^30.2.0",
     "jsdom": "^27.0.0",
     "prettier": "^3.6.2",
+    "sharp": "^0.34.4",
     "supertest": "^7.0.0"
   }
 }
