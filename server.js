@@ -344,7 +344,7 @@ if (envResult.error) {
 }
 
 // Nodemailer transporter configuration
-const transporter = nodemailer.createTransporter({
+const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
     user: process.env.MAIL_USER,
@@ -643,13 +643,16 @@ const parseMinMaxTemperature = (rawText) => {
 
 const parseHumidityPressure = (rawText) => {
   try {
-    if (!rawText) return { humidity: "N/A", pressure: "N/A" };
+    if (typeof rawText !== "string" || rawText.length > 200) {
+      return { humidity: "N/A", pressure: "N/A" };
+    }
+    // Fixed ReDoS vulnerability: Use atomic grouping to prevent backtracking
     const humidityMatch =
-      rawText.match(/(\d+\.?\d*)\s*%/i) ||
-      rawText.match(/(\d+\.?\d*)\s*Humidity/i);
+      rawText.match(/(\d+(?:\.\d+)?)\s*%/i) ||
+      rawText.match(/(\d+(?:\.\d+)?)\s*Humidity/i);
     const pressureMatch =
-      rawText.match(/(\d+\.?\d*)\s*hPa/i) ||
-      rawText.match(/(\d+\.?\d*)\s*Pressure/i);
+      rawText.match(/(\d+(?:\.\d+)?)\s*hPa/i) ||
+      rawText.match(/(\d+(?:\.\d+)?)\s*Pressure/i);
 
     const humidity = humidityMatch ? parseInt(humidityMatch[1], 10) : null;
     const pressure = pressureMatch ? parseFloat(pressureMatch[1]) : null;

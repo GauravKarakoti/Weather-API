@@ -1,4 +1,4 @@
-const redis = require("redis");
+const redis = require("ioredis");
 const oauthConfig = require("../config/oauth");
 
 class TokenStorage {
