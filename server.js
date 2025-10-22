@@ -343,14 +343,22 @@ if (envResult.error) {
   }
 }
 
-// Nodemailer transporter configuration
+const nodemailer = require('nodemailer');
+
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
   auth: {
     user: process.env.MAIL_USER,
     pass: process.env.MAIL_PASS,
   },
+  tls: {
+    rejectUnauthorized: true,
+  },
 });
+
+
 
 // Enhanced admin alert function with failure management
 const sendAdminAlert = async (failedSelectors) => {
