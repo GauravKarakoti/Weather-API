@@ -1,6 +1,5 @@
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
-const { v4: uuidv4 } = require("uuid");
 const bcrypt = require("bcrypt");
 const oauthConfig = require("../config/oauth");
 const tokenStorage = require("./tokenStorage.service");
@@ -11,7 +10,8 @@ class OAuthService {
   }
 
   // Generate JWT access token
-  generateAccessToken(payload) {
+  async generateAccessToken(payload) { // <- ADDED ASYNC
+    const { v4: uuidv4 } = await import("uuid"); // <- ADDED DYNAMIC IMPORT
     const tokenId = uuidv4();
     const now = Math.floor(Date.now() / 1000);
 
@@ -37,7 +37,8 @@ class OAuthService {
   }
 
   // Generate opaque refresh token
-  generateRefreshToken(payload) {
+  async generateRefreshToken(payload) { // <- ADDED ASYNC
+    const { v4: uuidv4 } = await import("uuid"); // <- ADDED DYNAMIC IMPORT
     const tokenId = uuidv4();
     const refreshToken = crypto
       .randomBytes(this.config.security.tokenEntropy)
@@ -141,14 +142,14 @@ class OAuthService {
         token: accessToken,
         tokenId: accessTokenId,
         payload: accessPayload,
-      } = this.generateAccessToken(payload);
+      } = await this.generateAccessToken(payload); // <- ADDED AWAIT
 
       // Generate refresh token
       const {
         refreshToken,
         tokenId: refreshTokenId,
         tokenData: refreshTokenData,
-      } = this.generateRefreshToken(payload);
+      } = await this.generateRefreshToken(payload); // <- ADDED AWAIT
 
       // Store tokens
       await tokenStorage.storeToken(accessTokenId, {
