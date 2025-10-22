@@ -10,10 +10,8 @@
 
 const { logError } = require("../utils/logger");
 const { monitoringService } = require("../services/monitoring.service");
+const { retryWithBackoff } = require("../utils/retry.util");
 
-/**
- * Error severity levels for alert triggering
- */
 const ERROR_SEVERITY = {
   LOW: "low",
   MEDIUM: "medium",
@@ -21,9 +19,6 @@ const ERROR_SEVERITY = {
   CRITICAL: "critical",
 };
 
-/**
- * Error categorization for monitoring and alerting
- */
 const ERROR_CATEGORIES = {
   VALIDATION: "validation",
   AUTHENTICATION: "authentication",
@@ -34,10 +29,17 @@ const ERROR_CATEGORIES = {
   RATE_LIMIT: "rate_limit",
   SYSTEM: "system",
   UNKNOWN: "unknown",
+  DATABASE: "database",
+  CACHE: "cache",
+  FILE_SYSTEM: "file_system",
+  SERIALIZATION: "serialization",
+  CONFIGURATION: "configuration",
+  THIRD_PARTY: "third_party",
+  RESOURCE_EXHAUSTION: "resource_exhaustion",
 };
 
 /**
- * Enhanced error handler with monitoring and alerting
+ * Enhanced error handler with monitoring, alerting and recovery
  * @param {Object} res - Express response object
  * @param {number} statusCode - HTTP status code
  * @param {string} message - Error message
@@ -45,14 +47,21 @@ const ERROR_CATEGORIES = {
  * @param {Object} details - Additional error details
  * @param {Object} req - Express request object (optional)
  */
-function handleError(
-  res,
-  statusCode,
-  message,
-  code,
-  details = null,
-  req = null,
-) {
+async function handleError(res, statusCode, message, code, details = null, req = null) {
+  const { category, severity } = categorizeError(statusCode, code);
+
+  // Attempt recovery for non-critical errors
+  if (severity !== ERROR_SEVERITY.CRITICAL && req) {
+    const recovered = await attemptErrorRecovery(
+      { statusCode, message, code, details },
+      category,
+      req
+    );
+    if (recovered) {
+      return;
+    }
+  }
+
   const errRes = {
     statusCode,
     error: message,
@@ -66,9 +75,6 @@ function handleError(
   if (req?.correlationId) {
     errRes.correlationId = req.correlationId;
   }
-
-  // Determine error category and severity
-  const { category, severity } = categorizeError(statusCode, code);
 
   // Record error metrics
   const route = req?.route?.path || req?.path || "unknown";
@@ -105,43 +111,55 @@ function handleError(
 }
 
 /**
- * Categorize error for monitoring and alerting
- * @param {number} statusCode - HTTP status code
- * @param {string} code - Error code
- * @returns {Object} Category and severity information
+ * Enhanced error categorization
  */
-function categorizeError(statusCode, code) {
+function categorizeError(statusCode, code, error) {
   let category = ERROR_CATEGORIES.UNKNOWN;
   let severity = ERROR_SEVERITY.LOW;
 
-  // Categorize by error code
-  if (code.includes("VALIDATION") || code.includes("INVALID")) {
-    category = ERROR_CATEGORIES.VALIDATION;
-    severity = ERROR_SEVERITY.LOW;
-  } else if (code.includes("AUTH") || code.includes("UNAUTHORIZED")) {
-    category = ERROR_CATEGORIES.AUTHENTICATION;
-    severity = ERROR_SEVERITY.MEDIUM;
-  } else if (code.includes("FORBIDDEN") || code.includes("ACCESS_DENIED")) {
-    category = ERROR_CATEGORIES.AUTHORIZATION;
-    severity = ERROR_SEVERITY.MEDIUM;
-  } else if (code.includes("RATE_LIMIT") || code.includes("TOO_MANY")) {
-    category = ERROR_CATEGORIES.RATE_LIMIT;
-    severity = ERROR_SEVERITY.MEDIUM;
-  } else if (
-    code.includes("NETWORK") ||
-    code.includes("TIMEOUT") ||
-    code.includes("BAD_GATEWAY")
+  // Database errors
+  if (
+    error?.name?.includes('Mongo') ||
+    error?.name?.includes('Sequelize') ||
+    error?.name?.includes('Postgres') ||
+    code.includes('DB_')
   ) {
-    category = ERROR_CATEGORIES.NETWORK;
+    category = ERROR_CATEGORIES.DATABASE;
     severity = ERROR_SEVERITY.HIGH;
-  } else if (code.includes("EXTERNAL") || code.includes("API")) {
-    category = ERROR_CATEGORIES.EXTERNAL_API;
-    severity = ERROR_SEVERITY.HIGH;
-  } else if (code.includes("PARSING") || code.includes("PARSE")) {
-    category = ERROR_CATEGORIES.PARSING;
+  }
+  // Cache errors
+  else if (
+    code.includes('CACHE_') ||
+    error?.name?.includes('Redis') ||
+    error?.name?.includes('Cache')
+  ) {
+    category = ERROR_CATEGORIES.CACHE;
     severity = ERROR_SEVERITY.MEDIUM;
   }
-
+  // Network errors
+  else if (code.includes('NETWORK_')) {
+    category = ERROR_CATEGORIES.NETWORK;
+    severity = ERROR_SEVERITY.MEDIUM;
+  }
+  // Resource exhaustion
+  else if (
+    error instanceof RangeError ||
+    code.includes('MEMORY_') ||
+    code.includes('HEAP_') ||
+    code.includes('RESOURCE_')
+  ) {
+    category = ERROR_CATEGORIES.RESOURCE_EXHAUSTION;
+    severity = ERROR_SEVERITY.CRITICAL;
+  }
+  // File system errors
+  else if (
+    error?.code?.includes('ENOENT') ||
+    error?.code?.includes('EACCES') ||
+    code.includes('FILE_')
+  ) {
+    category = ERROR_CATEGORIES.FILE_SYSTEM;
+    severity = ERROR_SEVERITY.HIGH;
+  }
   // Adjust severity based on status code
   if (statusCode >= 500) {
     severity = ERROR_SEVERITY.CRITICAL;
@@ -188,11 +206,11 @@ async function triggerErrorAlert(
       correlationId: req?.correlationId,
       requestDetails: req
         ? {
-            method: req.method,
-            url: req.url,
-            userAgent: req.get("User-Agent"),
-            ip: req.ip,
-          }
+          method: req.method,
+          url: req.url,
+          userAgent: req.get("User-Agent"),
+          ip: req.ip,
+        }
         : null,
     };
 
@@ -281,16 +299,78 @@ function errorHandler(err, req, res, next) {
     process.env.NODE_ENV === "production"
       ? null
       : {
-          stack: err.stack,
-          name: err.name,
-        },
+        stack: err.stack,
+        name: err.name,
+      },
     req,
   );
 }
 
-module.exports = {
-  handleError,
-  corsErrorHandler,
-  routeNotFoundHandler,
-  errorHandler,
-};
+/**
+ * Attempt to recover from certain types of errors
+ */
+async function attemptErrorRecovery(err, category, req) {
+  try {
+    switch (category) {
+      case ERROR_CATEGORIES.DATABASE:
+        await retryWithBackoff(() => req.operation, 3);
+        return true;
+      case ERROR_CATEGORIES.CACHE:
+        await monitoringService.clearCache();
+        return true;
+      case ERROR_CATEGORIES.NETWORK:
+        if (err.isRetryable) {
+          await retryWithBackoff(() => req.operation, 3);
+          return true;
+        }
+        return false;
+      default:
+        return false;
+    }
+  } catch (recoveryError) {
+    logError(recoveryError, {
+      context: 'error_recovery',
+      originalError: err,
+      category
+    });
+    return false;
+  }
+}
+
+/**
+ * Specific error handlers for different types of errors
+ */
+function handleDatabaseError(err, req, res, next) {
+  if (err.name?.includes('Mongo') || err.name?.includes('Sequelize')) {
+    return handleError(
+      res,
+      503,
+      'Database operation failed',
+      'DB_ERROR',
+      {
+        operation: err.operation,
+        collection: err.collection,
+        code: err.code
+      },
+      req
+    );
+  }
+  next(err);
+}
+
+function handleCacheError(err, req, res, next) {
+  if (err.name?.includes('Redis') || err.name?.includes('Cache')) {
+    return handleError(
+      res,
+      503,
+      'Cache operation failed',
+      'CACHE_ERROR',
+      {
+        operation: err.operation,
+        key: err.key
+      },
+      req
+    );
+  }
+  next(err);
+}

@@ -1144,9 +1144,11 @@ app.get("/api/version", (req, res) => {
 // Import enhanced error handlers
 const {
   corsErrorHandler,
+  handleDatabaseError,
+  handleCacheError,
   routeNotFoundHandler,
-  errorHandler,
-} = require("./src/middlewares/error.middleware");
+  errorHandler
+} = require('./src/middlewares/error.middleware');
 
 // Add error logging middleware first
 app.use(errorLoggingMiddleware);
@@ -1164,17 +1166,9 @@ app.use((err, req, res, next) => {
   next(err);
 });
 app.use(corsErrorHandler);
-
-// Route not found handler (404)
+app.use(handleDatabaseError);
+app.use(handleCacheError);
 app.use(routeNotFoundHandler);
-
-// Final unhandled error handler (500)
-app.use((err, req, res, next) => {
-  if (process.env.NODE_ENV !== "production") {
-    console.error("Unhandled error:", err);
-  }
-  sendErrorResponse(res, 500, "Internal server error", "SERVER_ERROR");
-});
 app.use(errorHandler);
 
 const stopServer = async () => {
