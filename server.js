@@ -646,7 +646,7 @@ const parseHumidityPressure = (rawText) => {
     if (typeof rawText !== "string" || rawText.length > 200) {
       return { humidity: "N/A", pressure: "N/A" };
     }
-    // Fixed ReDoS vulnerability: Use atomic grouping to prevent backtracking
+    // The regex patterns below are linear and not vulnerable to ReDoS
     const humidityMatch =
       rawText.match(/(\d+(?:\.\d+)?)\s*%/i) ||
       rawText.match(/(\d+(?:\.\d+)?)\s*Humidity/i);
