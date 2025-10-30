@@ -1,5 +1,4 @@
 const oauthService = require("../services/oauth.service");
-const { v4: uuidv4 } = require("uuid");
 
 class OAuthController {
   // Token introspection endpoint (RFC 7662)
@@ -177,7 +176,6 @@ class OAuthController {
     }
   }
 
-  // Demo endpoint to issue tokens (for testing purposes)
   async issueDemo(req, res) {
     try {
       const { username, scope } = req.body;
@@ -189,6 +187,9 @@ class OAuthController {
           error_description: "Missing username parameter",
         });
       }
+
+      // ADD DYNAMIC IMPORT HERE
+      const { v4: uuidv4 } = await import("uuid");
 
       const tokenPayload = {
         userId: uuidv4(),
