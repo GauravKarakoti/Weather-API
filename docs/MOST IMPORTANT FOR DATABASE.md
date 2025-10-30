@@ -89,7 +89,7 @@ Once the server is running, you can access the admin dashboard:
 
 - **URL**: http://localhost:5000/admin/login
 - **Username**: `admin`
-- **Password**: `admin123`
+- **Password**: `(Set via ADMIN_PASSWORD in .env or auto-generated on first run)`
 
 ⚠️ **Security Note**: Change the default password in production!
 

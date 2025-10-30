@@ -155,7 +155,7 @@ Visit `http://localhost:5000/admin/dashboard` to access the monitoring dashboard
 **Default credentials**:
 
 - Username: `admin`
-- Password: `admin123` (⚠️ Change this in production!)
+- Password: `(Set via ADMIN_PASSWORD in .env or auto-generated on first run. ⚠️ Change this in production!)`
 
 ## 📈 Metrics
 

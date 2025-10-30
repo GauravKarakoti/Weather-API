@@ -7,4 +7,4 @@
 - [x] Update src/config/env.js to add default env vars for new selectors (if needed)
 - [x] Test the API to ensure new fields are returned correctly
 - [x] Create a branch and commit changes
-- [ ] Open a pull request with the changes
+- [x] Open a pull request with the changes

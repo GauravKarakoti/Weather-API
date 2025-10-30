@@ -1272,7 +1272,7 @@ if (process.env.NODE_ENV !== "test") {
         selectorStatus: `/admin/selector-status`,
         defaultCredentials:
           process.env.NODE_ENV !== "production"
-            ? "admin/admin123 (change in production)"
+            ? "Default 'admin' user created (check logs for generated password or .env)"
             : "configured via database",
       });
     } catch (error) {

@@ -11,7 +11,7 @@ const {
 } = require("../utils/parser");
 const { handleError } = require("../middlewares/error.middleware");
 const { fallbackSelectors } = require("../constants/selectors");
-const { getOrSetCache } = require("../utils/cache"); // Redis caching helper
+// const { getOrSetCache } = require("../utils/cache"); // <-- REMOVED THIS LINE
 
 const getWeather = async (req, res) => {
   try {
@@ -20,73 +20,72 @@ const getWeather = async (req, res) => {
       return handleError(res, 400, "Invalid city name", "INVALID_CITY");
     }
 
-    // Wrap scraping logic inside Redis cache
-    const data = await getOrSetCache(city.toLowerCase(), async () => {
-      const response = await fetchWeatherData(city);
-      const $ = cheerio.load(response.data);
+    // REMOVED: The getOrSetCache wrapper. Caching is handled by CacheMiddleware.
+    const response = await fetchWeatherData(city);
+    const $ = cheerio.load(response.data);
 
-      const getElementText = (selectorKey) => {
-        const primarySelector = process.env[selectorKey];
-        const fallbackSelector = fallbackSelectors[selectorKey];
-        let text = null;
+    const getElementText = (selectorKey) => {
+      const primarySelector = process.env[selectorKey];
+      const fallbackSelector = fallbackSelectors[selectorKey];
+      let text = null;
 
-        if (primarySelector && $(primarySelector).length) {
-          text = $(primarySelector).text()?.trim();
-        }
-
-        if (!text && fallbackSelector && $(fallbackSelector).length) {
-          text = $(fallbackSelector).text()?.trim();
-        }
-
-        return text || null;
-      };
-
-      const temperatureText = getElementText("TEMPERATURE_CLASS");
-      const temperature = parseTemperature(temperatureText);
-
-      const minMaxText = getElementText("MIN_MAX_TEMPERATURE_CLASS");
-      const { minTemperature, maxTemperature } = parseMinMaxTemperature(minMaxText);
-
-      const humidityPressureText = getElementText("HUMIDITY_PRESSURE_CLASS");
-      const { humidity, pressure } = parseHumidityPressure(humidityPressureText);
-
-      const condition = getElementText("CONDITION_CLASS");
-      const dateText = getElementText("DATE_CLASS");
-      const date = formatDate(dateText);
-      
-      const windText = getElementText(
-        process.env.WIND_CLASS,
-      );
-      const { windSpeed, windDirection } = parseWind(windText);
-
-      const uvIndexText = getElementText(
-        process.env.UV_INDEX_CLASS,
-      );
-      const uvIndex = parseUvIndex(uvIndexText);
-
-      const pollenCountText = getElementText(
-        process.env.POLLEN_COUNT_CLASS,
-      );
-      const pollenCount = parsePollenCount(pollenCountText);
-
-      if (temperature === "N/A" && condition === "N/A") {
-        throw new Error("PARSING_ERROR");
+      if (primarySelector && $(primarySelector).length) {
+        text = $(primarySelector).text()?.trim();
       }
 
-      return {
-        date,
-        temperature,
-        minTemperature,
-        maxTemperature,
-        condition,
-        humidity,
-        pressure,
-        windSpeed,
-        windDirection,
-        uvIndex,
-        pollenCount,
-      };
-    });
+      if (!text && fallbackSelector && $(fallbackSelector).length) {
+        text = $(fallbackSelector).text()?.trim();
+      }
+
+      return text || null;
+    };
+
+    const temperatureText = getElementText("TEMPERATURE_CLASS");
+    const temperature = parseTemperature(temperatureText);
+
+    const minMaxText = getElementText("MIN_MAX_TEMPERATURE_CLASS");
+    const { minTemperature, maxTemperature } = parseMinMaxTemperature(minMaxText);
+
+    const humidityPressureText = getElementText("HUMIDITY_PRESSURE_CLASS");
+    const { humidity, pressure } = parseHumidityPressure(humidityPressureText);
+
+    const condition = getElementText("CONDITION_CLASS");
+    const dateText = getElementText("DATE_CLASS");
+    const date = formatDate(dateText);
+    
+    const windText = getElementText(
+      process.env.WIND_CLASS,
+    );
+    const { windSpeed, windDirection } = parseWind(windText);
+
+    const uvIndexText = getElementText(
+      process.env.UV_INDEX_CLASS,
+    );
+    const uvIndex = parseUvIndex(uvIndexText);
+
+    const pollenCountText = getElementText(
+      process.env.POLLEN_COUNT_CLASS,
+    );
+    const pollenCount = parsePollenCount(pollenCountText);
+
+    if (temperature === "N/A" && condition === "N/A") {
+      throw new Error("PARSING_ERROR");
+    }
+
+    // Create the data object to be returned
+    const data = {
+      date,
+      temperature,
+      minTemperature,
+      maxTemperature,
+      condition,
+      humidity,
+      pressure,
+      windSpeed,
+      windDirection,
+      uvIndex,
+      pollenCount,
+    };
 
     res.json(data);
   } catch (error) {
