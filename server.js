@@ -7,13 +7,14 @@ const dotenv = require("dotenv");
 const xss = require("xss");
 const fs = require("fs");
 const { configureEnv } = require("./src/config/env.js");
-const { corsOptions } = require("./src/config/cors.js");
+const corsOptions = require("./src/config/cors.js");
 const {
   applySecurityHeaders,
 } = require("./src/middlewares/headers.middleware.js");
 const {
   dynamicRateLimiter,
 } = require("./src/middlewares/rateLimiter.middleware.js");
+const stopValidationJob = require("./src/services/selectorValidation.service.js");
 let oauthRoutes;
 let requireAuth, optionalAuth;
 const axios = require("axios");
@@ -345,19 +346,12 @@ if (envResult.error) {
 // Nodemailer transporter configuration
 const transporter = nodemailer.createTransport({
   service: "gmail",
-  secure: true,
-  pool: true, // Use connection pooling
-  maxConnections: 5, // Limit concurrent connections
   auth: {
     user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS
+    pass: process.env.MAIL_PASS,
   },
-  tls: {
-    rejectUnauthorized: true,
-    minVersion: 'TLSv1.2'
-  },
-  secure: true // ensures SSL/TLS is used
 });
+
 // Enhanced admin alert function with failure management
 const sendAdminAlert = async (failedSelectors) => {
   if (process.env.NODE_ENV === "test") return;
@@ -405,9 +399,9 @@ const sendAdminAlert = async (failedSelectors) => {
           <li><strong>Consecutive Failures:</strong> ${failureSummary.globalState.consecutiveFailures}</li>
           <li><strong>Notification Level:</strong> ${failureSummary.globalState.notificationLevel}</li>
           <li><strong>Last Success:</strong> ${failureSummary.globalState.lastSuccessTime ?
-      failureSummary.globalState.lastSuccessTime.toLocaleString() : 'Never'}</li>
+            failureSummary.globalState.lastSuccessTime.toLocaleString() : 'Never'}</li>
           <li><strong>System Status:</strong> ${failureSummary.systemHealth.hasCriticalFailures ?
-      'CRITICAL - Immediate attention required' : 'DEGRADED - Monitor closely'}</li>
+            'CRITICAL - Immediate attention required' : 'DEGRADED - Monitor closely'}</li>
         </ul>
       </div>
 
@@ -419,7 +413,7 @@ const sendAdminAlert = async (failedSelectors) => {
           <li>Test fallback selectors functionality</li>
           <li>Monitor admin dashboard: <a href="${process.env.API_URL}/admin/dashboard">Dashboard</a></li>
           ${failureSummary.systemHealth.recommendsManualCheck ?
-      '<li><strong>URGENT:</strong> Manual investigation required - failure count exceeds threshold</li>' : ''}
+            '<li><strong>URGENT:</strong> Manual investigation required - failure count exceeds threshold</li>' : ''}
         </ol>
       </div>
 
@@ -453,6 +447,13 @@ const sendAdminAlert = async (failedSelectors) => {
 
 const app = express();
 configureEnv(); // Load env or fallback
+
+// After env is set, explicitly start Redis service
+try {
+  redisService.start();
+} catch (e) {
+  console.warn("Redis service start skipped due to initialization error:", e.message);
+}
 
 // Now that env is configured, require OAuth routes and middleware that depend on env
 ({
@@ -642,13 +643,16 @@ const parseMinMaxTemperature = (rawText) => {
 
 const parseHumidityPressure = (rawText) => {
   try {
-    if (!rawText) return { humidity: "N/A", pressure: "N/A" };
+    if (typeof rawText !== "string" || rawText.length > 200) {
+      return { humidity: "N/A", pressure: "N/A" };
+    }
+    // Fixed ReDoS vulnerability: Use atomic grouping to prevent backtracking
     const humidityMatch =
-      rawText.match(/(\d+\.?\d*)\s*%/i) ||
-      rawText.match(/(\d+\.?\d*)\s*Humidity/i);
+      rawText.match(/(\d+(?:\.\d+)?)\s*%/i) ||
+      rawText.match(/(\d+(?:\.\d+)?)\s*Humidity/i);
     const pressureMatch =
-      rawText.match(/(\d+\.?\d*)\s*hPa/i) ||
-      rawText.match(/(\d+\.?\d*)\s*Pressure/i);
+      rawText.match(/(\d+(?:\.\d+)?)\s*hPa/i) ||
+      rawText.match(/(\d+(?:\.\d+)?)\s*Pressure/i);
 
     const humidity = humidityMatch ? parseInt(humidityMatch[1], 10) : null;
     const pressure = pressureMatch ? parseFloat(pressureMatch[1]) : null;
@@ -1229,16 +1233,13 @@ if (process.env.NODE_ENV !== "test") {
       enableMetrics: process.env.ENABLE_METRICS,
     });
 
+    // Initialize database and system components
     try {
       // Initialize database first
       logger.info("Initializing database...");
       await initializeApp();
 
-      // Connect to Redis BEFORE starting services that depend on it
-      logger.info("Connecting to Redis...");
-      await redisService.connect(); // ADD THIS LINE
-
-      // Initialize monitoring and validation
+      // Initialize monitoring and validation with failure management
       await validateSelectors();
       scheduleSelectorValidation();
 

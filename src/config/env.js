@@ -42,6 +42,11 @@ function configureEnv() {
     process.env.CONDITION_CLASS =
       process.env.CONDITION_CLASS || ".condition-fallback";
     process.env.DATE_CLASS = process.env.DATE_CLASS || ".date-fallback";
+
+    // New selectors for additional weather details
+    process.env.WIND_CLASS = process.env.WIND_CLASS || ".wind-fallback";
+    process.env.UV_INDEX_CLASS = process.env.UV_INDEX_CLASS || ".uv-index-fallback";
+    process.env.POLLEN_COUNT_CLASS = process.env.POLLEN_COUNT_CLASS || ".pollen-count-fallback";
   }
 }
 
