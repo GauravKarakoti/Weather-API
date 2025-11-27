@@ -24,7 +24,7 @@
     "bcrypt": "^6.0.0",
     "cheerio": "^1.0.0-rc.12",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
+    "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "express-rate-limit": "^8.2.1",
     "express-winston": "^4.2.0",
